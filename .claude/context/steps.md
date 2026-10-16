@@ -15,6 +15,11 @@ them when they come up.
     find the matching Tellus settings.
   - Visit the Remarkables and the Canterbury Plains (Milford Sound if there
     is time), and take screenshots.
+  - Distant Horizons: Tellus releases ship their own DH build
+    (`…-tellus-height…`) next to the mod, without saying why. Test the stock
+    DH 3.3.x from Modrinth first. If tall peaks (Y 1,000+) render wrong in
+    the distance, try the Tellus DH build. Record which one works, because
+    the pack needs to know.
 - **Done when:** results are in `testing.md`; the decision is recorded in
   HUB-1.
 
