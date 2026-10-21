@@ -48,6 +48,11 @@ them when they come up.
   - Decide the block palette: rock types by slope and altitude, scree,
     riverbeds, snowline height, soils under forest and tussock.
   - Record it in a new `.claude/context/surface-palette.md`.
+- **Know:** the heightmap comes from `nz-pipeline worldpainter <area>`; the
+  import settings are in the pipeline README ("WorldPainter"). The floor is
+  Y −64 in the prototype (WorldPainter can't do −272). WorldPainter's
+  default theme paints most of the mountains as snow; replace it. Exporting
+  the prototype as a Minecraft world hasn't been tried yet.
 - **Needs:** PIPE-5, PIPE-6.
 
 ### [ ] TERR-4 — Study Tellus: coordinates and scales (read-only)
