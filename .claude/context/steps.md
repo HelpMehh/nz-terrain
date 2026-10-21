@@ -5,7 +5,7 @@ what blocks what: in the `mc-nz` workspace, `../.claude/context/steps.md`.
 Tick `[x]` here and there when a step is done. Later steps are coarser; refine
 them when they come up.
 
-### [ ] TERR-1 — Scale check (desktop, no code)
+### [x] TERR-1 — Scale check (desktop, no code)
 
 - **Goal:** confirm that the chosen scale (hub `CLAUDE.md`: 1:3 horizontal,
   1:2 vertical, sea level Y 63, world Y −272 to 2,031) looks right and
@@ -71,6 +71,8 @@ them when they come up.
   - List every online feature to disable for NZ worlds: OSM roads, buildings
     and lights, real-time weather and time, online elevation, WorldCover,
     Köppen.
+  - Find out why river channels stayed dry stone at 3 m/block in TERR-1
+    (`testing.md`).
   - Add all of this to `tellus-internals.md`.
 
 ### [ ] TERR-6 — NZ skeleton
