@@ -5,23 +5,29 @@ what blocks what: in the `mc-nz` workspace, `../.claude/context/steps.md`.
 Tick `[x]` here and there when a step is done. Later steps are coarser; refine
 them when they come up.
 
-### [ ] TERR-1 — Vertical scale test (desktop, no code)
+### [ ] TERR-1 — Scale check (desktop, no code)
 
-- **Goal:** choose 1:4 or 1:3 vertical.
+- **Goal:** confirm that the chosen scale (hub `CLAUDE.md`: 1:3 horizontal,
+  1:2 vertical, sea level Y 63, world Y −272 to 2,031) looks right and
+  runs well, before every repo builds on it.
 - **Do:**
   - Use a launcher instance with Fabric 26.2, the released Tellus jar,
     Distant Horizons and Sodium.
-  - Make worlds at 7 m/block horizontal and 1:4 and 1:3 vertical. Claude helps
-    find the matching Tellus settings.
-  - Visit the Remarkables and the Canterbury Plains (Milford Sound if there
-    is time), and take screenshots.
+  - Make a world at 3 m/block horizontal and 2 m/block vertical. Claude
+    helps find the matching Tellus settings, and whether Tellus can set the
+    world height we want. If it can't, test with its default height and
+    note what TERR-8 must change.
+  - Visit the Remarkables, the Canterbury Plains and Milford Sound, and take
+    screenshots. Does it look dramatic, and still believable on the plains?
   - Distant Horizons: Tellus releases ship their own DH build
     (`…-tellus-height…`) next to the mod, without saying why. Test the stock
-    DH 3.3.x from Modrinth first. If tall peaks (Y 1,000+) render wrong in
+    DH 3.3.x from Modrinth first. If tall peaks (Y 1,500+) render wrong in
     the distance, try the Tellus DH build. Record which one works, because
     the pack needs to know.
-- **Done when:** results are in `testing.md`; the decision is recorded in
-  HUB-1.
+  - Try DH at 256, 512 and 1,024 chunks: frame rate, how long the distance
+    takes to fill in, and how big the DH database and world folder get.
+- **Done when:** results are in `testing.md`; HUB-1 records them in the
+  hub (and changes the scale only if it doesn't work).
 
 ### [ ] TERR-2 — Build check
 
@@ -48,8 +54,9 @@ them when they come up.
 
 - **Goal:** know exactly where to plug in NZTM.
 - **Do:**
-  - Trace world x/z → lat/lon, and the horizontal scale, vertical scale and
-    sea-level settings.
+  - Trace world x/z → lat/lon, and the horizontal scale, vertical scale,
+    sea-level and world-height settings. Check what breaks with a world
+    from Y −272 to 2,031.
   - Trace how world settings and presets reach the chunk generator.
   - Write a new `.claude/context/tellus-internals.md` with file:line pointers
     and the proposed hook points.
@@ -91,8 +98,12 @@ them when they come up.
 ### [ ] TERR-8 — NZ heights
 
 - **Do:**
-  - The NZ world takes its height from the tiles (1:7, vertical V, sea level
-    63) via the NZTM mapping.
+  - The NZ world takes its height from the tiles via the NZTM mapping and
+    the height formula in hub `interfaces.md` (1:3, vertical 1:2, sea
+    level Y 63, world Y −272 to 2,031).
+  - Vanilla-style underground below NZ reaching the new floor at Y −272:
+    patch the hard-coded lava level (Y −54), let caves reach the floor, and
+    optionally add ores below −64.
   - Outside the data: flat ocean for now.
   - Compare test area 1 with the WorldPainter prototype.
 - **Needs:** TERR-7.
@@ -153,6 +164,8 @@ them when they come up.
   - ocean ring and blend band from the distance raster;
   - a density function wrapping Tectonic's `final_density`;
   - a combined biome source;
+  - Tectonic's terrain continues down to the world floor at Y −272, with
+    the same underground patches as TERR-8;
   - DH falls back to normal generation outside NZ.
 
   Write a plan in `.claude/plans/` first.

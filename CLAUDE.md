@@ -2,7 +2,7 @@
 
 Fork of [Tellus](https://github.com/Yucareux/Tellus) (LGPL-3.0), becoming the
 New Zealand terrain generator: real NZ terrain from local pre-processed tiles,
-at 1:7 horizontal scale, for **Minecraft 26.2 Fabric** only.
+at 1:3 horizontal and 1:2 vertical scale, for **Minecraft 26.2 Fabric** only.
 
 **Shared goal, decisions and workflow:** the hub `CLAUDE.md` of the `mc-nz`
 workspace (`../CLAUDE.md` when this repo sits in the workspace). The block

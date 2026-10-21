@@ -2,16 +2,17 @@
 
 ## Scale test (TERR-1, not run yet)
 
-Uses the released Tellus jar for 26.2 (not our code) to pick the vertical
-scale.
+Uses the released Tellus jar for 26.2 (not our code) to check the chosen
+scale: 3 m/block horizontal, 2 m/block vertical, sea level Y 63, world
+Y −272 to 2,031.
 
-- Horizontal: 7 m/block. Vertical: try 1:4 and 1:3.
-- Places: the Remarkables (does it look dramatic?) and the Canterbury Plains
-  (does it still look believable?).
-- Record: settings used, screenshots taken, impressions, decision. The hub
-  decisions are updated in HUB-1.
+- Places: the Remarkables (does it look dramatic?), the Canterbury Plains
+  (does it still look believable?) and Milford Sound.
+- Record: settings used, screenshots taken, impressions, which DH build
+  works, DH distance vs frame rate, DH database and world folder sizes. The
+  hub decisions are updated in HUB-1.
 
-| Date | Vertical | Place | Result |
+| Date | Settings | Place | Result |
 |---|---|---|---|
 
 ## Build check
