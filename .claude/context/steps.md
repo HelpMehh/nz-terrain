@@ -165,13 +165,15 @@ them when they come up.
 - **Do:** follow hub `NZ-MINECRAFT-CONTEXT.md` §5.2:
   - ocean ring and blend band from the distance raster;
   - a density function wrapping Tectonic's `final_density`;
-  - a combined biome source;
+  - a combined biome source: vanilla biomes outside NZ. Terralith only if
+    it works unmodified, wrapped from the outside; never open its files
+    (licence, hub `CLAUDE.md`);
   - Tectonic's terrain continues down to the world floor at Y −272, with
     the same underground patches as TERR-8;
   - DH falls back to normal generation outside NZ.
 
   Write a plan in `.claude/plans/` first.
-- **Needs:** PIPE-10, PACK-1 (Tectonic/Terralith on 26.2), HUB-4.
+- **Needs:** PIPE-10, PACK-1 (done: Tectonic and Terralith have 26.2 builds), HUB-4.
 
 ### [ ] TERR-18 — Whole NZ
 
