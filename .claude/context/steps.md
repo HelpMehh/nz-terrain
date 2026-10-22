@@ -223,44 +223,33 @@ them when they come up.
   - Keep the palette (blocks, mixes, thresholds) in one data file that is
     easy to edit, so tuning means changing that file and generating fresh
     chunks.
-  - NZ ground blocks from `nz-mods` (MODS-17) are a soft dependency: each
-    has a vanilla fallback from `surface-palette.md`, used when `nz-mods`
-    isn't installed.
+  - NZ ground blocks come from the `aotearoa` mod (MODS-17), which this
+    generator requires (hub `interfaces.md`). Until MODS-17 lands, use the
+    vanilla placeholders from `surface-palette.md`; if this is the first
+    step to use `aotearoa`, add the dependency (hub `interfaces.md`).
   - Tune the palette in game in the tuning box in `surface-palette.md`,
     and record the final choices there.
-- **Needs:** TERR-3. MODS-17 is optional: without it, the fallbacks are
-  used.
+- **Needs:** TERR-3. MODS-17 for the NZ blocks; placeholders until then.
 
 ### [ ] TERR-12 — NZ biomes
 
 - **Do:**
-  - NZ biomes per vegetation class or region. They live in this mod, so an
-    NZ world works without `nz-mods`.
-  - Keep them out of vanilla structure biome tags (no villages in NZ).
-  - Choose sky, fog, water, grass and foliage colours (tussock should look
-    golden, not green).
-  - A glow-worm cave biome (wanted since 22 Oct 2026). Real NZ glow-worm
+  - Place the NZ biomes in the biome source, per vegetation class or
+    region. The biomes themselves (colours, spawns, ambience, the
+    glow-worm cave biome) are defined in the `aotearoa` mod, MODS-19
+    (decided 23 Oct 2026, hub `interfaces.md`); this generator requires
+    it. If this is the first step to use `aotearoa`, add the dependency.
+  - The glow-worm cave biome needs caves where it goes. Real NZ glow-worm
     caves (Waitomo, Oparara, Ngārua) are fairly shallow limestone stream
     caves, so they could follow the `rock` layer (PIPE-15); the deep caverns
-    (TERR-20) are the other candidate. The glowing block and particles
-    belong in `nz-mods`, with a vanilla fallback.
-  - Decide with MODS-15 how `nz-mods` hangs ambience (sounds, particles)
-    onto these biomes without a hard dependency (hub `interfaces.md`).
-  - Mob spawns (decided 22 Oct 2026, hub `NZ-MINECRAFT-CONTEXT.md` §2):
-    NZ Natives' animals, plus vanilla goats, sheep, cows and pigs for
-    food, and red deer if a deer mod is found (hub §8). Suggested split:
-    goats on alpine rock and scree (like feral goats, tahr and chamois),
-    sheep in tussock high country, cows on lowland open land, pigs in
-    lowland forest and scrub, deer in forest, subalpine scrub and tussock
-    valleys. NZ Natives' animals must reach NZ biomes; how it adds spawns is
-    checked in MODS-2.
-- **Needs:** HUB-3.
+    (TERR-20) are the other candidate. Cave shape is this generator's job.
+- **Needs:** MODS-19.
 
 ### [ ] TERR-13 — Flora placement
 
 - **Do:** place flora by vegetation class and canopy height, using the
-  placed-feature IDs from hub `interfaces.md`. This is a soft dependency: the
-  world must still generate without `nz-mods`.
+  placed-feature IDs from hub `interfaces.md` (from the `aotearoa` mod,
+  which this generator requires).
 - **Needs:** MODS-9, HUB-3.
 
 ### [ ] TERR-14 — Streams and micro-detail

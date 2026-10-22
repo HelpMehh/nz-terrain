@@ -104,7 +104,7 @@ the vertical sides of steps, so it matters on steep ground.
 
 Notes:
 
-- **Tussock colour** comes from the grass tint of the biome (TERR-12), not
+- **Tussock colour** comes from the grass tint of the biome (MODS-19), not
   from the block. Tussock should read golden, not green.
 - **Steep tussock and shrubland** keep their grass top but only one or two
   blocks of soil, so the sides of steps show rock. That looks like a
@@ -113,13 +113,14 @@ Notes:
   it turns into concrete when water touches it.
 - Boulders, cliff bands and streams are TERR-14, not this palette.
 
-## NZ ground blocks (with vanilla fallbacks)
+## NZ ground blocks
 
 Vanilla can't show some NZ ground well. Custom blocks for these come from
-`nz-mods` (MODS-17). The generator must work without `nz-mods`, so every
-custom block has a vanilla fallback here (hub `interfaces.md`).
+the `aotearoa` mod in `nz-mods` (MODS-17), which this generator requires
+(hub `interfaces.md`), so there are no permanent fallbacks. The vanilla
+mixes below are placeholders until MODS-17 lands.
 
-| Custom block (candidate) | Where | Vanilla fallback |
+| Custom block (candidate) | Where | Vanilla placeholder |
 |---|---|---|
 | Grey sand | West Coast beaches | gravel 70, andesite 15, sand 15 (the beach mix) |
 | Black ironsand | Taranaki, west Auckland, parts of the West Coast | gravel 70, andesite 30 (no dark sand in vanilla) |
@@ -164,5 +165,5 @@ come with the `rock` tile layer (PIPE-15, below).
   250 m, so blend rock mixes across them rather than switching at a line.
 - **Retexture instead of new blocks?** A resource pack in `nz-modpack`
   could recolour vanilla blocks (e.g. sand), but it changes them
-  everywhere, outside NZ too. New blocks with fallbacks are the plan;
-  decide per block in MODS-17.
+  everywhere, outside NZ too. New blocks are the plan; decide per block in
+  MODS-17.
