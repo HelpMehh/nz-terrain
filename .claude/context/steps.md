@@ -92,7 +92,7 @@ them when they come up.
   - Tellus's own readable formats (for HUB-2): `TELLUS/RASTER` (int16,
     XZ), a uint8-only COG reader, PMTiles (§7).
 
-### [ ] TERR-6 — NZ skeleton
+### [x] TERR-6 — NZ skeleton
 
 - **Goal:** a place for NZ code, and the naming decisions made.
 - **Do:**
@@ -104,7 +104,7 @@ them when they come up.
     nothing yet.
   - Record the decisions in `CLAUDE.md`.
 - **Done when:** build passes, the option shows up in-game.
-- **Built (22 Oct 2026), version `0.8.3+nz.1`:**
+- **Done (22 Oct 2026), version `0.8.3+nz.1`:**
   - Decisions in `CLAUDE.md` "Naming and versions": mod ID stays `tellus`
     (the jar replaces Tellus), jar `nz-terrain-…`, package
     `com.yucareux.tellus.nz`, version `<Tellus>+nz.<N>`, `CHANGELOG-NZ.md`.
@@ -112,9 +112,8 @@ them when they come up.
     "New Zealand" preset `tellus:nz`. How, and the traps:
     `tellus-internals.md` §6.
   - Build passes (604 tests). A dedicated server created and reopened a
-    world from the preset with `nz` saved (`testing.md`).
-  - **Still to do:** the desktop client check in `testing.md`. Tick this
-    step after it.
+    world from the preset with `nz` saved, and on the desktop client "New
+    Zealand" shows in World Type and generates (`testing.md`).
 - **Needs:** TERR-4, TERR-5.
 
 ### [ ] TERR-7 — Local tile source

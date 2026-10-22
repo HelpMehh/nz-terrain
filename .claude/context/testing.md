@@ -168,8 +168,8 @@ Code: `0.8.3+nz.1`.
   - First start logged `Overworld dimension type: minY=-368,height=800`:
     the NZ preset's height isn't applied until the next start (TERR-8,
     `tellus-internals.md` §6.2).
-- **Desktop client check (to do):** run `runClient262`, then Singleplayer →
-  Create New World → World tab. Expected:
+- **Desktop client check (passed, 22 Oct 2026):** run `runClient262`, then
+  Singleplayer → Create New World → World tab. Checked:
   - the World Type button offers **New Zealand** (next to Earth);
   - with New Zealand selected, Customize is greyed out;
   - the world creates and generates Earth terrain (Mount Everest spawn,
