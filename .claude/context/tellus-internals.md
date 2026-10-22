@@ -291,10 +291,17 @@ matters).
      height limits at world creation. The world opens with the preset's
      dimension type (`tellus:earth`, Y −368..431), and Tellus's height
      datapack (section 3) only takes effect at the *next* start. TERR-6's
-     server check logged `minY=-368,height=800` on the first start. TERR-8
+     server check logged `minY=-368,height=800` on the first start.
+     **This breaks reopened worlds** (TERR-7 desktop check): at the second
+     start the datapack sizes the world from the preset's settings (today
+     Earth's defaults, Y −64..463, 528 tall = 33 sections). Chunks saved in
+     the first session have 50 sections, so loading them fails with
+     `Failed to load chunk … ArrayIndexOutOfBoundsException: Index 38 out of
+     bounds for length 33` (`ChunkAccess.getOrCreateOffsetList`). TERR-8
      must fix this, e.g. with a static NZ dimension type of Y −272..2031 in
      the preset (`resolveTellusDimensionKey` then ignores it, which is fine
-     because it is already right).
+     because it is already right), and check it by generating, quitting and
+     reopening a new world.
 3. **Heights (TERR-8):** wherever elevation becomes Y (section 2 table),
    chiefly the generator's `sampleSurfaceHeight` family
    (`EarthChunkGenerator.java:5253`–`:5294`: blocking, local-only and

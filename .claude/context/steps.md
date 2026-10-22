@@ -165,7 +165,9 @@ them when they come up.
   - Give the `tellus:nz` preset its values (scale, heights, altitudes,
     roads, buildings and realtime off), and make the world height right
     from the first start: the preset has no editor, so today the first
-    start runs at Tellus's default height (`tellus-internals.md` §6.2).
+    start runs at Tellus's default height, and chunks from that session
+    fail to load once the world is reopened (`tellus-internals.md` §6.2).
+    Check: create, walk around, quit, reopen; no "Failed to load chunk".
   - Refuse an NZ world without tiles (hub `interfaces.md`). TERR-7 only
     warns. Don't throw from the settings decode or at server start: the
     first breaks every world type, the second crashes the whole client in

@@ -198,8 +198,20 @@ Code: `0.8.3+nz.2`.
   - tiles folder renamed away: WARN "no tile sets found in …/nz-tiles";
   - `SERVER_STARTED` fires after `Done (`, so the warnings come just after
     it in the log.
-- **Desktop client check (open):** copy the fixture's `nz-main/` folder to
-  `nz-tiles/` in the dev client's game folder (`mc262/run/` in a desktop
-  clone), create a New Zealand world, quit, change `data_version` in
-  `tileset.json`, reopen the world. Expected: yellow chat lines with the
-  same warning. Without tiles: the "no tile sets found" line in chat.
+- **Desktop client check (passed, 22 Oct 2026):** copy the fixture's
+  `nz-main/` folder to `nz-tiles/` in the dev client's game folder
+  (`mc262/run/` in a desktop clone), create a New Zealand world, quit,
+  change `data_version` in `tileset.json`, reopen the world.
+  - First start: `NZ tile set: nz-main (data 2026-10-22, …)` logged, no
+    chat message.
+  - Reopened: the two warning lines in the log and as yellow chat lines
+    (`[System] [CHAT] NZ Terrain: the tiles differ …`), so the single
+    player owner gets them. The "no tiles" case was not tried on the
+    desktop (checked on the server).
+  - **Found, not caused by TERR-7:** the reopened world logged
+    `Failed to load chunk … ArrayIndexOutOfBoundsException: Index 38 out
+    of bounds for length 33` for chunks from the first session. The first
+    start ran at Y −368..431 (800 tall), the second at Y −64..463 (528):
+    the preset's height problem from TERR-6, with this consequence
+    (`tellus-internals.md` §6.2, fixed in TERR-8). Until then, NZ test
+    worlds are throwaway; create a new one per test.
