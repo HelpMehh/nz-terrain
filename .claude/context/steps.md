@@ -69,22 +69,28 @@ them when they come up.
   - NZ settings must ride on `EarthGeneratorSettings`; options for TERR-6
     are in `tellus-internals.md` §6.
 
-### [ ] TERR-5 — Study Tellus: data, generator, DH (read-only)
+### [x] TERR-5 — Study Tellus: data, generator, DH (read-only)
 
 - **Goal:** know where a local tile source fits and what to switch off.
-- **Do:**
-  - How data sources fetch, cache and sample data (`world/data/`).
-  - How the chunk generator uses them.
-  - How DH fast LOD samples them. Start point from TERR-4: DH gets heights
-    through generator methods (`resolveLodTerrainSurface`,
-    `resolveLodSurface`, …), but also calls `EarthProjection` directly
-    (`tellus-internals.md` §1).
-  - List every online feature to disable for NZ worlds: OSM roads, buildings
-    and lights, real-time weather and time, online elevation, WorldCover,
-    Köppen.
-  - Find out why river channels stayed dry stone at 3 m/block in TERR-1
-    (`testing.md`).
-  - Add all of this to `tellus-internals.md`.
+- **Done (22 Oct 2026):** everything is in `tellus-internals.md` §7–11.
+  Main findings:
+  - Every source is a static singleton that takes block x/z, projects
+    with Mercator itself, and has blocking / local-only / memory-only
+    lookups over a memory LRU and a disk cache. The complete list of
+    generator call sites for NZ hooks is in §8.4.
+  - DH's default fast LOD reads heights only through the generator's
+    `sampleSurfaceHeight` family, at a coarser resolution. So one height
+    hook covers chunks and LODs. Its own `EarthProjection` calls are all
+    roads and buildings.
+  - Settings switch off roads, buildings, lights, realtime time/weather
+    and managed downloads. Elevation, land cover, land mask, sand, OISST
+    and water have no off switch and need NZ hooks (§10).
+  - Dry rivers in TERR-1 (from the code, not checked in game): water comes
+    only from Overture shapes; centreline rivers become a 1-block strip,
+    and the rest of the LiDAR channel is WorldCover water or bare gravel,
+    drawn as stone (§11).
+  - Tellus's own readable formats (for HUB-2): `TELLUS/RASTER` (int16,
+    XZ), a uint8-only COG reader, PMTiles (§7).
 
 ### [ ] TERR-6 — NZ skeleton
 
@@ -129,13 +135,19 @@ them when they come up.
 
 ### [ ] TERR-9 — Switch off online features for NZ worlds
 
-- **Do:** disable everything from the TERR-5 list, so NZ worlds work offline
-  and have no roads or buildings.
+- **Do:** disable everything in `tellus-internals.md` §10, so NZ worlds
+  work offline and have no roads or buildings. Settings cover only part of
+  it; the rest stops once the NZ hooks (§8.4) replace those reads. Check
+  with networking blocked that `tellus/cache/` stays empty.
 
 ### [ ] TERR-10 — Water
 
 - **Do:** sea, lakes at their real surface height, and rivers, all from the
-  water layer.
+  water layer. Whole river channels must be wet, not a 1-block line
+  (TERR-1, `tellus-internals.md` §11).
+- **Decide:** feed our water tile into Tellus's water resolver (keep its
+  river surfaces, bed depth, shores and waterfalls) or write a simpler NZ
+  water pass (§11).
 
 ### [ ] TERR-11 — Surface rules
 
@@ -191,7 +203,9 @@ them when they come up.
 ### [ ] TERR-15 — DH fast LOD from our tiles
 
 - **Do:** fast LOD samples our tiles, including the approximate colour of
-  vegetation.
+  vegetation. Heights and cover already reach DH through the generator
+  hooks (`tellus-internals.md` §9); this step is about speed (coarse
+  levels for far LOD cells) and the vegetation colour.
 
 ### [ ] TERR-16 — Test area 2 in game
 

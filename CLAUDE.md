@@ -68,7 +68,7 @@ Without a display (e.g. a sandbox), the client can't open a window. Use
 |---|---|
 | `.claude/context/steps.md` | Starting a step ("Do step TERR-n"), or picking the next one. |
 | `.claude/context/tellus-layout.md` | Before reading or changing any Java code: how the source layers combine, where things live. |
-| `.claude/context/tellus-internals.md` | Changing coordinates, heights, world height, the underground or world settings: how Tellus does it, file:line pointers, the proposed NZ hook points. |
+| `.claude/context/tellus-internals.md` | Changing coordinates, heights, world height, the underground, world settings, data sources, water, DH or online features: how Tellus does it, file:line pointers, the NZ hook points. |
 | `.claude/context/upstream.md` | Merging upstream Tellus. |
 | `.claude/context/testing.md` | Running or recording tests, including the scale test. |
 | `.claude/context/surface-palette.md` | Choosing surface blocks: rock, scree, riverbeds, snow and ice, soils (TERR-3, TERR-11). |

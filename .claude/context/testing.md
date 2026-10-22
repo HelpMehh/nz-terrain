@@ -90,7 +90,11 @@ Settings as above; Fabric 26.2, released Tellus, Sodium, stock DH
   precision at very long range, or the test world lying about 4.5 million
   blocks from 0,0 (the NZ world will be near 0,0).
 - **Rivers:** channels are carved but left as stone, with no water. This is a
-  Tellus water issue, not a scale issue; see TERR-5 and TERR-10.
+  Tellus water issue, not a scale issue. TERR-5 found the likely cause in
+  the code (not checked in game). The channels are the real LiDAR riverbeds.
+  Water comes only from Overture shapes, and centreline rivers get just a
+  1-block strip. The rest is drawn as stone (`tellus-internals.md` §11).
+  The fix is TERR-10.
 
 ## Build check (TERR-2, run 22 Oct 2026)
 
