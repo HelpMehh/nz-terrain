@@ -39,21 +39,18 @@ them when they come up.
     all eight targets.
 - **Done when:** the build passes and the dev client starts.
 
-### [ ] TERR-3 — WorldPainter prototype (desktop)
+### [x] TERR-3 — Surface palette from data
 
 - **Goal:** settle the look of test area 1 before writing generator code.
-- **Do:**
-  - Import the PIPE-5 heightmap and the PIPE-6 masks, and paint with
-    placeholder trees.
-  - Decide the block palette: rock types by slope and altitude, scree,
-    riverbeds, snowline height, soils under forest and tussock.
-  - Record it in a new `.claude/context/surface-palette.md`.
-- **Know:** the heightmap comes from `nz-pipeline worldpainter <area>`; the
-  import settings are in the pipeline README ("WorldPainter"). The floor is
-  Y −64 in the prototype (WorldPainter can't do −272). WorldPainter's
-  default theme paints most of the mountains as snow; replace it. Exporting
-  the prototype as a Minecraft world hasn't been tried yet.
-- **Needs:** PIPE-5, PIPE-6.
+- **Done (22 Oct 2026):** the rules come from measurements of the
+  test-area data: land-cover class as the base; slope splits gravel flats,
+  scree and rock; steep vegetation becomes rock; snow vs glacier ice by
+  height. The block mixes are a first guess. All of it is in
+  `surface-palette.md`.
+- **Changed from the plan:** the WorldPainter prototype was dropped.
+  Painting by hand was very slow, it can't show modded blocks or biome
+  colours, and changing a block means repainting. The palette is tuned in
+  game in TERR-11 instead, where a change is an edit plus fresh chunks.
 
 ### [ ] TERR-4 — Study Tellus: coordinates and scales (read-only)
 
@@ -112,7 +109,8 @@ them when they come up.
     patch the hard-coded lava level (Y −54), let caves reach the floor, and
     optionally add ores below −64.
   - Outside the data: flat ocean for now.
-  - Compare test area 1 with the WorldPainter prototype.
+  - Check heights against the pipeline's `height.tif` at a few known
+    points (e.g. the check peak in the pipeline README, "WorldPainter").
 - **Needs:** TERR-7.
 
 ### [ ] TERR-9 — Switch off online features for NZ worlds
@@ -127,16 +125,38 @@ them when they come up.
 
 ### [ ] TERR-11 — Surface rules
 
-- **Do:** rock on steep slopes, scree, riverbeds and the snowline, from
-  `surface-palette.md`.
-- **Needs:** TERR-3.
+- **Do:**
+  - Rock on steep slopes, scree, riverbeds, snow and glacier ice, and the
+    soils, from the rules in `surface-palette.md`.
+  - Keep the palette (blocks, mixes, thresholds) in one data file that is
+    easy to edit, so tuning means changing that file and generating fresh
+    chunks.
+  - NZ ground blocks from `nz-mods` (MODS-17) are a soft dependency: each
+    has a vanilla fallback from `surface-palette.md`, used when `nz-mods`
+    isn't installed.
+  - Tune the palette in game in the tuning box in `surface-palette.md`,
+    and record the final choices there.
+- **Needs:** TERR-3. MODS-17 is optional: without it, the fallbacks are
+  used.
 
 ### [ ] TERR-12 — NZ biomes
 
 - **Do:**
-  - NZ biomes per vegetation class or region.
+  - NZ biomes per vegetation class or region. They live in this mod, so an
+    NZ world works without `nz-mods`.
   - Keep them out of vanilla structure biome tags (no villages in NZ).
-  - Choose sky, fog and water colours.
+  - Choose sky, fog, water, grass and foliage colours (tussock should look
+    golden, not green).
+  - Decide with MODS-15 how `nz-mods` hangs ambience (sounds, particles)
+    onto these biomes without a hard dependency (hub `interfaces.md`).
+  - Mob spawns (decided 22 Oct 2026, hub `NZ-MINECRAFT-CONTEXT.md` §2):
+    NZ Natives' animals, plus vanilla goats, sheep, cows and pigs for
+    food, and red deer if a deer mod is found (hub §8). Suggested split:
+    goats on alpine rock and scree (like feral goats, tahr and chamois),
+    sheep in tussock high country, cows on lowland open land, pigs in
+    lowland forest and scrub, deer in forest, subalpine scrub and tussock
+    valleys. NZ Natives' animals must reach NZ biomes; how it adds spawns is
+    checked in MODS-2.
 - **Needs:** HUB-3.
 
 ### [ ] TERR-13 — Flora placement

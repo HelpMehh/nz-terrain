@@ -65,3 +65,4 @@ all eight targets, and those need other Java versions.
 | `.claude/context/tellus-layout.md` | Before reading or changing any Java code: how the source layers combine, where things live. |
 | `.claude/context/upstream.md` | Merging upstream Tellus. |
 | `.claude/context/testing.md` | Running or recording tests, including the scale test. |
+| `.claude/context/surface-palette.md` | Choosing surface blocks: rock, scree, riverbeds, snow and ice, soils (TERR-3, TERR-11). |
