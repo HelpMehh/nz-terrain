@@ -7,6 +7,8 @@ import com.yucareux.tellus.nz.tiles.NzTiles;
 import com.yucareux.tellus.preload.TerrainPreloadPackage;
 import com.yucareux.tellus.worldgen.EarthGeneratorSettings;
 import com.yucareux.tellus.worldgen.TerrainHeightTransform;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The terrain inputs of an NZ world, read from the NZ tiles: terrain height, cover class and land mask per block.
@@ -26,6 +28,9 @@ import com.yucareux.tellus.worldgen.TerrainHeightTransform;
  *    <li>Cover: ESA no-data on the sea (Tellus's ocean), water on lakes and rivers, else LCDB mapped by
  *    {@link NzCoverClasses}.</li>
  * </ul>
+ *
+ * <p>The biome source reads data on its own, without the preload view, so it asks {@link #coverClass} and
+ * {@link #elevationMetres} directly (TERR-9).
  */
 public final class NzTerrainSampler {
    static final int WATER_SEA = 1;
@@ -33,6 +38,8 @@ public final class NzTerrainSampler {
    static final int WATER_RIVER = 3;
    /** Height values are metres × 8. */
    private static final double HEIGHT_STEPS_PER_METRE = 8.0;
+   /** One sampler per settings value, so the generator and the biome source share one sea floor cache. */
+   private static final Map<EarthGeneratorSettings, NzTerrainSampler> SAMPLERS = new ConcurrentHashMap<>();
 
    private final EarthGeneratorSettings settings;
    private volatile NzSeaFloor seaFloor;
@@ -43,12 +50,32 @@ public final class NzTerrainSampler {
 
    /** A sampler for an NZ world's settings, or null for any other world. */
    public static NzTerrainSampler forSettings(EarthGeneratorSettings settings) {
-      return NzWorldSettings.isNzWorld(settings) ? new NzTerrainSampler(settings) : null;
+      return NzWorldSettings.isNzWorld(settings) ? SAMPLERS.computeIfAbsent(settings, NzTerrainSampler::new) : null;
    }
 
    /** The inputs at block (x, z), for data of about {@code resolutionMetres} per sample (any when not finite). */
    public TerrainPreloadPackage.Sample sample(int x, int z, double resolutionMetres) {
       return sample(this.seaFloorFor(NzTiles.global()), this.settings, x, z, levelFor(resolutionMetres));
+   }
+
+   /** The cover class at block (x, z), as in {@link #sample}, at block resolution. */
+   public int coverClass(int x, int z) {
+      return coverClass(NzTiles.global(), x, z);
+   }
+
+   /** Elevation in metres at block (x, z), as in {@link #sample}: negative on the sea floor and outside the data. */
+   public double elevationMetres(int x, int z, double resolutionMetres) {
+      return elevationMetres(this.seaFloorFor(NzTiles.global()), x, z, levelFor(resolutionMetres));
+   }
+
+   static int coverClass(NzTiles tiles, int x, int z) {
+      int level = tiles.finestLevel(NzTileLayer.HEIGHT, 0, x, z);
+      return level < 0 ? NzCoverClasses.ESA_NO_DATA : coverClass(tiles, level, x, z);
+   }
+
+   static double elevationMetres(NzSeaFloor floor, int x, int z, int minLevel) {
+      int level = floor.tiles().finestLevel(NzTileLayer.HEIGHT, minLevel, x, z);
+      return level < 0 ? -NzSeaFloor.MAX_DEPTH_METRES : bilinearElevation(floor, level, x, z);
    }
 
    /** The sea floor of the current store; the store is replaced at every server start. */
@@ -73,25 +100,9 @@ public final class NzTerrainSampler {
    static TerrainPreloadPackage.Sample sample(NzSeaFloor floor, EarthGeneratorSettings settings, int x, int z, int minLevel) {
       NzTiles tiles = floor.tiles();
       int level = tiles.finestLevel(NzTileLayer.HEIGHT, minLevel, x, z);
-      double elevation;
-      int cover;
-      boolean sea;
-      if (level < 0) {
-         elevation = -NzSeaFloor.MAX_DEPTH_METRES;
-         cover = NzCoverClasses.ESA_NO_DATA;
-         sea = true;
-      } else {
-         elevation = bilinearElevation(floor, level, x, z);
-         int water = tiles.sample(NzTileLayer.WATER, level, x, z);
-         sea = NzSeaFloor.isSea(water);
-         if (sea) {
-            cover = NzCoverClasses.ESA_NO_DATA;
-         } else if (water == WATER_LAKE || water == WATER_RIVER) {
-            cover = NzCoverClasses.ESA_WATER;
-         } else {
-            cover = NzCoverClasses.esaForLcdb(tiles.sample(NzTileLayer.LANDCOVER, level, x, z));
-         }
-      }
+      double elevation = level < 0 ? -NzSeaFloor.MAX_DEPTH_METRES : bilinearElevation(floor, level, x, z);
+      int cover = level < 0 ? NzCoverClasses.ESA_NO_DATA : coverClass(tiles, level, x, z);
+      boolean sea = cover == NzCoverClasses.ESA_NO_DATA;
       int terrainHeight = TerrainHeightTransform.blockOffset(
          elevation,
          z,
@@ -105,6 +116,17 @@ public final class NzTerrainSampler {
       // asking the online source. Every NZ height is final, so all samples say so.
       boolean oceanElevationSelected = true;
       return new TerrainPreloadPackage.Sample(terrainHeight, cover, true, !sea, false, false, oceanElevationSelected);
+   }
+
+   /** ESA no-data on the sea, water on lakes and rivers, else the land cover; at a level that has the tile. */
+   private static int coverClass(NzTiles tiles, int level, int x, int z) {
+      int water = tiles.sample(NzTileLayer.WATER, level, x, z);
+      if (NzSeaFloor.isSea(water)) {
+         return NzCoverClasses.ESA_NO_DATA;
+      } else if (water == WATER_LAKE || water == WATER_RIVER) {
+         return NzCoverClasses.ESA_WATER;
+      }
+      return NzCoverClasses.esaForLcdb(tiles.sample(NzTileLayer.LANDCOVER, level, x, z));
    }
 
    /** Elevation in metres at the centre of block (x, z), bilinear between the centres of the level's pixels. */

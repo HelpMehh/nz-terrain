@@ -167,6 +167,7 @@ public final class TellusWorldgenSources {
 
    static void warmCriticalTerrainInputsForChunk(ChunkPos pos, EarthGeneratorSettings settings, double previewResolutionMeters) {
       if (ManagedTerrainNetworkPolicy.isCacheOnly()) return;
+      if (com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(settings)) return; // NZ: NZ worlds download nothing
       Objects.requireNonNull(pos, "pos");
       Objects.requireNonNull(settings, "settings");
       int centerX = pos.getMinBlockX() + 8;
@@ -275,6 +276,9 @@ public final class TellusWorldgenSources {
    ) {
       if (ManagedTerrainNetworkPolicy.isCacheOnly() || !PREFETCH_ENABLED || PREFETCH_EXECUTOR == null) {
          return CompletableFuture.completedFuture(null);
+      }
+      if (com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(settings)) {
+         return CompletableFuture.completedFuture(null); // NZ: NZ worlds download nothing
       }
 
       int minX = Math.min(minBlockX, maxBlockX);
@@ -588,7 +592,8 @@ public final class TellusWorldgenSources {
             submitPrefetch(() -> OSM_WATER.prefetchTiles(centerX, centerZ, worldScale, WATER_PREFETCH_RADIUS), allowInlineExecution);
          }
 
-         if (SAND_PREFETCH_RADIUS > 0 && worldScale > 0.0) {
+         // NZ: no Overture sand in NZ worlds
+         if (SAND_PREFETCH_RADIUS > 0 && worldScale > 0.0 && !com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(settings)) {
             submitPrefetch(() -> OSM_SAND.prefetchTiles(centerX, centerZ, worldScale, SAND_PREFETCH_RADIUS), allowInlineExecution);
          }
 

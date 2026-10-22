@@ -308,8 +308,9 @@ public final class TellusRealtimeManager {
       Objects.requireNonNull(generator, "generator");
       Objects.requireNonNull(pos, "pos");
       Objects.requireNonNull(callback, "callback");
-      double latitude = Mth.clamp(generator.latitudeFromBlock(pos.getZ()), -85.05112878, 85.05112878);
-      double longitude = Mth.clamp(generator.longitudeFromBlock(pos.getX()), -180.0, 180.0);
+      // NZ: NZ worlds convert both coordinates together, by NZTM
+      double latitude = Mth.clamp(com.yucareux.tellus.nz.NzProjection.latitude(generator, pos.getX(), pos.getZ()), -85.05112878, 85.05112878);
+      double longitude = Mth.clamp(com.yucareux.tellus.nz.NzProjection.longitude(generator, pos.getX(), pos.getZ()), -180.0, 180.0);
       long now = System.currentTimeMillis();
       Long lastRequest = this.lastReportRequestMs.get(requesterId);
       if (this.reportRequestsInFlight.contains(requesterId) || lastRequest != null && now - lastRequest < REPORT_COOLDOWN_MS) {
@@ -402,8 +403,9 @@ public final class TellusRealtimeManager {
 
                      for (int i = 0; i < samplePoints.size(); i++) {
                         BlockPos pos = samplePoints.get(i);
-                        double lat = Mth.clamp(generator.latitudeFromBlock(pos.getZ()), -85.05112878, 85.05112878);
-                        double lon = Mth.clamp(generator.longitudeFromBlock(pos.getX()), -180.0, 180.0);
+                        // NZ: NZ worlds convert both coordinates together, by NZTM
+                        double lat = Mth.clamp(com.yucareux.tellus.nz.NzProjection.latitude(generator, pos.getX(), pos.getZ()), -85.05112878, 85.05112878);
+                        double lon = Mth.clamp(com.yucareux.tellus.nz.NzProjection.longitude(generator, pos.getX(), pos.getZ()), -180.0, 180.0);
                         points[i] = this.client.fetch(lat, lon);
                      }
 
@@ -958,7 +960,7 @@ public final class TellusRealtimeManager {
    }
 
    private static int approximateUtcOffsetSeconds(EarthChunkGenerator generator, BlockPos pos) {
-      double longitude = Mth.clamp(generator.longitudeFromBlock(pos.getX()), -180.0, 180.0);
+      double longitude = Mth.clamp(com.yucareux.tellus.nz.NzProjection.longitude(generator, pos.getX(), pos.getZ()), -180.0, 180.0); // NZ: NZTM in NZ worlds
       double hours = longitude / 15.0;
       return (int)Math.round(hours * 3600.0);
    }

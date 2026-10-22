@@ -8,6 +8,7 @@ import com.yucareux.tellus.nz.tiles.NzTileTestFiles;
 import com.yucareux.tellus.nz.tiles.NzTiles;
 import com.yucareux.tellus.preload.TerrainPreloadPackage;
 import com.yucareux.tellus.worldgen.EarthGeneratorSettings;
+import com.yucareux.tellus.worldgen.TerrainHeightTransform;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NzTerrainSamplerTest {
@@ -40,6 +42,25 @@ class NzTerrainSamplerTest {
    void onlyNzWorldsGetASampler() {
       assertNull(NzTerrainSampler.forSettings(EarthGeneratorSettings.DEFAULT));
       assertTrue(NzTerrainSampler.forSettings(SETTINGS) != null);
+   }
+
+   @Test
+   void settingsShareOneSampler() {
+      assertSame(NzTerrainSampler.forSettings(SETTINGS), NzTerrainSampler.forSettings(SETTINGS));
+   }
+
+   @Test
+   void biomeQueriesMatchTheSample() {
+      // The biome source asks for cover and elevation on their own; they must agree with the generator's sample.
+      NzSeaFloor floor = new NzSeaFloor(NzTiles.open(NzTileTestFiles.fixtureDir(), CACHE));
+      int[][] blocks = {{FIXTURE_X + 192, FIXTURE_Z + 256}, {FIXTURE_X + 64, FIXTURE_Z + 128}, {100_000, -100_000}};
+      for (int[] block : blocks) {
+         TerrainPreloadPackage.Sample sample = NzTerrainSampler.sample(floor, SETTINGS, block[0], block[1], 0);
+
+         assertEquals(sample.coverClass(), NzTerrainSampler.coverClass(floor.tiles(), block[0], block[1]));
+         assertEquals(sample.terrainHeight(), blockY(NzTerrainSampler.elevationMetres(floor, block[0], block[1], 0)));
+      }
+      assertEquals(3.625, NzTerrainSampler.elevationMetres(floor, FIXTURE_X + 192, FIXTURE_Z + 256, 0), 1.0e-9);
    }
 
    @Test
@@ -139,5 +160,12 @@ class NzTerrainSamplerTest {
       assertEquals(NzCoverClasses.ESA_WATER, NzTerrainSampler.sample(floor, SETTINGS, 1, 0, 0).coverClass());
       // LCDB river where the water layer says land: dry gravel.
       assertEquals(NzCoverClasses.ESA_BARE, NzTerrainSampler.sample(floor, SETTINGS, 2, 0, 0).coverClass());
+   }
+
+   private static int blockY(double elevationMetres) {
+      return TerrainHeightTransform.blockOffset(
+         elevationMetres, 0, SETTINGS.effectiveVerticalWorldScale(), SETTINGS.effectiveTerrestrialHeightScale(),
+         SETTINGS.effectiveOceanicHeightScale(), SETTINGS.experimentalIncreaseHeight(), SETTINGS.automaticHeightScaling()
+      ) + SETTINGS.effectiveHeightOffset();
    }
 }

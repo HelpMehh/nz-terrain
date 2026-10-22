@@ -4,6 +4,20 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.4 (TERR-9, 23 Oct 2026)
+
+- New Zealand worlds generate fully offline: no more Overture sand,
+  WorldCover/Overture land cover, NOAA sea temperature, OpenWaters depth or
+  ETH canopy downloads, and no prefetching around chunks or Distant Horizons
+  areas. The biome source now takes cover and sea depth from the tiles too.
+- NZ seas use one placeholder sea temperature (lukewarm ocean) until NZ
+  biomes. The preset turns off Tellus's procedural trees, so trees are
+  vanilla per biome for now. No more Tellus beach sand.
+- Latitude/longitude in NZ worlds now means real NZ positions (NZTM2000):
+  the preset's spawn is the real latitude/longitude of Sentinel Rock, and
+  `/tellus map` (click to teleport, place search) and `/tellus weather`
+  show and use the real place.
+
 ## 0.8.3+nz.3 (TERR-8, 22 Oct 2026)
 
 - New Zealand worlds now generate from the NZ tiles: real heights at 1:3

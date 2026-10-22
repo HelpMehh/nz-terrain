@@ -47,7 +47,11 @@ also carry `// NZ:`; JSON can't. Add each new one here.
 | `src/main/resources/assets/tellus/lang/{en_us,es_es,ja_jp}.json` | `generator.tellus.nz`. Upstream's `LocalizationCoverageTest` needs every lang key in all three files | TERR-6 |
 | `src/main/java/…/preload/TerrainPreloadPackageRegistry.java` | NZ settings get a view backed by `NzTerrainSampler` (`createSettingsView`, `SettingsView` constructor, `sample`, `contains`; `tellus-internals.md` §6.3) | TERR-8 |
 | `src/main/java/…/worldgen/WaterSurfaceResolver.java` | `sampleOceanTerrainHeight`: NZ sea floor from the tiles (§11) | TERR-8 |
-| `shared/mc262/src/main/java/…/worldgen/EarthChunkGenerator.java` | solid fill below the shell instead of the bedrock skin (`fillTellusSurface`), and in `getBaseColumn` (§4) | TERR-8 |
+| `shared/mc262/src/main/java/…/worldgen/EarthChunkGenerator.java` | solid fill below the shell instead of the bedrock skin (`fillTellusSurface`), and in `getBaseColumn` (§4); lat/lon → block by NZTM for the spawn chunk (constructor) and `getSurfacePosition`, no Overture sand (`hasOvertureSandAt`) (TERR-9, §10) | TERR-8 |
+| `src/main/java/…/worldgen/EarthBiomeSource.java` | field `nz` (`NzTerrainSampler`); cover, visual cover and ocean depth from the tiles, `NzOceanClimate` instead of OISST, no badlands relief (§8.3) | TERR-9 |
+| `src/main/java/…/worldgen/TellusWorldgenSources.java` | no prefetch for NZ worlds in `warmCriticalTerrainInputsForChunk` and `prefetchForArea`, no sand prefetch in `prefetchWaterForChunk` (§10) | TERR-9 |
+| `src/main/java/…/TellusCommon.java` | `openGeoTpMap`: lat/lon from both coordinates via `NzProjection` (§1) | TERR-9 |
+| `src/main/java/…/world/realtime/TellusRealtimeManager.java` | lat/lon via `NzProjection` (`requestWeatherReport`, the weather fetch, `approximateUtcOffsetSeconds`) (§1) | TERR-9 |
 
 **When upstream adds a settings component** to `EarthGeneratorSettings`, the
 merge conflicts in the record header and the constructors. Add the new

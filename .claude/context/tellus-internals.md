@@ -51,18 +51,33 @@ e.g. `TellusElevationSource.sampleElevationMeters(blockX, blockZ,
 worldScale)` (`root:world/data/elevation/TellusElevationSource.java:104`,
 projection at `:1508`). So the generator mostly thinks in block coordinates.
 
-**Proposal:** leave `EarthProjection` alone. Our tiles are already in block
+**Decided (TERR-4, done in TERR-9):** leave `EarthProjection` alone. Our tiles are already in block
 coordinates (hub `interfaces.md`), so NZ worlds read them by block x/z and
 the terrain path never needs lat/lon. Any Tellus code that still projects
 with Mercator in an NZ world reads the wrong place on Earth: our blocks
 x ±170k, z ±241k at world scale 3 are about ±4.6° lon and ±6.5° lat around
 0°N 0°E, i.e. the Gulf of Guinea and West Africa (tropical Köppen, warm
-ocean). So it must be switched off or redirected to our data. §10 lists
-those; TERR-9 switches them off. Lat/lon is only needed where a person types or sees it: the spawn
-setting, `/tellus` location text and geo-teleport (`root:TellusCommon.java`
-`:260`, `:616`), and the customize screen's map. Either store the spawn as
-block coordinates or add an NZTM ↔ lat/lon conversion (transverse Mercator
-on GRS80) in NZ code.
+ocean). So it must be switched off or redirected to our data (§10, done in
+TERR-9).
+
+**NZ lat/lon (TERR-9):** `m262:nz/NzProjection` converts block ↔ NZTM ↔
+lat/lon (Krüger series on GRS80, checked against pyproj to 1 mm, also past
+180° at the Chathams). Only what a person types or sees uses it, through
+hooks:
+- the spawn: the preset's `spawn_latitude`/`spawn_longitude` are **real**
+  lat/lon, and the generator turns them into a block by NZTM (constructor
+  spawn chunk, `getSurfacePosition`). No NZ spawn setting was needed;
+- `/tellus map` (opens Tellus's OSM map with place search at the player's
+  lat/lon; a click teleports through `getSurfacePosition`), and
+  `/tellus weather` and the realtime overrides (Open-Meteo at the player's
+  lat/lon). These stay online, client-side or on request only; world
+  generation never uses them.
+
+Trap: Tellus's `latitudeFromBlock(z)` and `longitudeFromBlock(x)` each take
+one coordinate, which can't work for a transverse projection. They are left
+unchanged; the hooks call `NzProjection.latitude/longitude(generator, x, z)`
+at each caller (`TellusCommon`, `TellusRealtimeManager`). A new caller of
+the one-coordinate methods would read Mercator in NZ worlds.
 
 ## 2. Elevation → block Y
 
@@ -263,7 +278,7 @@ deep zone stays plain deepslate until TERR-20 carves caverns into it.
 6. **Generator constructor** (`EarthChunkGenerator.java:409`): sea level,
    height limits, the water resolver (`TellusWorldgenSources.waterResolver`,
    one per distinct settings value), the preload view, and the spawn chunk
-   from spawn lat/lon via Mercator (`:420`–`:424`).
+   from spawn lat/lon via Mercator (`:420`–`:424`; NZTM in NZ worlds, §1).
 
 The settings record is the only per-world object most code receives: data
 sources are static singletons (`root:worldgen/TellusWorldgenSources.java:41`),
@@ -326,10 +341,15 @@ matters).
      ArrayIndexOutOfBoundsException` (a different section count). The
      preset now uses the fixed type `tellus:nz` (section 3), so the height
      is right from the start; checked by reopening a world (`testing.md`).
-   - **Spawn (temporary):** `spawn_latitude`/`spawn_longitude` are the
-     Mercator values that land on block −76040, 93845 (Sentinel Rock, Franz
-     Josef) at world scale 3, so no spawn code was needed. Real NZ spawn
-     handling is TERR-9 (item 4).
+   - **Spawn (TERR-9):** `spawn_latitude`/`spawn_longitude` are the real
+     lat/lon of block −76040, 93845 (Sentinel Rock, Franz Josef), turned into
+     the block by NZTM (§1). NZ worlds made before TERR-9 saved Mercator
+     values (−2.53, −2.05) that now point far out to sea; their spawn was
+     already saved, but they are throwaway anyway.
+   - **`custom_trees: false` (TERR-9):** Tellus's procedural trees download
+     ETH canopy heights (§10), so NZ worlds get vanilla tree features per
+     biome until TERR-13. The tiles' own `canopy` layer could feed the
+     procedural trees instead, if TERR-13 wants them.
    - **No tiles, no world (TERR-8):** `nz/mixin/client/CreateWorldScreenMixin`
      (its own mixin config, `nz-terrain.client.mixins.json`) stops the
      Create button for this preset when `NzTerrain.creationRefusal()` finds
@@ -368,15 +388,14 @@ matters).
    floor cache when the store changes.
 
    Two height paths bypass the view and needed their own hooks: the ocean
-   floor (§11) and Tellus forcing Overture water on (§10). What still reads
-   online data by Mercator in NZ worlds is listed in §10.
-4. **Spawn:** `EarthChunkGenerator.java:420`–`:424` and
-   `getSurfacePosition` (`:524`) turn spawn lat/lon into blocks by Mercator.
-   NZ worlds need NZTM or block coordinates here (TERR-9; the preset's
-   Mercator spawn is a stopgap, item 2).
+   floor (§11) and Tellus forcing Overture water on (§10). The other online
+   reads were switched off in TERR-9 (§10).
+4. **Spawn (TERR-9):** `EarthChunkGenerator.java:420`–`:424` and
+   `getSurfacePosition` (`:524`) turn spawn lat/lon into blocks; NZ worlds
+   by NZTM (§1).
 5. **Underground floor (built in TERR-8, option B):** §4.
-6. **Lat/lon users** (section 1): switch off or redirect for NZ worlds
-   (list: §10; TERR-9 acts).
+6. **Lat/lon users** (section 1): redirected or switched off for NZ worlds
+   in TERR-9 (§1, §10).
 
 ## 7. Data sources: fetch, cache, sample
 
@@ -505,6 +524,15 @@ biome queries (`getNoiseBiome` `:199`, used for structures and `/locate`):
 cover class, elevation, ocean elevation, Köppen, OISST and the water
 resolver (`:77`–`:80`, `:160`). TERR-12 replaces this path for NZ.
 
+It doesn't ask the preload view, so TERR-9 hooked it directly (field `nz`,
+the shared `NzTerrainSampler` of the settings, null in other worlds): cover
+class from the tiles (`coverClass`, the same values as the generator's
+samples), no separate visual cover, ocean depth from the tiles' sea floor
+(`elevationMetres`), a fixed sea temperature (`NzOceanClimate`, 14 °C, so
+every NZ sea is a lukewarm ocean) instead of OISST, and no badlands
+relief. Köppen is still read by Mercator (West Africa; bundled, so
+offline).
+
 ### 8.4 Where NZ data must come in (complete list)
 
 Every call from the generator into a data source, found by
@@ -517,8 +545,8 @@ searching for the `…_SOURCE.` fields (`:166`–`:175`):
 | Cover class | `sampleCoverClassFor{Base,Exact}Terrain`, `…ForTerrainShell`, `sampleVisualCoverClassFor…` (`:5361`–`:5406`); `sampleCoverClass`, `sampleVisualCoverClass` (`:10073`–`:10103`); `resolveDryOsmTerrainCoverClass` (`:10228`) | stopgap LCDB → ESA in the preload view (TERR-8); vegetation class (TERR-11/12) |
 | Land mask | `isKnownOceanLandMask` (`:10026`) | **done (TERR-8)**: water tile, preload view |
 | Köppen | `sampleKoppenCode` (`:3895`) | NZ biome/climate (TERR-12) |
-| Canopy, ecoregion | `placeTrees`, `applyPreparedTreePlacement` (`:4816`, `:4952`) | canopy + vegetation class (TERR-13), or `custom_trees` off |
-| Sand | `hasOvertureSandAt` (`:6047`) | surface palette (TERR-11) |
+| Canopy, ecoregion | `placeTrees`, `applyPreparedTreePlacement` (`:4816`, `:4952`) | `custom_trees` off (TERR-9); canopy + vegetation class (TERR-13) |
+| Sand | `hasOvertureSandAt` (`:6047`) | off for NZ (TERR-9); surface palette (TERR-11) |
 | Water | `waterResolver.*` (§11) | water tile (TERR-10) |
 
 Outside the generator: `WaterSurfaceResolver.sampleSurface` (`:3344`,
@@ -581,36 +609,35 @@ our tiles want a coarse pyramid or overviews instead of reading every 3 m
 pixel. HUB-2 gave the tiles coarse levels: detail d reads level d, whose
 pixels are 2^d blocks (hub `interfaces.md`).
 
-## 10. Online features to switch off for NZ worlds (TERR-9)
+## 10. Online features switched off for NZ worlds (TERR-9)
 
-| Feature | Online source | How to switch it off | Notes |
+All done in TERR-9: NZ world generation makes no network request (checked
+with networking blocked, `testing.md`).
+
+| Feature | Online source | How it is off in NZ worlds | Notes |
 |---|---|---|---|
 | Roads, bridges, street lights, road furniture | Overture transportation + base | `enable_roads: false` | the infrastructure source also needs roads on |
 | Buildings | Overture buildings | `enable_buildings: false` | |
-| Real-time time of day | Open-Meteo (time zone) | `realtime_time: false` (default) | `/tellus` command overrides exist (`TellusCommon.java:110`–`:150`) |
-| Real-time weather | Open-Meteo | `realtime_weather: false` (default) | |
-| Historical snow | Open-Meteo past days | `historical_snow: false` (default) | |
-| Elevation and bathymetry | Mapterhorn, OpenWaters, Mapterhorn coverage | **done (TERR-8)**: preload view (§6.3), ocean floor hook (§11) | the biome source still reads elevation itself (§8.3, TERR-12) |
-| Land cover | WorldCover COG, Overture land_cover | generator and water: **done (TERR-8)**, stopgap mapping (§6.3); the biome source still reads it (TERR-12) | |
-| Land mask | Tellus land polygons (GitHub) | **done (TERR-8)**: water tile, preload view | |
-| Water | Overture water | **done (TERR-8)**: NZ settings force `enable_water` off (§11). The setting itself does nothing for Earth worlds | |
-| Sand | Overture land/sand | **no setting**: hook or ignore for NZ (TERR-11) | still fetched after TERR-8 |
-| Canopy height | ETH via ArcGIS | `custom_trees: false`, or hook (TERR-13) | also feeds DH canopy; answered HTTP 404 in TERR-8's runs, so trees used biome fallbacks |
-| Ocean temperature | NOAA OISST | **no setting**: NZ biome source (TERR-12) | |
-| Köppen, RESOLVE ecoregions | bundled, offline | — | Mercator lookups read West Africa in an NZ world; replace in TERR-12/13 |
-| Preload packages, managed DH downloads | all of the above | `tellus_managed_terrain_downloads: false` (default); don't offer the preload screen | |
-| Customize screen map, place search, spawn picker | OSM map tiles (`root-client:client/widget/map/SlippyMapTileCache.java`), Nominatim (`root:world/data/source/NominatimGeocoder.java`) | NZ preset gets no Earth editor (§6.2) | client only |
-| `/tellus` geo-teleport and location text | Mercator | NZ version or off (§1) | |
+| Real-time time of day, weather, historical snow | Open-Meteo | `realtime_time`, `realtime_weather`, `historical_snow` false (defaults) | an op can still turn them on with `/tellus weather enable_realtime_…`, and `/tellus weather` asks on request; both use NZ lat/lon (§1) |
+| Elevation and bathymetry | Mapterhorn, OpenWaters, Mapterhorn coverage | preload view (§6.3, TERR-8), ocean floor hook (§11), biome source ocean depth (§8.3) | |
+| Land cover | WorldCover COG, Overture land_cover | preload view (TERR-8), biome source hook (§8.3) | stopgap LCDB → ESA mapping |
+| Land mask | Tellus land polygons (GitHub) | water tile, preload view (TERR-8) | |
+| Water | Overture water | NZ settings force `enable_water` off (§11, TERR-8) | the setting itself does nothing for Earth worlds |
+| Sand | Overture land/sand | hook: `hasOvertureSandAt` false, no sand prefetch | Tellus beach sand is gone until TERR-11's surface rules |
+| Canopy height | ETH via ArcGIS | `custom_trees: false` in the preset | vanilla tree features per biome until TERR-13 (§6.2) |
+| Ocean temperature | NOAA OISST | biome source hook: `NzOceanClimate` (§8.3) | TERR-12 |
+| Prefetch around chunks and DH areas | all of the above | hooks in `TellusWorldgenSources`: `prefetchForArea` and `warmCriticalTerrainInputsForChunk` do nothing for NZ; the per-chunk prefetch skips sand (terrain was already skipped by the preload view) | the per-chunk water region prefetch still runs: it is local work |
+| Köppen, RESOLVE ecoregions | bundled, offline | — | Mercator lookups read West Africa; replace in TERR-12/13. Köppen copies its bundled file to `tellus/cache/koppen/`, the only file there in an NZ world |
+| Preload packages, managed DH downloads | all of the above | `tellus_managed_terrain_downloads: false` (default); the preload screen opens only from the Earth customize screen, which NZ has not | |
+| Customize screen map, place search, spawn picker | OSM map tiles, Nominatim | NZ preset gets no Earth editor (§6.2) | client only |
+| `/tellus map` (geo-teleport, place search) | OSM map tiles, Nominatim | kept, on request only: NZ lat/lon (§1) | client only |
 
-So settings alone switch off roads, buildings, lights, realtime and managed
-downloads. The rest needs NZ hooks, because Tellus has no "offline" switch
-for them. After TERR-8, NZ worlds still downloaded Overture sand (most new
-files), Overture land cover (the biome source) and tried ETH canopy, in a
-server run that generated a few chunks; nothing for heights, water or the
-sea floor. All fetches go through the sources in §7, so once NZ worlds
-stop calling them (§8.4), nothing else downloads. For a safety net, a test
-can run the dev server with networking blocked and check the cache folder
-stays empty.
+Settings alone covered roads, buildings, lights, realtime and managed
+downloads; Tellus has no "offline" switch for the rest, so it took hooks.
+Every fetch goes through a source in §7 (11 classes with their own HTTP
+code, no common client), so a new upstream feature that calls a source
+directly from the generator or biome source would go online again: the
+networking-blocked test in `testing.md` catches that.
 
 ## 11. Water, and why rivers stayed dry in TERR-1
 

@@ -420,6 +420,10 @@ public final class EarthChunkGenerator extends ChunkGenerator {
       double blocksPerDegree = blocksPerDegree(settings.worldScale());
       int spawnBlockX = Mth.floor(settings.spawnLongitude() * blocksPerDegree);
       int spawnBlockZ = Mth.floor(EarthProjection.latToBlockZ(settings.spawnLatitude(), settings.worldScale()));
+      if (com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(settings)) { // NZ: lat/lon → block by NZTM in NZ worlds
+         spawnBlockX = Mth.floor(com.yucareux.tellus.nz.NzProjection.blockX(settings.spawnLatitude(), settings.spawnLongitude()));
+         spawnBlockZ = Mth.floor(com.yucareux.tellus.nz.NzProjection.blockZ(settings.spawnLatitude(), settings.spawnLongitude()));
+      }
       this.configuredSpawnChunkX = Math.floorDiv(spawnBlockX, 16);
       this.configuredSpawnChunkZ = Math.floorDiv(spawnBlockZ, 16);
       if (biomeSource instanceof EarthBiomeSource earthBiomeSource) {
@@ -526,6 +530,10 @@ public final class EarthChunkGenerator extends ChunkGenerator {
       double blocksPerDegree = blocksPerDegree(this.settings.worldScale());
       int spawnX = Mth.floor(longitude * blocksPerDegree);
       int spawnZ = Mth.floor(EarthProjection.latToBlockZ(latitude, this.settings.worldScale()));
+      if (com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(this.settings)) { // NZ: lat/lon → block by NZTM in NZ worlds
+         spawnX = Mth.floor(com.yucareux.tellus.nz.NzProjection.blockX(latitude, longitude));
+         spawnZ = Mth.floor(com.yucareux.tellus.nz.NzProjection.blockZ(latitude, longitude));
+      }
       ExperimentalHeightSupport.validateHorizontalPositionOrThrow(
          this.settings, spawnX, spawnZ, "surface target lat=" + latitude + ", lon=" + longitude
       );
@@ -6060,6 +6068,9 @@ public final class EarthChunkGenerator extends ChunkGenerator {
    }
 
    public boolean hasOvertureSandAt(int worldX, int worldZ, OsmQueryMode queryMode) {
+      if (com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(this.settings)) {
+         return false; // NZ: no Overture sand download in NZ worlds; NZ surfaces come from the tiles (TERR-11)
+      }
       return OSM_SAND_SOURCE.containsSand(worldX, worldZ, this.settings.worldScale(), queryMode);
    }
 

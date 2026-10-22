@@ -185,19 +185,34 @@ them when they come up.
   `tellus-internals.md` §4).
 - **Needs:** TERR-7.
 
-### [ ] TERR-9 — Switch off online features for NZ worlds
+### [x] TERR-9 — Switch off online features for NZ worlds
 
-- **Do:** disable everything in `tellus-internals.md` §10, so NZ worlds
-  work offline and have no roads or buildings. Settings cover only part of
-  it; the rest stops once the NZ hooks (§8.4) replace those reads. Check
-  with networking blocked that `tellus/cache/` stays empty.
-- **Left after TERR-8** (seen in its server runs): Overture sand (generator
-  surface), WorldCover/Overture land cover and OISST (the biome source),
-  ETH canopy (trees). Heights, cover, land mask, water and the sea floor no
-  longer go online.
-- **Spawn:** the NZ preset sets spawn as a Mercator lat/lon that lands on
-  Sentinel Rock (TERR-8). Give NZ worlds a spawn in block or NZTM
-  coordinates, with `/tellus` location and geo-teleport (§1).
+- **Goal:** NZ worlds generate offline, with no roads or buildings.
+- **Decided (23 Oct 2026):**
+  - `/tellus map`, `/tellus weather` and the realtime overrides are made
+    **correct for NZ** (real NZ lat/lon by NZTM), not switched off. They
+    stay online, on request only; generation never uses them.
+  - Spawn: the preset keeps Tellus's `spawn_latitude`/`spawn_longitude`,
+    now real lat/lon converted by NZTM, instead of a new block setting.
+  - Canopy: `custom_trees: false` (vanilla trees until TERR-13) rather
+    than a hook.
+- **Done (23 Oct 2026), version `0.8.3+nz.4`:**
+  - `com.yucareux.tellus.nz.NzProjection`: block ↔ NZTM ↔ lat/lon, with
+    hooks for the spawn, `getSurfacePosition` (geo-teleport) and the
+    lat/lon callers in `/tellus` and the realtime manager
+    (`tellus-internals.md` §1).
+  - The biome source reads cover and sea depth from the tiles, a fixed
+    sea temperature (`NzOceanClimate`) instead of OISST, and no badlands
+    relief (§8.3). Overture sand and all prefetching are off for NZ
+    worlds (§10).
+  - Checked: online server run leaves only `koppen/` (a copy of a bundled
+    file) in `tellus/cache/`; the same with networking blocked; client on
+    a virtual display: spawn, `/tellus weather` (Westland), `/tellus map`
+    and a teleport to Fox Glacier (`testing.md`).
+- **Not done:** the DH-area prefetch hook is untested (no DH in the dev
+  client): check `tellus/cache/` on the desktop with DH. Köppen and
+  RESOLVE still read West Africa by Mercator, offline (TERR-12/13).
+- **Needs:** TERR-8.
 
 ### [ ] TERR-10 — Water
 

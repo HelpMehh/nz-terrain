@@ -257,8 +257,9 @@ public class TellusCommon {
       } else {
          ServerLevel level = MinecraftVersionCompat.serverLevel(player);
          if (level.getChunkSource().getGenerator() instanceof EarthChunkGenerator earthGenerator) {
-            double latitude = clampLatitude(earthGenerator.latitudeFromBlock(player.getZ()));
-            double longitude = clampLongitude(earthGenerator.longitudeFromBlock(player.getX()));
+            // NZ: NZ worlds convert both coordinates together, by NZTM
+            double latitude = clampLatitude(com.yucareux.tellus.nz.NzProjection.latitude(earthGenerator, player.getX(), player.getZ()));
+            double longitude = clampLongitude(com.yucareux.tellus.nz.NzProjection.longitude(earthGenerator, player.getX(), player.getZ()));
             TellusPlatform.sendGeoTpOpenMapPayload(player, new GeoTpOpenMapPayload(latitude, longitude));
             return 1;
          } else {

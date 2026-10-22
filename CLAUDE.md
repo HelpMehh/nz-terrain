@@ -13,10 +13,12 @@ coordinates and tile format the generator reads are in
 
 - "New Zealand" world type (TERR-6) that generates NZ terrain from the
   pipeline tiles (TERR-7 reader `com.yucareux.tellus.nz.tiles`, TERR-8
-  heights `com.yucareux.tellus.nz.terrain`), solid down to Y −272. Biomes,
-  surfaces, trees and water are still Tellus's. Next step: see `steps.md`.
+  heights `com.yucareux.tellus.nz.terrain`), solid down to Y −272, fully
+  offline (TERR-9; lat/lon by NZTM, `com.yucareux.tellus.nz.NzProjection`).
+  Biomes, surfaces, trees and water are still Tellus's. Next step: see
+  `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.3`** (TERR-8).
+  **`0.8.3+nz.4`** (TERR-9).
 
 ## Naming and versions (decided in TERR-6)
 

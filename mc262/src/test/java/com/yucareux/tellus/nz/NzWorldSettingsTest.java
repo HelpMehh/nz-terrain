@@ -139,6 +139,11 @@ class NzWorldSettingsTest {
       assertFalse(settings.realtimeWeather());
       assertTrue(settings.caveGeneration());
       assertTrue(settings.oreDistribution());
+      // Tellus's procedural trees would download ETH canopy heights.
+      assertFalse(settings.customTrees());
+      // Spawn: real latitude/longitude, converted by NZTM (NzProjection), on Sentinel Rock, Franz Josef.
+      assertEquals(-76040, (int) Math.floor(NzProjection.blockX(settings.spawnLatitude(), settings.spawnLongitude())));
+      assertEquals(93845, (int) Math.floor(NzProjection.blockZ(settings.spawnLatitude(), settings.spawnLongitude())));
 
       // The world uses a fixed NZ dimension type of the same height, so it is right from the first start.
       assertEquals("tellus:nz", overworld.get("type").getAsString());

@@ -16,8 +16,8 @@
             "min_altitude": -272,
             "max_altitude": 2031,
             "underground_depth": 256,
-            "spawn_latitude": -2.5282645047209322,
-            "spawn_longitude": -2.0492233353263454,
+            "spawn_latitude": -43.421999655340024,
+            "spawn_longitude": 170.1819886695066,
             "enable_roads": false,
             "enable_buildings": false,
             "realtime_time": false,
@@ -27,6 +27,7 @@
             "ore_distribution": true,
             "lava_pools": true,
             "geodes": true,
+            "custom_trees": false,
             "nz": {}
           }
         },
@@ -40,8 +41,8 @@
           "min_altitude": -272,
           "max_altitude": 2031,
           "underground_depth": 256,
-          "spawn_latitude": -2.5282645047209322,
-          "spawn_longitude": -2.0492233353263454,
+          "spawn_latitude": -43.421999655340024,
+          "spawn_longitude": 170.1819886695066,
           "enable_roads": false,
           "enable_buildings": false,
           "realtime_time": false,
@@ -51,6 +52,7 @@
           "ore_distribution": true,
           "lava_pools": true,
           "geodes": true,
+          "custom_trees": false,
           "nz": {}
         }
       }

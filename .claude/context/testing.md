@@ -292,3 +292,56 @@ Code: `0.8.3+nz.3`.
   - Known and expected: biomes, grass colours and trees are still Tellus's
     Earth ones read by Mercator (TERR-12/13); gravel riverbeds show as
     flat stone (TERR-11).
+
+## Offline check (TERR-9, 23 Oct 2026)
+
+Code: `0.8.3+nz.4`.
+
+- **Build:** passes, 647 tests (600 upstream + 47 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New: NZTM ↔ lat/lon against
+  pyproj to 1 mm (also east of 180°), the sampler's cover and elevation
+  queries against its samples, the preset's spawn (real lat/lon → block
+  −76040, 93845) and `custom_trees` off.
+- **Online server run, cache must stay empty (passed):** test-area-1 tiles,
+  new world, `tellus/cache/` deleted first, spawn plus four forceloaded
+  spots (`forceload add -76040 93845`, `-80559 89387`, `-78000 90000`,
+  `-90000 85000`), 60 s of generation. Afterwards `tellus/cache/` held only
+  `koppen/` (Tellus copies its bundled Köppen file there; not a download).
+  The same run with the TERR-8 code had downloaded Overture sand and land
+  cover, WorldCover, OISST and OpenWaters tiles and tried ETH canopy (404).
+  Spawn: `Using Tellus initial spawn at BlockPos{x=-76040, y=212, z=93845}`,
+  the same block as before.
+- **Networking blocked (passed):** the same run inside `unshare -rn` (a
+  network namespace with only loopback; run `ip link set lo up` inside).
+  World generated (29 region files, as online), same spawn, `tellus/cache/`
+  again only `koppen/`. The only network errors in the log are Minecraft's
+  own (`api.minecraftservices.com/publickeys`).
+  - **Gotcha:** don't run Gradle inside the namespace. Gradle processes
+    coordinate their shared cache locks (`~/.gradle/caches/journal-1`, used
+    by every Gradle version) over loopback, so a Gradle inside can't get a
+    lock held by any Gradle daemon outside ("Timeout waiting to lock
+    journal cache"). Instead, start `runServer262` once normally, copy the
+    server JVM's command line from `/proc/<pid>/cmdline`, and run only that
+    inside the namespace, from `mc262/run`, with `-Duser.home=<home>` added
+    before the main class (inside, Java's home is `/root`).
+  - Distant Horizons isn't on the dev server, so the DH-area prefetch hook
+    (`prefetchForArea`) was not exercised there.
+- **Client check on a virtual display (passed):** `runClient262` under
+  Xvfb (software OpenGL), driven with `xdotool`, screenshots with
+  ImageMagick `import -window root`. With an `options.txt` holding
+  `onboardAccessibility:false` and `guiScale:2`, the game window sits at
+  854 × 480 in the middle of a 1280 × 720 screen, so click positions are
+  screen positions. Steps: Create World → Game Mode Creative (commands on) →
+  World tab → World Type until "New Zealand" → Create → "experimental
+  features" warning → Yes.
+  - Spawn `−76040, 212, 93845`; trees are vanilla oak and birch
+    (`custom_trees` off).
+  - `/tellus weather`: "Location: Westland District, West Coast, New
+    Zealand (−43.4219, 170.1823)", real time UTC+13:00.
+  - `/tellus map`: the OSM map opens centred on Franz Josef. Searching
+    "Fox Glacier" and pressing Teleport lands on snow and ice at
+    −43.5170, 170.1387 (the glacier).
+  - Not checked: Distant Horizons (not in the dev client), so the
+    `prefetchForArea` hook still needs the desktop instance with DH:
+    after flying around an NZ world, `tellus/cache/` should hold only
+    `koppen/`.

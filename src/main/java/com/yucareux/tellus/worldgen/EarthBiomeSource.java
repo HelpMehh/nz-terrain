@@ -124,6 +124,7 @@ public final class EarthBiomeSource extends BiomeSource {
    private final Holder<Biome> deepDark;
    
    private final WaterSurfaceResolver waterResolver;
+   private final com.yucareux.tellus.nz.terrain.NzTerrainSampler nz; // NZ: null except in NZ worlds
    private final AntarcticSnowPolicy antarcticSnowPolicy;
    private final RandomBiomeMixer randomBiomeMixer;
    private final ThreadLocal<Integer> structureBiomeQueryDepth = new ThreadLocal<>();
@@ -158,6 +159,7 @@ public final class EarthBiomeSource extends BiomeSource {
       this.dripstoneCaves = this.resolveOptionalBiome(Biomes.DRIPSTONE_CAVES);
       this.deepDark = this.resolveOptionalBiome(Biomes.DEEP_DARK);
       this.waterResolver = TellusWorldgenSources.waterResolver(this.settings);
+      this.nz = com.yucareux.tellus.nz.terrain.NzTerrainSampler.forSettings(this.settings); // NZ: NZ worlds read cover and depth from the NZ tiles
       this.antarcticSnowPolicy = AntarcticSnowPolicy.forWorldScale(this.settings.worldScale());
       this.randomBiomeMixer = new RandomBiomeMixer(this.biomeLookup, this.settings);
       this.possibleBiomes = this.buildPossibleBiomes();
@@ -320,7 +322,7 @@ public final class EarthBiomeSource extends BiomeSource {
       if (this.fastSpawnMode) {
          return this.resolveFastSpawnSurfaceBiome(blockX, blockZ);
       } else {
-         int rawCoverClass = LAND_COVER_SOURCE.sampleCoverClass(blockX, blockZ, this.settings.worldScale());
+         int rawCoverClass = this.nz != null ? this.nz.coverClass(blockX, blockZ) : LAND_COVER_SOURCE.sampleCoverClass(blockX, blockZ, this.settings.worldScale()); // NZ
          int visualCoverClass = this.sampleVisualCoverClass(blockX, blockZ, rawCoverClass);
          return this.resolveSurfaceBiomeAtBlock(blockX, blockZ, rawCoverClass, visualCoverClass, null, null);
       }
@@ -340,7 +342,7 @@ public final class EarthBiomeSource extends BiomeSource {
    }
 
    private EarthBiomeSource.ResolvedBiomeColumn resolveBiomeColumn(int blockX, int blockZ, boolean exact) {
-      int rawCoverClass = LAND_COVER_SOURCE.sampleCoverClass(blockX, blockZ, this.settings.worldScale());
+      int rawCoverClass = this.nz != null ? this.nz.coverClass(blockX, blockZ) : LAND_COVER_SOURCE.sampleCoverClass(blockX, blockZ, this.settings.worldScale()); // NZ
       int visualCoverClass = this.sampleVisualCoverClass(blockX, blockZ, rawCoverClass);
       WaterSurfaceResolver.WaterColumnData column = exact
          ? this.waterResolver.resolveColumnData(blockX, blockZ, rawCoverClass)
@@ -378,7 +380,7 @@ public final class EarthBiomeSource extends BiomeSource {
 
    
    private Holder<Biome> resolveFastSpawnSurfaceBiome(int blockX, int blockZ) {
-      int rawCoverClass = LAND_COVER_SOURCE.sampleCoverClass(blockX, blockZ, this.settings.worldScale());
+      int rawCoverClass = this.nz != null ? this.nz.coverClass(blockX, blockZ) : LAND_COVER_SOURCE.sampleCoverClass(blockX, blockZ, this.settings.worldScale()); // NZ
       int visualCoverClass = this.sampleVisualCoverClass(blockX, blockZ, rawCoverClass);
       boolean antarcticSnow = this.antarcticSnowPolicy.shouldUseSnowFallback(rawCoverClass, blockZ);
       if (rawCoverClass == ESA_MANGROVES) {
@@ -469,7 +471,9 @@ public final class EarthBiomeSource extends BiomeSource {
    private Holder<Biome> resolveOceanBiome(
       int blockX, int blockZ, WaterSurfaceResolver.WaterColumnData column, double previewResolutionMeters
    ) {
-      OisstOceanClimateSource.Sample climate = OCEAN_CLIMATE_SOURCE.sample(blockX, blockZ, this.settings.worldScale());
+      OisstOceanClimateSource.Sample climate = this.nz != null
+         ? com.yucareux.tellus.nz.terrain.NzOceanClimate.SAMPLE // NZ: no OISST download in NZ worlds
+         : OCEAN_CLIMATE_SOURCE.sample(blockX, blockZ, this.settings.worldScale());
       boolean deep = this.isDeepOcean(blockX, blockZ, column, previewResolutionMeters);
       Holder<Biome> biome;
       if (climate.maxIceFraction() >= FROZEN_OCEAN_ICE_FRACTION || climate.meanSstC() <= FROZEN_OCEAN_SST_C) {
@@ -495,7 +499,9 @@ public final class EarthBiomeSource extends BiomeSource {
    private double sampleOceanDepthMeters(
       int blockX, int blockZ, WaterSurfaceResolver.WaterColumnData column, double previewResolutionMeters
    ) {
-      double oceanElevation = Double.isFinite(previewResolutionMeters) && previewResolutionMeters > 0.0
+      double oceanElevation = this.nz != null
+         ? this.nz.elevationMetres(blockX, blockZ, previewResolutionMeters) // NZ: the NZ tiles' sea floor
+         : Double.isFinite(previewResolutionMeters) && previewResolutionMeters > 0.0
          ? ELEVATION_SOURCE.samplePreviewOceanElevationMeters(
             blockX, blockZ, this.settings.worldScale(), this.settings.demSelection(), previewResolutionMeters
          )
@@ -654,7 +660,7 @@ public final class EarthBiomeSource extends BiomeSource {
 
    private double sampleRegionalReliefMeters(int blockX, int blockZ) {
       double worldScale = this.settings.worldScale();
-      if (!(worldScale > 0.0)) {
+      if (!(worldScale > 0.0) || this.nz != null) { // NZ: no online elevation in NZ worlds, so no badlands promotion
          return Double.NaN;
       }
 
@@ -706,7 +712,8 @@ public final class EarthBiomeSource extends BiomeSource {
 
    private int sampleVisualCoverClass(int blockX, int blockZ, int rawCoverClass) {
       double worldScale = this.settings.worldScale();
-      return worldScale > 0.0 && worldScale < 10.0 ? LAND_COVER_SOURCE.sampleVisualCoverClass(blockX, blockZ, worldScale) : rawCoverClass;
+      // NZ: NZ worlds have one cover class per block, as in the generator's NZ samples
+      return worldScale > 0.0 && worldScale < 10.0 && this.nz == null ? LAND_COVER_SOURCE.sampleVisualCoverClass(blockX, blockZ, worldScale) : rawCoverClass;
    }
 
    
