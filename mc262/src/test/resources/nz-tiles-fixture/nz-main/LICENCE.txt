@@ -1,0 +1,17 @@
+Tile set nz-main, data version 2026-10-22
+
+Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+Attribution:
+- Contains data sourced from the LINZ Data Service licensed for reuse under CC BY 4.0
+- NZ 8m Digital Elevation Model (2012): original creator Geographx
+- LCDB v6.0 – Land Cover Database version 6.0, Mainland New Zealand, Manaaki Whenua – Landcare Research, CC BY 4.0 (lris.scinfo.org.nz/layer/123148). Rasterised.
+
+Made from:
+- LINZ New Zealand LiDAR 1m DEM (height, water surfaces)
+- LINZ New Zealand LiDAR 1m DSM (canopy height)
+- LINZ NZ 8m Digital Elevation Model (2012), by Geographx (LiDAR gaps)
+- LINZ NZ Lake Polygons, River Polygons and River Centrelines (Topo, 1:50k)
+- Manaaki Whenua – Landcare Research LCDB v6.0 (land cover, rivers)
+
+Changes: resampled to a 3 m grid, gaps filled, converted to scaled integers.

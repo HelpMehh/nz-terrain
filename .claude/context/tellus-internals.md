@@ -261,10 +261,21 @@ matters).
      **non-NZ** settings. Copy with `NzWorldSettings.withNz(…)` afterwards, or
      round-trip through `CODEC` (as `TerrainPreloadSettingsOverrides.apply`
      does, which keeps `nz`). In TERR-6 only tests call the public ones.
-   - New NZ settings (e.g. TERR-7's data versions) go into `NzWorldSettings`,
-     never into `EarthGeneratorSettings`. Its codec is then a
-     `RecordCodecBuilder` instead of today's unit codec. 26.2 ships
-     DataFixerUpper 10, which has no `Codec.unit`; use `MapCodec.unitCodec`.
+   - New NZ settings go into `NzWorldSettings` (a `RecordCodecBuilder`
+     codec), never into `EarthGeneratorSettings`. 26.2 ships DataFixerUpper
+     10, which has no `Codec.unit`; use `MapCodec.unitCodec` if a unit codec
+     is ever needed.
+   - **Data versions (TERR-7):** `nz.data_versions` = tile set name → data
+     version. When the key is missing (the preset's `"nz": {}`, or a world
+     from before TERR-7), decoding fills in the tiles found right now
+     (`NzTiles.currentDataVersions`). The preset is decoded when a world is
+     created, so the world saves the versions it was made from, with no hook
+     in world creation. That decode must never throw: it runs while the world
+     presets load, and an exception there would break every world type. Both
+     settings copies (generator and biome source) get the versions.
+   - Unit tests that decode `"nz": {}` need `tellus.gameDir` and
+     `tellus.configDir` set to a temp folder (`NzWorldSettingsTest`): without
+     them `FabricLoader.getGameDir()` throws "invoked too early?".
    - In 26.2 a world keeps its generator settings in
      `<world>/data/minecraft/world_gen_settings.dat`, not in `level.dat`.
 2. **NZ world preset (built in TERR-6; values in TERR-8).**

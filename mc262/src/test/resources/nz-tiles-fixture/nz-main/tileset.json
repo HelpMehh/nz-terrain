@@ -1,0 +1,27 @@
+{
+  "format": "nz-tiles",
+  "format_version": 1,
+  "name": "nz-main",
+  "data_version": "2026-10-22",
+  "priority": 0,
+  "crs": "EPSG:2193",
+  "e0": 1600000,
+  "n0": 5470000,
+  "metres_per_block": 3,
+  "layers": {
+    "height": [0, 1],
+    "height_source": [0],
+    "water": [0, 1],
+    "water_level": [0, 1],
+    "landcover": [0, 1],
+    "canopy": [0],
+    "streams": [0]
+  },
+  "licence": "CC BY 4.0",
+  "attribution": [
+    "Contains data sourced from the LINZ Data Service licensed for reuse under CC BY 4.0",
+    "NZ 8m Digital Elevation Model (2012): original creator Geographx",
+    "LCDB v6.0 – Land Cover Database version 6.0, Mainland New Zealand, Manaaki Whenua – Landcare Research, CC BY 4.0 (lris.scinfo.org.nz/layer/123148). Rasterised."
+  ],
+  "pipeline_commit": "78fe77e+dirty"
+}

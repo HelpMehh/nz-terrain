@@ -3,17 +3,35 @@ package com.yucareux.tellus.nz;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.yucareux.tellus.nz.tiles.NzTiles;
 import com.yucareux.tellus.worldgen.EarthGeneratorSettings;
+import java.util.Map;
 import java.util.Optional;
 
 /**
  * The NZ part of a world's generator settings, saved as the {@code nz} key next to the Tellus keys.
  * A world is an NZ world when the key is present; Tellus Earth worlds don't have it.
- * Empty for now: later steps add fields here (e.g. the tile data versions), not to {@link EarthGeneratorSettings}.
+ * New NZ settings go here, not into {@link EarthGeneratorSettings}.
+ *
+ * @param dataVersions tile set name → data version of the tiles the world was created with
  */
-public record NzWorldSettings() {
-   public static final Codec<NzWorldSettings> CODEC = MapCodec.unitCodec(NzWorldSettings::new);
+public record NzWorldSettings(Map<String, String> dataVersions) {
+   /**
+    * {@code data_versions} is missing only in the preset ({@code "nz": {}}) and in worlds made before it existed.
+    * Decoding then fills in the tiles found now. The preset is decoded when a world is created, so the world saves
+    * the versions it was made from, with no hook in world creation.
+    */
+   public static final Codec<NzWorldSettings> CODEC = RecordCodecBuilder.create(
+      instance -> instance.group(
+            Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("data_versions").forGetter(settings -> Optional.of(settings.dataVersions()))
+         )
+         .apply(instance, versions -> new NzWorldSettings(versions.orElseGet(NzTiles::currentDataVersions)))
+   );
    private static final MapCodec<Optional<NzWorldSettings>> FIELD_CODEC = CODEC.optionalFieldOf("nz");
+
+   public NzWorldSettings {
+      dataVersions = Map.copyOf(dataVersions);
+   }
 
    public static boolean isNzWorld(EarthGeneratorSettings settings) {
       return settings.nz().isPresent();

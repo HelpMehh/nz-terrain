@@ -32,5 +32,6 @@ public final class Tellus extends TellusCommon implements ModInitializer {
          ManagedTerrainViewPayload.TYPE, (payload, context) -> TellusCommon.handleManagedTerrainView(payload, context.player())
       );
       TellusCommon.initializeRuntime(new FabricTellusRuntimePlatform());
+      com.yucareux.tellus.nz.NzTerrain.initialize(); // NZ: tiles config, tile store, tile checks at server start
    }
 }

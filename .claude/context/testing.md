@@ -175,3 +175,31 @@ Code: `0.8.3+nz.1`.
   - the world creates and generates Earth terrain (Mount Everest spawn,
     as Earth's defaults; NZ terrain comes in TERR-8);
   - Mod Menu, if installed, shows "NZ Terrain" `0.8.3+nz.1`.
+
+## Tile source check (TERR-7, 22 Oct 2026)
+
+Code: `0.8.3+nz.2`.
+
+- **Build:** passes, 625 tests (600 upstream + 25 NZ), 0 failures,
+  1 skipped (the online WorldCover test). The reader test decodes all 11
+  layers of the pipeline fixture to the SHA-256 values in its
+  `expected.json`.
+- **Headless server check (passed):** copy the fixture set to
+  `mc262/run/nz-tiles/nz-main/` (it stays there for TERR-8; `run/` is
+  git-ignored), set `level-name` to a new name and `level-type=tellus\:nz`,
+  run `runServer262`:
+  - first start: `config/nz-terrain.json` written with the defaults, log
+    line `NZ tile set: nz-main (data 2026-10-22, …)`, and both settings
+    copies in `world_gen_settings.dat` hold `data_versions` `nz-main` =
+    `2026-10-22`;
+  - `data_version` in the set's `tileset.json` changed, second start: WARN
+    "the tiles differ from those this world was created with" plus the
+    per-set line; the world keeps `2026-10-22`;
+  - tiles folder renamed away: WARN "no tile sets found in …/nz-tiles";
+  - `SERVER_STARTED` fires after `Done (`, so the warnings come just after
+    it in the log.
+- **Desktop client check (open):** copy the fixture's `nz-main/` folder to
+  `nz-tiles/` in the dev client's game folder (`mc262/run/` in a desktop
+  clone), create a New Zealand world, quit, change `data_version` in
+  `tileset.json`, reopen the world. Expected: yellow chat lines with the
+  same warning. Without tiles: the "no tile sets found" line in chat.

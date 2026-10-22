@@ -116,7 +116,7 @@ them when they come up.
     Zealand" shows in World Type and generates (`testing.md`).
 - **Needs:** TERR-4, TERR-5.
 
-### [ ] TERR-7 — Local tile source
+### [x] TERR-7 — Local tile source
 
 - **Do:**
   - A reader for the pipeline tiles (format: hub `interfaces.md`), with a
@@ -129,6 +129,23 @@ them when they come up.
   - The data versions saved in the world go into `NzWorldSettings`
     (`tellus-internals.md` §6.1), not into Tellus's settings.
 - **Needs:** TERR-6, PIPE-7.
+- **Done (22 Oct 2026), version `0.8.3+nz.2`:**
+  - Package `com.yucareux.tellus.nz.tiles`: `NzTileReader` (one layer of
+    one file), `NzTileSet` (manifest checks), `NzTiles` (all sets merged by
+    priority, Guava LRU of decoded layers, `layer(…)` and `sample(…)` by
+    level and block). Config `config/nz-terrain.json` (`tiles_dir`,
+    `tile_cache_mb`, default 256), written on first start. The store is
+    rebuilt at every server start.
+  - A broken tile is logged once and treated as missing; refused sets are
+    logged with the reason.
+  - Data versions: `tellus-internals.md` §6.1. `NzTerrain` warns at
+    server start (log, chat for admins) when tiles differ or are missing.
+  - The pipeline fixture is copied to `mc262/src/test/resources/
+    nz-tiles-fixture/`; refresh it when the pipeline's fixture changes.
+  - **Not done, left for TERR-8:** refusing an NZ world without tiles (it
+    only warns), and sampling the finest available level with bilinear
+    heights (hub `interfaces.md`); `sample` reads one given level, nearest
+    pixel.
 
 ### [ ] TERR-8 — NZ heights
 
@@ -149,6 +166,13 @@ them when they come up.
     roads, buildings and realtime off), and make the world height right
     from the first start: the preset has no editor, so today the first
     start runs at Tellus's default height (`tellus-internals.md` §6.2).
+  - Refuse an NZ world without tiles (hub `interfaces.md`). TERR-7 only
+    warns. Don't throw from the settings decode or at server start: the
+    first breaks every world type, the second crashes the whole client in
+    single player. Look for a check at world creation instead.
+  - Height reads: the finest level that has the tile and layer, bilinear
+    for heights (hub `interfaces.md`, "Finest available level"), on top of
+    `NzTiles.layer`.
   - Check heights against the pipeline's `height.tif` at a few known
     points (e.g. the check peak in the pipeline README, "WorldPainter").
 - **Needs:** TERR-7.

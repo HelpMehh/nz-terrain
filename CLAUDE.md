@@ -11,11 +11,11 @@ coordinates and tile format the generator reads are in
 
 ## Status
 
-- NZ skeleton in place (TERR-6): a "New Zealand" world type that marks the
-  world as NZ but still generates like Tellus Earth. Next step: see
-  `steps.md`.
+- "New Zealand" world type (TERR-6) that still generates like Tellus Earth.
+  It reads the pipeline tiles (TERR-7, `com.yucareux.tellus.nz.tiles`) but
+  doesn't generate from them yet. Next step: see `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.1`** (TERR-6).
+  **`0.8.3+nz.2`** (TERR-7).
 
 ## Naming and versions (decided in TERR-6)
 

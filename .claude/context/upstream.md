@@ -43,6 +43,7 @@ also carry `// NZ:`; JSON can't. Add each new one here.
 | `mc262/src/main/resources/fabric.mod.json` | `name`, `description` | TERR-6 |
 | `src/main/java/…/worldgen/EarthGeneratorSettings.java` | `nz` component, compatibility constructor, `CODEC` wrapped (`tellus-internals.md` §6) | TERR-6 |
 | `src/main/resources/data/minecraft/tags/worldgen/world_preset/normal.json` | optional entry `tellus:nz` | TERR-6 |
+| `mc262/src/main/java/…/Tellus.java` | calls `NzTerrain.initialize()` at the end of `onInitialize` | TERR-7 |
 | `src/main/resources/assets/tellus/lang/{en_us,es_es,ja_jp}.json` | `generator.tellus.nz`. Upstream's `LocalizationCoverageTest` needs every lang key in all three files | TERR-6 |
 
 **When upstream adds a settings component** to `EarthGeneratorSettings`, the
