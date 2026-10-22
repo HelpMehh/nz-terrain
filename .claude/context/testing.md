@@ -124,6 +124,12 @@ Upstream Tellus 0.8.3 code, no NZ changes, system OpenJDK 25.0.5.
   43 mods (Tellus plus the Fabric API modules) and reaches `Done` about 10 s
   after launch. It needs `eula=true` in `mc262/run/eula.txt` first. `run/`
   is git-ignored.
+  - To run it from a script and stop it cleanly (TERR-6): Gradle passes its
+    input on to the server console, so pipe `stop` in once `Done (` shows:
+    `bash -c '(until grep -q "Done (" out.log; do sleep 2; done; echo stop) | ./gradlew -PtellusTargets=mc262 runServer262 > out.log 2>&1'`.
+  - To test a world type without the client, set `level-name` to a new name
+    and `level-type` (e.g. `tellus\:nz`) in `mc262/run/server.properties`,
+    and put both back afterwards.
 - **`runClient262`** needs a desktop session. A sandbox without a display
   can't open the window, so run it from a clone on the desktop. It starts
   (51 mods: the client adds Fabric API's client modules), and an Earth world
@@ -142,3 +148,30 @@ Upstream Tellus 0.8.3 code, no NZ changes, system OpenJDK 25.0.5.
   stay clean. Actions were on when checked and were turned off on
   22 Oct 2026. Check: `gh api repos/<owner>/<fork>/actions/permissions`
   should show `"enabled": false`.
+
+## NZ skeleton check (TERR-6, 22 Oct 2026)
+
+Code: `0.8.3+nz.1`.
+
+- **Build:** `./gradlew -PtellusTargets=mc262 :mc262:build` passes:
+  604 tests (600 upstream + 4 in `NzWorldSettingsTest`), 0 failures,
+  1 skipped (the online WorldCover test, as in TERR-2). Jar:
+  `mc262/build/libs/nz-terrain-fabric-26.2-0.8.3+nz.1.jar`.
+- **Headless server check (passed):** in `mc262/run/server.properties` set
+  `level-name=nz-check` and `level-type=tellus\:nz`, then run
+  `runServer262`. The world was created with `EarthChunkGenerator`, and both
+  settings copies in `nz-check/data/minecraft/world_gen_settings.dat` held
+  `nz: {}` (NBT, gzip; in 26.2 the generator settings are there, not in
+  `level.dat`). A second start loaded it with `nz` kept. No errors beyond
+  the usual DH/Voxy mixin warnings. `server.properties` was put back
+  afterwards.
+  - First start logged `Overworld dimension type: minY=-368,height=800`:
+    the NZ preset's height isn't applied until the next start (TERR-8,
+    `tellus-internals.md` §6.2).
+- **Desktop client check (to do):** run `runClient262`, then Singleplayer →
+  Create New World → World tab. Expected:
+  - the World Type button offers **New Zealand** (next to Earth);
+  - with New Zealand selected, Customize is greyed out;
+  - the world creates and generates Earth terrain (Mount Everest spawn,
+    as Earth's defaults; NZ terrain comes in TERR-8);
+  - Mod Menu, if installed, shows "NZ Terrain" `0.8.3+nz.1`.

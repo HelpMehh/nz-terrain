@@ -242,27 +242,48 @@ matters).
 
 ## 6. Proposed hook points
 
-1. **Mark a world as NZ (decide in TERR-6).** Everything gets
-   `EarthGeneratorSettings`, so the NZ flag/settings must ride on it.
-   - a. Add one record component (e.g. `nz`) and update every constructor
-     call: 21 in `EarthGeneratorSettings.java`, 1 in
-     `EarthCustomizeScreen.java`, plus one in `shared/pre-26` that we don't
-     edit (that target breaks; accepted). Every upstream settings change then
-     conflicts with ours on those lines.
-   - b. **Recommended:** the same component, plus a constructor with the old
-     parameter list that passes "not NZ". Upstream's 21 calls stay
-     untouched. Trap: the `with…` methods would silently drop the NZ value,
-     so decode the NZ key **last** in the codec. Checked: no code outside
-     the codec calls the `with…` methods.
-   - c. A separate NZ generator type subclassing `EarthChunkGenerator`
-     doesn't help: the key methods are private, and the sources and
-     resolvers only see settings.
-2. **NZ world preset:** a new preset JSON plus the `normal` tag, with the
-   values from section 2, `min_altitude` −272, `max_altitude` 2031, and roads,
-   buildings and realtime off. `PresetEditorMixin` decides which preset gets
-   which editor. The Earth customize screen (Mercator map, spawn picker,
-   scale sliders) would show wrong things for NZ: give the NZ preset no
-   editor, or a small one of its own.
+1. **NZ flag (built in TERR-6).** Everything gets `EarthGeneratorSettings`,
+   so the flag rides on it: a last component `Optional<NzWorldSettings> nz`
+   (`m262:nz/NzWorldSettings.java`); present means NZ world
+   (`NzWorldSettings.isNzWorld`). This is option b from TERR-4. Option a
+   (edit all 21 constructor calls) would conflict with every upstream settings
+   change; option c (an NZ generator subclass) doesn't help, because the key
+   methods are private and the sources only see settings.
+   - Tellus's own `new EarthGeneratorSettings(…)` calls use a compatibility
+     constructor with the old parameter list, which passes `Optional.empty()`.
+     They stay untouched.
+   - The `nz` key comes from wrapping Tellus's codec
+     (`CODEC = NzWorldSettings.withNzKey(MAP_CODEC).codec()`). It is applied
+     after Tellus has decoded all of its own keys, so its private `with…`
+     copies can't drop it.
+   - **Trap:** every Tellus copy (the public `withUndergroundDepth`,
+     `withCustomTrees`, … and `EarthCustomizeScreen.buildSettings()`) returns
+     **non-NZ** settings. Copy with `NzWorldSettings.withNz(…)` afterwards, or
+     round-trip through `CODEC` (as `TerrainPreloadSettingsOverrides.apply`
+     does, which keeps `nz`). In TERR-6 only tests call the public ones.
+   - New NZ settings (e.g. TERR-7's data versions) go into `NzWorldSettings`,
+     never into `EarthGeneratorSettings`. Its codec is then a
+     `RecordCodecBuilder` instead of today's unit codec. 26.2 ships
+     DataFixerUpper 10, which has no `Codec.unit`; use `MapCodec.unitCodec`.
+   - In 26.2 a world keeps its generator settings in
+     `<world>/data/minecraft/world_gen_settings.dat`, not in `level.dat`.
+2. **NZ world preset (built in TERR-6; values in TERR-8).**
+   `m262` resources `data/tellus/worldgen/world_preset/nz.json`, listed in
+   the root `normal` tag as an optional entry, so it shows as "New Zealand" in
+   the World Type list. Its two settings copies hold only `"nz": {}`, so it
+   still generates like Earth. It has no editor (`PresetEditorMixin` maps only
+   `EARTH`), so Customize is unavailable for it, on purpose: the Earth screen
+   shows a Mercator map, spawn picker and scale sliders that would be wrong
+   for NZ. TERR-8 adds the values from section 2: `min_altitude` −272,
+   `max_altitude` 2031, and roads, buildings and realtime off.
+   - **Height on first start:** without the editor, nothing applies the
+     height limits at world creation. The world opens with the preset's
+     dimension type (`tellus:earth`, Y −368..431), and Tellus's height
+     datapack (section 3) only takes effect at the *next* start. TERR-6's
+     server check logged `minY=-368,height=800` on the first start. TERR-8
+     must fix this, e.g. with a static NZ dimension type of Y −272..2031 in
+     the preset (`resolveTellusDimensionKey` then ignores it, which is fine
+     because it is already right).
 3. **Heights (TERR-8):** wherever elevation becomes Y (section 2 table),
    chiefly the generator's `sampleSurfaceHeight` family
    (`EarthChunkGenerator.java:5253`–`:5294`: blocking, local-only and

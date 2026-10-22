@@ -104,6 +104,17 @@ them when they come up.
     nothing yet.
   - Record the decisions in `CLAUDE.md`.
 - **Done when:** build passes, the option shows up in-game.
+- **Built (22 Oct 2026), version `0.8.3+nz.1`:**
+  - Decisions in `CLAUDE.md` "Naming and versions": mod ID stays `tellus`
+    (the jar replaces Tellus), jar `nz-terrain-…`, package
+    `com.yucareux.tellus.nz`, version `<Tellus>+nz.<N>`, `CHANGELOG-NZ.md`.
+  - `NzWorldSettings` (the `nz` key on the generator settings) and the
+    "New Zealand" preset `tellus:nz`. How, and the traps:
+    `tellus-internals.md` §6.
+  - Build passes (604 tests). A dedicated server created and reopened a
+    world from the preset with `nz` saved (`testing.md`).
+  - **Still to do:** the desktop client check in `testing.md`. Tick this
+    step after it.
 - **Needs:** TERR-4, TERR-5.
 
 ### [ ] TERR-7 — Local tile source
@@ -116,6 +127,8 @@ them when they come up.
   - Manifest checks: refuse unknown format versions and a different
     E0/N0; merge tile sets by priority; save the data versions in the
     world and warn when they change.
+  - The data versions saved in the world go into `NzWorldSettings`
+    (`tellus-internals.md` §6.1), not into Tellus's settings.
 - **Needs:** TERR-6, PIPE-7.
 
 ### [ ] TERR-8 — NZ heights
@@ -133,6 +146,10 @@ them when they come up.
     pros and cons: `tellus-internals.md` §4. Also choose
     `underground_depth`.
   - Outside the data: flat ocean for now.
+  - Give the `tellus:nz` preset its values (scale, heights, altitudes,
+    roads, buildings and realtime off), and make the world height right
+    from the first start: the preset has no editor, so today the first
+    start runs at Tellus's default height (`tellus-internals.md` §6.2).
   - Check heights against the pipeline's `height.tif` at a few known
     points (e.g. the check peak in the pipeline README, "WorldPainter").
 - **Needs:** TERR-7.
@@ -244,5 +261,8 @@ them when they come up.
 - **Do:**
   - Version and changelog.
   - The LGPL notice (source link, statement that the code is modified).
+  - `mc262/.../fabric.mod.json`: `contact` still points at upstream and
+    `authors` is upstream's placeholder; point them at the fork (TERR-6
+    changed only name and description).
   - Data attribution.
   - A GitHub release on the fork.

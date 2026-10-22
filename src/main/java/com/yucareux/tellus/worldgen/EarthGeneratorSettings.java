@@ -9,6 +9,7 @@ import com.mojang.serialization.RecordBuilder;
 import com.mojang.serialization.MapEncoder.Implementation;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.yucareux.tellus.compat.MinecraftVersionCompat;
+import com.yucareux.tellus.nz.NzWorldSettings;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -80,7 +81,9 @@ public record EarthGeneratorSettings(
    int undergroundDepth,
    boolean customTrees,
    boolean automaticHeightScaling,
-   boolean hugeRedMushrooms
+   boolean hugeRedMushrooms,
+   // NZ: NZ world settings, empty for Tellus worlds (com.yucareux.tellus.nz.NzWorldSettings)
+   Optional<NzWorldSettings> nz
 ) {
    public static final double DEFAULT_SPAWN_LATITUDE = 27.9881;
    public static final double DEFAULT_SPAWN_LONGITUDE = 86.925;
@@ -639,7 +642,8 @@ public record EarthGeneratorSettings(
          }
       }
    );
-   public static final Codec<EarthGeneratorSettings> CODEC = MAP_CODEC.codec();
+   // NZ: adds the "nz" key (NzWorldSettings)
+   public static final Codec<EarthGeneratorSettings> CODEC = NzWorldSettings.withNzKey(MAP_CODEC).codec();
 
    public EarthGeneratorSettings(
       double worldScale,
@@ -705,7 +709,8 @@ public record EarthGeneratorSettings(
       int undergroundDepth,
       boolean customTrees,
       boolean automaticHeightScaling,
-      boolean hugeRedMushrooms
+      boolean hugeRedMushrooms,
+      Optional<NzWorldSettings> nz // NZ
    ) {
       worldScale = clampWorldScale(worldScale);
       randomBiomeDensity = Mth.clamp(randomBiomeDensity, MIN_RANDOM_BIOME_DENSITY, MAX_RANDOM_BIOME_DENSITY);
@@ -790,6 +795,143 @@ public record EarthGeneratorSettings(
       this.customTrees = customTrees;
       this.automaticHeightScaling = automaticHeightScaling;
       this.hugeRedMushrooms = hugeRedMushrooms;
+      this.nz = Objects.requireNonNull(nz, "nz"); // NZ
+   }
+
+   // NZ: Tellus's parameter list without nz, so Tellus's own calls stay unchanged. They create Tellus (non-NZ) settings.
+   public EarthGeneratorSettings(
+      double worldScale,
+      double terrestrialHeightScale,
+      double oceanicHeightScale,
+      int heightOffset,
+      double spawnLatitude,
+      double spawnLongitude,
+      int minAltitude,
+      int maxAltitude,
+      int riverLakeShorelineBlend,
+      int oceanShorelineBlend,
+      boolean shorelineBlendCliffLimit,
+      boolean caveGeneration,
+      boolean oreDistribution,
+      boolean geologicalStonePatches,
+      boolean lavaPools,
+      boolean addStrongholds,
+      boolean addVillages,
+      boolean addMineshafts,
+      boolean addOceanMonuments,
+      boolean addWoodlandMansions,
+      boolean addDesertTemples,
+      boolean addJungleTemples,
+      boolean addPillagerOutposts,
+      boolean addRuinedPortals,
+      boolean addShipwrecks,
+      boolean addOceanRuins,
+      boolean addBuriedTreasure,
+      boolean addIgloos,
+      boolean addWitchHuts,
+      boolean addAncientCities,
+      boolean addTrialChambers,
+      boolean addTrailRuins,
+      boolean deepDark,
+      boolean geodes,
+      boolean distantHorizonsWaterResolver,
+      boolean distantHorizonsOsmFeatures,
+      int distantHorizonsOsmRoadMaxDetail,
+      int distantHorizonsOsmBuildingMaxDetail,
+      boolean distantHorizonsOsmNonBlockingFetch,
+      boolean realtimeTime,
+      boolean realtimeWeather,
+      boolean historicalSnow,
+      boolean voxyChunkPregenEnabled,
+      int voxyChunkPregenMaxRadius,
+      int voxyChunkPregenChunksPerTick,
+      EarthGeneratorSettings.DistantHorizonsRenderMode distantHorizonsRenderMode,
+      EarthGeneratorSettings.DemSelection demSelection,
+      boolean enableRoads,
+      boolean enableBuildings,
+      boolean enableWater,
+      boolean thinShellTerrain,
+      boolean climateBasedBuiltUpTerrain,
+      boolean randomBiomes,
+      double randomBiomeDensity,
+      long randomBiomeSeed,
+      List<String> randomBiomeIds,
+      boolean experimentalIncreaseHeight,
+      boolean tellusManagedTerrainDownloads,
+      boolean showTerrainDownloadOverlay,
+      boolean cavesReachSurface,
+      int undergroundDepth,
+      boolean customTrees,
+      boolean automaticHeightScaling,
+      boolean hugeRedMushrooms
+   ) {
+      this(
+         worldScale,
+         terrestrialHeightScale,
+         oceanicHeightScale,
+         heightOffset,
+         spawnLatitude,
+         spawnLongitude,
+         minAltitude,
+         maxAltitude,
+         riverLakeShorelineBlend,
+         oceanShorelineBlend,
+         shorelineBlendCliffLimit,
+         caveGeneration,
+         oreDistribution,
+         geologicalStonePatches,
+         lavaPools,
+         addStrongholds,
+         addVillages,
+         addMineshafts,
+         addOceanMonuments,
+         addWoodlandMansions,
+         addDesertTemples,
+         addJungleTemples,
+         addPillagerOutposts,
+         addRuinedPortals,
+         addShipwrecks,
+         addOceanRuins,
+         addBuriedTreasure,
+         addIgloos,
+         addWitchHuts,
+         addAncientCities,
+         addTrialChambers,
+         addTrailRuins,
+         deepDark,
+         geodes,
+         distantHorizonsWaterResolver,
+         distantHorizonsOsmFeatures,
+         distantHorizonsOsmRoadMaxDetail,
+         distantHorizonsOsmBuildingMaxDetail,
+         distantHorizonsOsmNonBlockingFetch,
+         realtimeTime,
+         realtimeWeather,
+         historicalSnow,
+         voxyChunkPregenEnabled,
+         voxyChunkPregenMaxRadius,
+         voxyChunkPregenChunksPerTick,
+         distantHorizonsRenderMode,
+         demSelection,
+         enableRoads,
+         enableBuildings,
+         enableWater,
+         thinShellTerrain,
+         climateBasedBuiltUpTerrain,
+         randomBiomes,
+         randomBiomeDensity,
+         randomBiomeSeed,
+         randomBiomeIds,
+         experimentalIncreaseHeight,
+         tellusManagedTerrainDownloads,
+         showTerrainDownloadOverlay,
+         cavesReachSurface,
+         undergroundDepth,
+         customTrees,
+         automaticHeightScaling,
+         hugeRedMushrooms,
+         Optional.empty()
+      );
    }
 
    public double effectiveTerrestrialHeightScale() {

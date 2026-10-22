@@ -2,8 +2,8 @@
 	"schemaVersion": 1,
 	"id": "tellus",
 	"version": "${version}",
-	"name": "Tellus",
-	"description": "Tellus is a Fabric mod that recreates real-world terrain in Minecraft by generating Earth-scale landscapes from geographic data.",
+	"name": "NZ Terrain",
+	"description": "New Zealand terrain from real data. A fork of Tellus, which recreates real-world terrain in Minecraft from geographic data.",
 	"authors": [
 		"Me!"
 	],

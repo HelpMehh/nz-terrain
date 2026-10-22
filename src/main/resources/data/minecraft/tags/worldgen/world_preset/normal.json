@@ -1,5 +1,9 @@
 {
   "values": [
-    "tellus:earth"
+    "tellus:earth",
+    {
+      "id": "tellus:nz",
+      "required": false
+    }
   ]
 }

@@ -17,6 +17,8 @@ Done in the clone that has the `upstream` remote:
 3. `git switch nz` then `git merge main` — conflicts are resolved here.
 4. Re-check `tellus-layout.md` (layers, file counts, where things live) and
    build: `./gradlew -PtellusTargets=mc262 :mc262:build`.
+5. If `mod_version` changed, the next jar is `<new version>+nz.<N+1>`:
+   `nz_version` keeps counting (`CLAUDE.md`).
 
 Merging (not rebasing) keeps `nz` history stable, so clones can keep using
 `git pull --ff-only`.
@@ -28,3 +30,22 @@ Merging (not rebasing) keeps `nz` history stable, so clones can keep using
 - Where an upstream file must change, keep it to a small hook that calls into
   NZ code, and mark it with `// NZ:`.
 - Don't reformat or tidy upstream code.
+
+## NZ edits to upstream files
+
+Every upstream file we changed, so a merge knows where to look. Java hooks
+also carry `// NZ:`; JSON can't. Add each new one here.
+
+| File | What | Since |
+|---|---|---|
+| `build.gradle` | `version` = `mod_version+nz.nz_version` | TERR-6 |
+| `gradle.properties` | `archives_base_name=nz-terrain`; `nz_version` at the end | TERR-6 |
+| `mc262/src/main/resources/fabric.mod.json` | `name`, `description` | TERR-6 |
+| `src/main/java/…/worldgen/EarthGeneratorSettings.java` | `nz` component, compatibility constructor, `CODEC` wrapped (`tellus-internals.md` §6) | TERR-6 |
+| `src/main/resources/data/minecraft/tags/worldgen/world_preset/normal.json` | optional entry `tellus:nz` | TERR-6 |
+| `src/main/resources/assets/tellus/lang/{en_us,es_es,ja_jp}.json` | `generator.tellus.nz`. Upstream's `LocalizationCoverageTest` needs every lang key in all three files | TERR-6 |
+
+**When upstream adds a settings component** to `EarthGeneratorSettings`, the
+merge conflicts in the record header and the constructors. Add the new
+component to the compatibility constructor (parameter list and `this(…)` call)
+and to `NzWorldSettings.withNz`; the compiler flags both if missed.

@@ -3,7 +3,7 @@ plugins {
 }
 
 group = project.maven_group
-version = project.mod_version
+version = "${project.mod_version}+nz.${project.nz_version}" // NZ: NZ version scheme (CLAUDE.md)
 
 // Version projects are thin compatibility overlays. Keep source implementations in
 // the narrowest shared layer that supports them instead of copying them per target.
