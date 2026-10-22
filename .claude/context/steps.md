@@ -209,8 +209,10 @@ them when they come up.
   water pass (§11).
 - **Starting point (TERR-8):** NZ worlds already run Tellus's older,
   non-Overture water path: sea from the land mask, lakes and rivers where
-  the cover class is water, both from our tiles (§11). It was never checked
-  in game, and upstream no longer uses it. The sea floor is a placeholder
+  the cover class is water, both from our tiles (§11). Upstream no longer
+  uses it. The TERR-8 desktop check saw a river near spawn in flat reaches,
+  with a step between them and a row of sand across the channel at each
+  step (`testing.md`). The sea floor is a placeholder
   (`NzSeaFloor`); lake floors are Tellus's invention.
 
 ### [ ] TERR-11 — Surface rules

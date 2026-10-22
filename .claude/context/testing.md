@@ -86,9 +86,10 @@ Settings as above; Fabric 26.2, released Tellus, Sodium, stock DH
   438 MB. Measured a little later, the overworld DH database alone was
   378 MB, so DH, not the chunks, takes most of the world folder, and it keeps
   growing while the distance fills in. Full-size figures are still unknown.
-- **Distant LODs shake slightly** when moving. Cause not checked: depth
-  precision at very long range, or the test world lying about 4.5 million
-  blocks from 0,0 (the NZ world will be near 0,0).
+- **Distant LODs shake slightly** when moving. In the NZ world, where test
+  area 1 lies about 120,000 blocks from 0,0, they don't (TERR-8 desktop
+  check). So the cause was the test world's distance from 0,0 (about
+  4.5 million blocks), not depth precision at long range.
 - **Rivers:** channels are carved but left as stone, with no water. This is a
   Tellus water issue, not a scale issue. TERR-5 found the likely cause in
   the code (not checked in game). The channels are the real LiDAR riverbeds.
@@ -251,21 +252,43 @@ Code: `0.8.3+nz.3`.
   - Tiles folder pointed elsewhere, NZ world: the server refuses to start
     (`IllegalStateException: NZ Terrain: no tile sets found in …`, as a
     crash report), before any level exists.
+  - To see what the tiles hold at a spot (water class, height…), read
+    them with the pipeline's reference reader
+    (`nz_pipeline.tiles.read_tile`, in its virtual env), or export one
+    tile to GeoTIFF with `nz-pipeline export`. Tile of block x at level 0:
+    `x >> 9`, pixel `x & 511`.
   - Downloads still made (`tellus/cache/`): Overture sand and land cover;
     ETH canopy answered 404 (trees fall back to biome trees). TERR-9.
   - Five forceloaded spots plus spawn: "Can't keep up … 12 s behind" once,
     while those chunks generated. Speed isn't measured yet (TERR-18).
-- **Desktop client check (to do):** copy the test-area-1 set (`nz-main/`)
-  into the dev client's `nz-tiles/`, then:
-  - with an empty `nz-tiles/`, Create New World → New Zealand → Create
-    should show "Can't create a New Zealand world" and the folder, and go
-    back to the screen;
-  - with the tiles: create, look around Sentinel Rock and the glacier
-    valley, `/tp @s -76904 1950 100287` (Aoraki), fly out to sea; quit,
-    reopen, no "Failed to load chunk";
-  - with Distant Horizons: distant terrain matches near terrain (DH reads
-    coarser tile levels), and whether distant LODs still shake now that
-    the world is near 0,0 (hub `NZ-MINECRAFT-CONTEXT.md` §8).
+- **Desktop client check (passed, 23 Oct 2026)**, in a launcher instance
+  with Sodium and stock Distant Horizons (the jar replaces Tellus there):
+  - Empty `nz-tiles/`: Create World showed "Can't create a New Zealand
+    world" and went back.
+  - With the test-area-1 set (`nz-main/`) in `nz-tiles/`: the valley at
+    spawn, Aoraki (summit about Y 1,920) and the beach look right. The sea
+    deepens steadily from the beach to Y 44 (floor 43) offshore.
+  - Underground: caves and lava down to about 256 blocks under the surface
+    (Y ≈ −193 at the coast), solid deepslate below. Caves also run inside
+    the mountains.
+  - Reopened the world: no "Failed to load chunk" in `latest.log`.
+  - DH: distant terrain has the same shapes as near terrain, and the
+    distant LODs **no longer shake** (see TERR-1 above). Filling in is slow,
+    as expected.
+  - Stutter right after loading in, gone after switching the client JVM
+    to ZGC (`-XX:+UseZGC`). Not looked into; a candidate for the pack's
+    JVM arguments.
+  - **River near spawn** (around −76045, 93662): the water surface comes
+    in flat reaches with a step of a block or more between them, and a
+    row of sand blocks across the channel at each step. This is Tellus's
+    non-Overture water path, seen in game for the first time:
+    `InlandWaterFlowAnalyzer` levels a river into flat reaches with
+    waterfalls (`tellus-internals.md` §11). TERR-10.
+  - Lighter, straight-edged patches in the shallow sea floor, seen from
+    about 600 blocks off the beach (looking east from −80559, 89387).
+    Generated headless, the same stretch of floor is a smooth slope
+    (Y 56 → 61 towards the coast, no edges), so probably the boundary
+    between DH LODs and loaded chunks. Not confirmed in game.
   - Known and expected: biomes, grass colours and trees are still Tellus's
-    Earth ones read by Mercator (TERR-12/13); lakes and rivers come from a
-    path TERR-10 has yet to check.
+    Earth ones read by Mercator (TERR-12/13); gravel riverbeds show as
+    flat stone (TERR-11).

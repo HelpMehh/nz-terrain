@@ -637,8 +637,10 @@ and cached (`buildRegionData` `:785`).
   do**: the constructor hook gives NZ settings `enableWater = false`, and
   the preload view (§6.3) supplies the cover class and land mask from our
   tiles. So the sea comes from the water layer (land mask), and lakes and
-  rivers wherever the water layer says so (cover 80). TERR-8 checked only
-  the sea in game.
+  rivers wherever the water layer says so (cover 80). In game (TERR-8
+  desktop check) the sea looks right, and rivers come in flat reaches with
+  steps and a row of sand across the channel at each step (see "River
+  surfaces" below).
 - **The ocean floor bypasses the preload view.**
   `sampleOceanTerrainHeight` builds every ocean column's floor from
   OpenWaters bathymetry (`sampleRawOceanDepth`, online, by Mercator) and a
