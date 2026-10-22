@@ -70,7 +70,10 @@ Settings as above; Fabric 26.2, released Tellus, Sodium, stock DH
 - **Scale:** looks believable everywhere and dramatic in the mountains. The
   settings are kept; no change to the hub scale.
 - **World height:** the world from Y −272 to 2,031 was created and generated
-  without Increase Height. The floor itself was not inspected.
+  without Increase Height. The floor itself was not inspected. TERR-4
+  found that Tellus only builds a rock shell `underground_depth` blocks
+  thick under the surface (default 256, as here), with air below it, so
+  this world reached Y −272 only under deep sea (`tellus-internals.md` §4).
 - **Distant Horizons:** stock DH renders the peaks up to Y≈1,900 correctly. The
   Tellus DH build is not needed.
 - **Frame rate:** above 120 FPS at every DH distance up to 2,048 chunks, which

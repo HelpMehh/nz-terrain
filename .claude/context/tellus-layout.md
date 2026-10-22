@@ -58,5 +58,6 @@ That is why NZ code goes in `mc262/src/` and edits elsewhere stay small hooks
 - 26.2-specific: `shared/mc262/.../worldgen/EarthChunkGenerator.java`,
   `compat/`, `mixin/`.
 
-The map projection (latitude/longitude, Mercator-type) is still to be traced:
-step TERR-4, with the results going into `tellus-internals.md`.
+Root `src/client/` holds client code shared by every target (e.g. the
+`PresetEditorMixin`). How coordinates, heights and settings flow through
+this code, and where NZ hooks go: `tellus-internals.md`.

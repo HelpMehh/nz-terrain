@@ -52,16 +52,22 @@ them when they come up.
   colours, and changing a block means repainting. The palette is tuned in
   game in TERR-11 instead, where a change is an edit plus fresh chunks.
 
-### [ ] TERR-4 — Study Tellus: coordinates and scales (read-only)
+### [x] TERR-4 — Study Tellus: coordinates and scales (read-only)
 
 - **Goal:** know exactly where to plug in NZTM.
-- **Do:**
-  - Trace world x/z → lat/lon, and the horizontal scale, vertical scale,
-    sea-level and world-height settings. Check what breaks with a world
-    from Y −272 to 2,031.
-  - Trace how world settings and presets reach the chunk generator.
-  - Write a new `.claude/context/tellus-internals.md` with file:line pointers
-    and the proposed hook points.
+- **Done (22 Oct 2026):** everything is in `tellus-internals.md`. Main
+  findings:
+  - There is no single projection hook (about 40 files use Mercator), but
+    the data sources take block x/z, so NZ worlds can read our block-aligned
+    tiles directly and skip lat/lon in the terrain path.
+  - The NZ height formula `y = 63 + elevation / 2` needs no code: Tellus's
+    own transform gives it with world scale 3.0, height scales 1.5,
+    offset 63 and automatic height scaling off.
+  - Tellus builds only a rock shell under the surface with air below, and
+    puts caves, lava, ores and deepslate relative to the surface. This
+    changes TERR-8 (see its note).
+  - NZ settings must ride on `EarthGeneratorSettings`; options for TERR-6
+    are in `tellus-internals.md` §6.
 
 ### [ ] TERR-5 — Study Tellus: data, generator, DH (read-only)
 
@@ -69,7 +75,10 @@ them when they come up.
 - **Do:**
   - How data sources fetch, cache and sample data (`world/data/`).
   - How the chunk generator uses them.
-  - How DH fast LOD samples them.
+  - How DH fast LOD samples them. Start point from TERR-4: DH gets heights
+    through generator methods (`resolveLodTerrainSurface`,
+    `resolveLodSurface`, …), but also calls `EarthProjection` directly
+    (`tellus-internals.md` §1).
   - List every online feature to disable for NZ worlds: OSM roads, buildings
     and lights, real-time weather and time, online elevation, WorldCover,
     Köppen.
@@ -105,9 +114,14 @@ them when they come up.
   - The NZ world takes its height from the tiles via the NZTM mapping and
     the height formula in hub `interfaces.md` (1:3, vertical 1:2, sea
     level Y 63, world Y −272 to 2,031).
-  - Vanilla-style underground below NZ reaching the new floor at Y −272:
-    patch the hard-coded lava level (Y −54), let caves reach the floor, and
-    optionally add ores below −64.
+  - Underground below NZ reaching the new floor at Y −272. Tellus only
+    builds a rock shell `underground_depth` blocks thick, with air below,
+    and its caves, lava (the −54 is a vanilla-relative level) and ores
+    already follow the shell, so there is no lava level to patch.
+  - **Raise first:** how to reach the floor: shell only, shell plus solid
+    fill to −272 (recommended), or an absolute vanilla underground. Options,
+    pros and cons: `tellus-internals.md` §4. Also choose
+    `underground_depth`.
   - Outside the data: flat ocean for now.
   - Check heights against the pipeline's `height.tif` at a few known
     points (e.g. the check peak in the pipeline README, "WorldPainter").
