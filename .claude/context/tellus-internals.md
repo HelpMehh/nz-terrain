@@ -109,7 +109,7 @@ because `elevation × 1.5 × 1 / 3 = elevation / 2`. `world_scale` 3.0 is
 also right everywhere Tellus uses it as "metres per block" (ocean-floor
 transitions, waterfall drop, LOD resolution), because with NZTM 3 m per
 block holds everywhere, unlike Mercator. The rounding (away from sea level)
-is still to be decided in HUB-2 / TERR-8.
+is decided in TERR-8; the tiles store metres, not block Y (HUB-2).
 
 TERR-1 used world scale 4.2 with automatic scaling **on** instead, because
 released Tellus places NZ by Mercator. That is only right for the TERR-1
@@ -338,7 +338,8 @@ settings value (`:121`). All sources work the same way:
 Overture URLs come from `osm/OvertureTileUrls` (the latest release
 listing). `osm/OverpassRoadClient` is not called from anywhere.
 
-**File formats Tellus can already read** (for HUB-2):
+**File formats Tellus can already read** (input to HUB-2, which designed
+its own format instead; reasons in hub `interfaces.md`):
 
 - `elevation/TellusRasterReader`: Tellus's own `TELLUS/RASTER` format.
   It holds int16 rasters only, in chunks, each XZ-compressed with a
@@ -479,7 +480,8 @@ For TERR-15: once the `sampleSurfaceHeight` family and the cover-class
 methods read our tiles, fast LOD shows NZ terrain with no DH-specific
 code. What's left is speed: a far LOD cell asks for a coarse resolution, so
 our tiles want a coarse pyramid or overviews instead of reading every 3 m
-pixel. That is an input to HUB-2.
+pixel. HUB-2 gave the tiles coarse levels: detail d reads level d, whose
+pixels are 2^d blocks (hub `interfaces.md`).
 
 ## 10. Online features to switch off for NZ worlds (TERR-9)
 

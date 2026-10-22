@@ -13,7 +13,10 @@ generator instead (TERR-11).
 
 ## Slopes: real vs in game
 
-The pipeline's `slope.tif` is the **real** slope. The world is stretched 1.5×
+Slope here is the **real** slope: the pipeline's `slope.tif`, and in the
+generator the slope computed from the height tiles with the same method
+(Horn's 3 × 3; the tiles store no slope layer, hub `interfaces.md`). The
+world is stretched 1.5×
 vertically, so in game every slope is steeper: `tan(game) = 1.5 × tan(real)`.
 WorldPainter measures slope on its block heights, so its slope filters use
 **game** degrees.
@@ -124,7 +127,7 @@ custom block has a vanilla fallback here (hub `interfaces.md`).
 | Greywacke (stone, cobbles) | Main divide, Canterbury, the axial ranges | stone 50, andesite 30, cobbled deepslate 20 |
 
 The list is a starting point; MODS-17 decides the set. More rock types
-depend on the geology question below.
+come with the `rock` tile layer (PIPE-15, below).
 
 ## For the generator (TERR-11)
 
@@ -154,9 +157,11 @@ depend on the geology question below.
 
 - **Rock type by geology.** One rock mix fits test area 1 (schist and
   greywacke). The rest of NZ differs: Fiordland granite and gneiss, the
-  volcanic plateau, Otago schist, limestone. A rock-type layer from the GNS
-  geological map (QMAP, check its licence) would need a pipeline step and a
-  tile layer, so it should be decided before HUB-2.
+  volcanic plateau, Otago schist, limestone. HUB-2 reserved an optional
+  `rock` tile layer; PIPE-15 checks the GNS geological map's (QMAP)
+  licence and fills it. Until then, and wherever the layer is missing, the
+  generator uses test area 1's mix. QMAP boundaries are only good to about
+  250 m, so blend rock mixes across them rather than switching at a line.
 - **Retexture instead of new blocks?** A resource pack in `nz-modpack`
   could recolour vanilla blocks (e.g. sand), but it changes them
   everywhere, outside NZ too. New blocks with fallbacks are the plan;

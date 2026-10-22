@@ -109,9 +109,13 @@ them when they come up.
 ### [ ] TERR-7 — Local tile source
 
 - **Do:**
-  - A reader for the pipeline tiles, with a unit test against the pipeline's
-    fixture.
-  - A configurable data folder and a cache.
+  - A reader for the pipeline tiles (format: hub `interfaces.md`), with a
+    unit test against the pipeline's fixture.
+  - The data folder (default `<game dir>/nz-tiles/`, overridable in a
+    config file named here) and a cache of decoded tiles.
+  - Manifest checks: refuse unknown format versions and a different
+    E0/N0; merge tile sets by priority; save the data versions in the
+    world and warn when they change.
 - **Needs:** TERR-6, PIPE-7.
 
 ### [ ] TERR-8 — NZ heights
@@ -204,8 +208,9 @@ them when they come up.
 
 - **Do:** fast LOD samples our tiles, including the approximate colour of
   vegetation. Heights and cover already reach DH through the generator
-  hooks (`tellus-internals.md` §9); this step is about speed (coarse
-  levels for far LOD cells) and the vegetation colour.
+  hooks (`tellus-internals.md` §9); this step is about speed (read the
+  tiles' coarse level for each LOD detail, hub `interfaces.md`) and the
+  vegetation colour.
 
 ### [ ] TERR-16 — Test area 2 in game
 
