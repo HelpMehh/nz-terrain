@@ -104,6 +104,10 @@ public final class DhLodWaterResolver implements TellusCacheHandle {
       boolean useDetailedWaterResolver
    ) {
       int area = lodSizePoints * lodSizePoints;
+      com.yucareux.tellus.nz.terrain.NzWater nzWater = com.yucareux.tellus.nz.terrain.NzWater.forSettings(this.settings); // NZ: NZ LOD water comes from the NZ tiles
+      if (nzWater != null) {
+         return nzWater.lodArea(cellSize, worldXs, worldZs, baseTerrainSurface);
+      }
       if (area == 0) {
          return new DhLodWaterResolver.AreaResult(new int[0], new int[0], new boolean[0], new boolean[0]);
       } else if (worldXs.length != lodSizePoints

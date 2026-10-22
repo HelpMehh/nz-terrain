@@ -46,7 +46,8 @@ also carry `// NZ:`; JSON can't. Add each new one here.
 | `mc262/src/main/java/…/Tellus.java` | calls `NzTerrain.initialize()` at the end of `onInitialize` | TERR-7 |
 | `src/main/resources/assets/tellus/lang/{en_us,es_es,ja_jp}.json` | `generator.tellus.nz`. Upstream's `LocalizationCoverageTest` needs every lang key in all three files | TERR-6 |
 | `src/main/java/…/preload/TerrainPreloadPackageRegistry.java` | NZ settings get a view backed by `NzTerrainSampler` (`createSettingsView`, `SettingsView` constructor, `sample`, `contains`; `tellus-internals.md` §6.3) | TERR-8 |
-| `src/main/java/…/worldgen/WaterSurfaceResolver.java` | `sampleOceanTerrainHeight`: NZ sea floor from the tiles (§11) | TERR-8 |
+| `src/main/java/…/worldgen/WaterSurfaceResolver.java` | `sampleOceanTerrainHeight`: NZ sea floor from the tiles (§11); field `nzWater` (`NzWater`, set in the constructor), NZ regions at the top of `buildRegionData` and NZ columns at the top of `coarseWaterColumnData` (TERR-10, §11) | TERR-8 |
+| `src/main/java/…/worldgen/DhLodWaterResolver.java` | `resolveArea`: NZ LOD water from `NzWater.lodArea` (§11) | TERR-10 |
 | `shared/mc262/src/main/java/…/worldgen/EarthChunkGenerator.java` | solid fill below the shell instead of the bedrock skin (`fillTellusSurface`), and in `getBaseColumn` (§4); lat/lon → block by NZTM for the spawn chunk (constructor) and `getSurfacePosition`, no Overture sand (`hasOvertureSandAt`) (TERR-9, §10) | TERR-8 |
 | `src/main/java/…/worldgen/EarthBiomeSource.java` | field `nz` (`NzTerrainSampler`); cover, visual cover and ocean depth from the tiles, `NzOceanClimate` instead of OISST, no badlands relief (§8.3) | TERR-9 |
 | `src/main/java/…/worldgen/TellusWorldgenSources.java` | no prefetch for NZ worlds in `warmCriticalTerrainInputsForChunk` and `prefetchForArea`, no sand prefetch in `prefetchWaterForChunk` (§10) | TERR-9 |

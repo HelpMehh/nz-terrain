@@ -4,6 +4,23 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.5 (TERR-10, 23 Oct 2026)
+
+- New Zealand worlds take their water straight from the tiles' water
+  layer: sea at sea level, every lake at its real surface, and rivers wet
+  across their whole channel, each block at its LiDAR surface rounded to
+  the nearest block. Rivers are level across and step down a block at a
+  time downstream. Estuaries and lagoons 0–1 m high sit at sea level.
+- Lake and river floors are invented until the tiles carry measured ones:
+  rivers 1–3 blocks deep (deeper further from the bank), lakes 1 m deeper
+  per 4 m from the shore, at most 40 m. Where the LiDAR under a lake is
+  deeper, or the tiles have a measured `bed`, that wins.
+- Distant Horizons shows the same water, from the coarser tile levels.
+- The New Zealand preset no longer cuts banks and cliffs next to water
+  down to a ramp (`shoreline_blend_cliff_limit` off).
+- Tellus's own water analysis (water bodies, lake surface guesses, river
+  reaches, shore blending) no longer runs in NZ worlds.
+
 ## 0.8.3+nz.4 (TERR-9, 23 Oct 2026)
 
 - New Zealand worlds generate fully offline: no more Overture sand,

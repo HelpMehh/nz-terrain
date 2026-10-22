@@ -214,21 +214,31 @@ them when they come up.
   RESOLVE still read West Africa by Mercator, offline (TERR-12/13).
 - **Needs:** TERR-8.
 
-### [ ] TERR-10 — Water
+### [x] TERR-10 — Water
 
 - **Do:** sea, lakes at their real surface height, and rivers, all from the
   water layer. Whole river channels must be wet, not a 1-block line
   (TERR-1, `tellus-internals.md` §11).
-- **Decide:** feed our water tile into Tellus's water resolver (keep its
-  river surfaces, bed depth, shores and waterfalls) or write a simpler NZ
-  water pass (§11).
-- **Starting point (TERR-8):** NZ worlds already run Tellus's older,
-  non-Overture water path: sea from the land mask, lakes and rivers where
-  the cover class is water, both from our tiles (§11). Upstream no longer
-  uses it. The TERR-8 desktop check saw a river near spawn in flat reaches,
-  with a step between them and a row of sand across the channel at each
-  step (`testing.md`). The sea floor is a placeholder
-  (`NzSeaFloor`); lake floors are Tellus's invention.
+- **Decided (23 Oct 2026):** a separate NZ water pass, not Tellus's
+  resolver fed with our tiles: the resolver's analysis fixes problems our
+  data doesn't have, and reusing it needed many hooks deep in a file
+  upstream rewrites often (§11.2). Water surfaces round to the nearest
+  block; the preset turns `shoreline_blend_cliff_limit` off so LiDAR banks
+  and cliffs beside water stay.
+- **Done (23 Oct 2026), version `0.8.3+nz.5`:**
+  - `com.yucareux.tellus.nz.terrain.NzWater` answers each column from the
+    tiles; hooks in `WaterSurfaceResolver` (regions, coarse columns) and
+    `DhLodWaterResolver` (LOD areas) hand NZ worlds to it.
+    `NzInlandWater` computes lake and river surfaces and floors per tile
+    and level: rivers level across and stepping downstream, invented
+    floors by distance to land, LiDAR or `bed` where deeper/measured.
+  - Checked: every lake, river and sea column in five test areas wet at
+    exactly the expected surface (`testing.md`).
+- **Not done:** the desktop check with DH (`testing.md`): river steps,
+  lakes, DH water. No waterfall handling for multi-block drops; `bed` is
+  only read at the same tile level (coarse-only bathymetry and the sea's
+  `bed`: PIPE-10).
+- **Needs:** TERR-8.
 
 ### [ ] TERR-11 — Surface rules
 

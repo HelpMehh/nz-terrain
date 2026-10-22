@@ -110,6 +110,7 @@ public final class WaterSurfaceResolver implements TellusCacheHandle {
    private final TellusOsmWaterSource osmWaterSource;
    private final EarthGeneratorSettings settings;
    private final TerrainPreloadPackageRegistry.SettingsView preloadedTerrain;
+   private final com.yucareux.tellus.nz.terrain.NzWater nzWater; // NZ: null except in NZ worlds
    private final boolean osmWaterEnabled;
    private final int seaLevel;
    private final Cache<Long, WaterSurfaceResolver.WaterRegionData> regionCache;
@@ -144,6 +145,7 @@ public final class WaterSurfaceResolver implements TellusCacheHandle {
       this.osmWaterSource = TellusWorldgenSources.osmWater();
       this.settings = settings;
       this.preloadedTerrain = TerrainPreloadPackageRegistry.instance().viewFor(settings);
+      this.nzWater = com.yucareux.tellus.nz.terrain.NzWater.forSettings(settings); // NZ: NZ worlds take their water from the NZ tiles
       this.osmWaterEnabled = settings.enableWater();
       this.seaLevel = settings.effectiveHeightOffset();
       this.riverLakeBlendDistance = clampBlend(settings.riverLakeShorelineBlend());
@@ -713,6 +715,9 @@ public final class WaterSurfaceResolver implements TellusCacheHandle {
    }
 
    private WaterSurfaceResolver.WaterColumnData coarseWaterColumnData(int blockX, int blockZ, int coverClass, double previewResolutionMeters) {
+      if (this.nzWater != null) {
+         return this.nzWater.column(blockX, blockZ, previewResolutionMeters); // NZ: the same column as the NZ region
+      }
       if (this.osmWaterEnabled) {
          TellusOsmWaterSource.FastWaterSample overture = this.osmWaterSource.sampleWater(
             blockX, blockZ, this.settings.worldScale(), OsmQueryMode.BLOCKING
@@ -783,6 +788,13 @@ public final class WaterSurfaceResolver implements TellusCacheHandle {
    }
 
    private WaterSurfaceResolver.WaterRegionData buildRegionData(int regionX, int regionZ) {
+      // NZ: NZ worlds take each column's water from the NZ tiles (NzWater, TERR-10); none of the analysis below runs
+      if (this.nzWater != null) {
+         com.yucareux.tellus.nz.terrain.NzWater.Region nz = this.nzWater.region(regionX * REGION_SIZE, regionZ * REGION_SIZE, REGION_SIZE);
+         return new WaterSurfaceResolver.WaterRegionData(
+            regionX * REGION_SIZE, regionZ * REGION_SIZE, nz.terrain(), nz.water(), nz.flags(), nz.raw(), new boolean[REGION_SIZE * REGION_SIZE]
+         );
+      }
       long buildCacheGeneration = this.cacheGeneration.get();
       long startNanos = DEBUG_WATER ? System.nanoTime() : 0L;
       int regionMinX = regionX * REGION_SIZE;

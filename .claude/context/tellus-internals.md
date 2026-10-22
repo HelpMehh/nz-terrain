@@ -396,6 +396,8 @@ matters).
 5. **Underground floor (built in TERR-8, option B):** §4.
 6. **Lat/lon users** (section 1): redirected or switched off for NZ worlds
    in TERR-9 (§1, §10).
+7. **Water (TERR-10):** both water resolvers hand NZ worlds to `NzWater`
+   (§11.2).
 
 ## 7. Data sources: fetch, cache, sample
 
@@ -547,7 +549,7 @@ searching for the `…_SOURCE.` fields (`:166`–`:175`):
 | Köppen | `sampleKoppenCode` (`:3895`) | NZ biome/climate (TERR-12) |
 | Canopy, ecoregion | `placeTrees`, `applyPreparedTreePlacement` (`:4816`, `:4952`) | `custom_trees` off (TERR-9); canopy + vegetation class (TERR-13) |
 | Sand | `hasOvertureSandAt` (`:6047`) | off for NZ (TERR-9); surface palette (TERR-11) |
-| Water | `waterResolver.*` (§11) | water tile (TERR-10) |
+| Water | `waterResolver.*` (§11) | **done (TERR-10)**: `NzWater`, hooks in both water resolvers (§11) |
 
 Outside the generator: `WaterSurfaceResolver.sampleSurface` (`:3344`,
 `:3355`), `sampleCoverClass` (`:3297`), `sampleLandMask` (`:3302`–`:3319`)
@@ -639,101 +641,118 @@ code, no common client), so a new upstream feature that calls a source
 directly from the generator or biome source would go online again: the
 networking-blocked test in `testing.md` catches that.
 
-## 11. Water, and why rivers stayed dry in TERR-1
+## 11. Water
 
-`root:worldgen/WaterSurfaceResolver.java` (about 4,000 lines). It works
-on 64 × 64-block regions, each analysed with a margin of 192–512 blocks
-and cached (`buildRegionData` `:785`).
+### 11.1 Tellus's water resolvers
 
-**Where water comes from:**
+`root:worldgen/WaterSurfaceResolver.java` (about 4,000 lines) answers
+every water question of the generator and the biome source. It works on
+64 × 64-block regions (`buildRegionData`), each analysed with a margin of
+192–512 blocks and cached. A region holds per column: terrain (the floor
+under water), water surface (Y of the top water block), a flag (none /
+inland / ocean / waterfall drop) and the raw DEM surface. The chunk
+generator reads regions (`resolveChunkWaterData`); the biome source and
+out-of-chunk neighbours read single columns (`resolveColumnData` →
+region, `resolveFastColumnData` → `coarseWaterColumnData`). DH has its
+own resolver, `root:worldgen/DhLodWaterResolver.java` (`resolveArea`,
+about 1,900 lines), on LOD grids.
+
+How Tellus does it, for Earth worlds:
 
 - **`enable_water` is ignored** (found in TERR-8): the settings
   constructor sets `enableWater = true` whatever was saved ("Overture
-  vector water is now the only supported source"). So for Earth worlds,
-  inland water and ocean come **only from Overture water shapes**
-  (`populateOsmBaseWaterMask` `:1841`; the `osmWaterEnabled` flag is just
-  `enableWater`, `:147`). About 60 places read the flag (resolver,
-  generator, DH water, biome source).
-  - Areas are scanline-filled.
-  - Centrelines (rivers and streams mapped as lines) are drawn **1 block
-    wide** (`halfWidth = 0.5`, `:2060`), with small gaps bridged.
-  - Ocean polygons override everything.
-  - WorldCover's water class is then *not* water.
+  vector water is now the only supported source"). About 60 places read
+  the flag. Inland water and ocean come **only from Overture shapes**
+  (`populateOsmBaseWaterMask`): areas scanline-filled, river centrelines
+  drawn **1 block wide**, ocean polygons override everything.
 - With the flag off, WorldCover class 80 plus the land mask make the water
-  instead (`:872`). Upstream no longer reaches this path, but **NZ worlds
-  do**: the constructor hook gives NZ settings `enableWater = false`, and
-  the preload view (§6.3) supplies the cover class and land mask from our
-  tiles. So the sea comes from the water layer (land mask), and lakes and
-  rivers wherever the water layer says so (cover 80). In game (TERR-8
-  desktop check) the sea looks right, and rivers come in flat reaches with
-  steps and a row of sand across the channel at each step (see "River
-  surfaces" below).
-- **The ocean floor bypasses the preload view.**
-  `sampleOceanTerrainHeight` builds every ocean column's floor from
-  OpenWaters bathymetry (`sampleRawOceanDepth`, online, by Mercator) and a
-  coast profile (`OceanCoastField`, `OceanFloorProfile`). In an NZ world
-  that put the whole sea floor near Y −214 (deep Gulf of Guinea, clamped).
-  TERR-8 hooks the method: NZ worlds take the preload sample's height,
-  clamped one block below the water surface.
-- **NZ placeholder sea floor (TERR-8, `m262:nz/terrain/NzSeaFloor`):** the
-  pipeline's WorldPainter rule (`worldpainter.py` `placeholder_depth`):
-  1 m deeper per 50 m from the nearest non-sea pixel, at least 4 m, at
-  most 40 m (Y 61 at the coast down to Y 43). Outside the data counts as
-  sea, so the flat ocean around the tiles is the same floor at 40 m.
-  Exact Euclidean distance per tile and level, with a 2 km margin from the
-  neighbouring tiles, cached in ¼ m steps. Real bathymetry (`bed`, PIPE-10)
-  replaces it.
+  instead. Upstream no longer reaches that path. NZ worlds did until
+  TERR-10 (their settings have `enableWater = false`, §10): rivers came
+  out as flat reaches with steps and a row of sand across the channel at
+  each step (TERR-8 desktop check).
+- Then guesses: connected water cells form components; long thin ones are
+  rivers (`shouldClassifyInlandComponentAsRiver`); a river's surface
+  follows the DEM and `InlandWaterFlowAnalyzer` levels it into reaches
+  with waterfalls (only on Overture *area* cells); lakes get one surface
+  from the 10th percentile of their border heights; beds are cut 1–6
+  blocks by distance to the bank; shores are blended.
+- **Ocean floor** (`sampleOceanTerrainHeight`): OpenWaters bathymetry
+  (online, by Mercator) and a coast profile. Hooked in TERR-8: NZ worlds
+  take the preload sample's height (`NzSeaFloor`), clamped one block below
+  the water.
+- **TERR-1 finding:** released Tellus left NZ rivers dry because most NZ
+  rivers are only centrelines in OSM: a 1-block strip in a LiDAR channel
+  tens of blocks wide, the rest drawn as stone.
 
-**River surfaces:**
+### 11.2 NZ water (TERR-10)
 
-- Connected water cells form components. Long thin components, or
-  components mostly made of flowing lines, are rivers
-  (`shouldClassifyInlandComponentAsRiver` `:1746`).
-- A river's water surface **follows the DEM** cell by cell
-  (`fillComponentSurfaceFromDem`). `InlandWaterFlowAnalyzer` then levels it
-  into flat reaches with waterfalls.
-- A river cell is never allowed above its own terrain
-  (`shouldRejectRiverWaterCell`: water > terrain → lowered or dropped,
-  `:1682`, `:2671`).
-- The bed is cut 1–6 blocks below the water by distance from the bank
-  (`computeRiverDepth` `:1784`, `tellus.water.riverMaxDepth`). Centreline
-  cells get water at the DEM height with the bed 1 block below (`:1268`).
-- Lakes get one surface from the 10th percentile of their border heights.
+**Decided (23 Oct 2026):** a separate NZ water pass instead of feeding our
+tiles into Tellus's resolver. The resolver's analysis exists to fix rough
+global data (polygons that don't fit the DEM, unknown lake heights); our
+water layer and LiDAR already agree, and reusing it would have needed many
+hooks deep in a file upstream rewrites in most releases.
 
-**Dry water class:** a column whose cover class is WorldCover water (80)
-but which got no water becomes the nearest land class, or else bare (60)
-(`resolveDryOsmTerrainCoverClass`, `EarthChunkGenerator.java:10219`). Bare
-counts as "mountain rocky cover" (`MountainSurfaceRules.java:118`), so it
-is drawn as **stone**.
+`m262:nz/terrain/NzWater` answers one column from the tiles; three hooks
+hand NZ worlds to it, so none of Tellus's analysis runs:
 
-**TERR-1 finding (from the code; not checked in game):**
+- `WaterSurfaceResolver.buildRegionData`: the region is `NzWater.region`,
+  i.e. `NzWater.column` block by block, at level 0.
+- `WaterSurfaceResolver.coarseWaterColumnData`: `NzWater.column` at the
+  requested resolution, so neighbours and biome queries get exactly the
+  region's values at block resolution.
+- `DhLodWaterResolver.resolveArea`: `NzWater.lodArea`, the same column at
+  the tile level of the LOD cell size, over DH's own terrain sample.
 
-- The "carved channels" are the real riverbeds in Mapterhorn's LiDAR DEM;
-  Tellus didn't dig them.
-- They stay dry where Overture has no water *area* over them. Most NZ
-  rivers in OSM are only centrelines, which give a 1-block strip of water
-  in a channel tens of blocks wide. That strip sits wherever the OSM line
-  is, which may not match the LiDAR channel, and it vanishes in coarse DH
-  LODs.
-- The rest of the channel is WorldCover water or bare gravel, and both are
-  drawn as stone.
-- Less likely: Overture coverage was incomplete when those chunks were
-  made, so they were built dry and patched later (§8.1).
+Flags in `NzWater.Region` use Tellus's private values (none 0, inland 1,
+ocean 2); no waterfall flags. Per column:
 
-To confirm, look at one riverbed with the F3 screen or with
-`-Dtellus.debugWater=true`.
+- **Sea** (water layer sea, or no data): water Y 63 (sea level) over the
+  sampler's height (`NzSeaFloor`), at most Y 62.
+- **Lake and river** (`m262:nz/terrain/NzInlandWater`, per tile and
+  level, with a margin from the neighbouring tiles, 64 tiles cached):
+  - Surface: `water_level` → Y of the top water block **rounded to the
+    nearest block** (`63 + floor(m / 2 + 0.5)`). Terrain rounds away from
+    sea level (ceil on land), so a bank is never below the water beside it
+    and estuaries and lagoons 0–1 m high sit at Y 63 like the sea. Water
+    level with its bank (both round up) or one block below it.
+  - Rivers: the lowest river surface within 2 blocks (a square), so a
+    channel is level across and blocks over a bank or bar take the river
+    level. In test area 1, 1.9 % of river blocks sit 2+ blocks above the
+    river within 2 blocks, 0.3 % 4+ (measured on `water.tif`/`height.tif`),
+    so nothing heavier was needed. Downstream, rivers step down one block
+    at a time: plain 1-block steps of source water, no waterfall handling.
+  - Floor: `bed` where measured, at the same tile level. Otherwise
+    invented from the exact distance to the nearest *land* pixel (sea and
+    lakes don't count, so mouths and inlets don't shallow): rivers 1 block
+    deep, 2 from 7 blocks out, 3 from 13; lakes 1 m deeper per 4 m, 2–40 m.
+    Where the LiDAR under a lake is lower (a lake that isn't flattened,
+    8 m fill), the LiDAR wins. Always at least 1 block deep. The constants
+    are at the top of `NzInlandWater`.
+- **Land:** no water, terrain = the sampler's height.
 
-**For NZ (TERR-10):**
+The NZ preset sets **`shoreline_blend_cliff_limit: false`**. With it on
+(Tellus's default), `EarthChunkGenerator.applyShorelineBankRamp` cuts any
+land within 5 blocks of water that stands 3+ blocks above it down to a
+1:1 ramp: it would erase sea cliffs, gorge walls and lake banks from the
+LiDAR. The resolvers' own uses of the flag no longer run in NZ worlds.
+`river_lake_shoreline_blend`/`ocean_shoreline_blend` (5) still keep
+Tellus's trees 5 blocks back from water (`placeTrees`; TERR-13).
 
-- Our water layer (sea / lake / river, with one surface height per lake)
-  replaces the Overture shapes. Since TERR-8 it already feeds the
-  non-Overture path above; check lakes and rivers there first.
-- The resolver's later stages could be reused, by filling its masks from
-  our tile instead of Overture in `populateOsmBaseWaterMask` and the ocean
-  field: components, river surfaces from the DEM, bed depth, shore blending
-  and waterfalls.
-- Our lake surfaces should replace the percentile guess.
-- River surfaces should come from our LiDAR-derived river mask, so the
-  whole channel is wet, not just a 1-block line.
-- Decide in TERR-10 whether to reuse the resolver this way or write a
-  simpler NZ water pass.
+**Found in the TERR-10 check (`testing.md`):**
+
+- Every lake, river and sea column was wet with exactly the expected
+  surface. When checking saved chunks, count seagrass, kelp and
+  waterlogged blocks as water: Tellus plants tall seagrass at the top of
+  shallow water.
+- LiDAR land below 0 m next to the sea is terrain at Y 62 or lower (rounded
+  away from sea level), so the sea floods it to Y 63 as soon as the chunk
+  ticks (test area 1: about 2,000 columns at one beach). Not changed: a
+  wet beach below sea level is plausible.
+- Flowing water spills a little over low ground at the edges of loaded
+  areas (vanilla fluid ticks).
+
+**Open:** how steps look in game (a 1-block wall of water, or flowing
+water once something updates it), whether multi-block drops in steep
+rivers need waterfall handling, whether 1–3 blocks is deep enough for big
+rivers, and how lakes look from DH (desktop check). Streams narrower than
+a block (`streams` layer) are TERR-14.

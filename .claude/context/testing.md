@@ -345,3 +345,42 @@ Code: `0.8.3+nz.4`.
     `prefetchForArea` hook still needs the desktop instance with DH:
     after flying around an NZ world, `tellus/cache/` should hold only
     `koppen/`.
+
+## Water check (TERR-10, 23 Oct 2026)
+
+Code: `0.8.3+nz.5`.
+
+- **Build:** passes, 657 tests (600 upstream + 57 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New (`NzWaterTest`, on small
+  tile sets written by the test): water rounding, river and lake depths,
+  a lake's one surface and its floor, LiDAR and `bed` floors, a river
+  level across with a step, a bank block, floors matching across a tile
+  border, sea and land, and the resolver region = the column block by
+  block.
+- **Headless server check (passed)** with the test-area-1 tiles
+  (`tiles_dir` = the folder holding `nz-main/`; `mc262/run/nz-tiles/`
+  only holds the one-tile fixture, where everything is sea and spawn
+  lands at Y 64). Spawn as before (−76040, 212, 93845). Five 128 × 128
+  areas forceloaded: the river near spawn (`-76104 93600 -75977 93727`
+  and `-76104 93780 -75977 93907`), the biggest river's mouth
+  (`-79758 88841 -79631 88968`), the Lake Mapourika shore
+  (`-75832 90324 -75705 90451`) and the Lake Mueller shore
+  (`-79972 93933 -79845 94060`). Commands went in through a FIFO
+  (`tail -f fifo | ./gradlew … runServer262`).
+  - Saved chunks read with a small Python Anvil reader and compared with
+    the tiles (pipeline `nz_pipeline.tiles.read_tile`), recomputing the
+    expected surface (lakes: `63 + floor(m / 2 + 0.5)`; rivers: the
+    lowest of that within 2 blocks): 48,511 lake, 19,442 river and 16,859
+    sea columns, **all wet, all with exactly the expected surface**, every
+    floor below its water. Lake depths 1–20 blocks (most at 20, the
+    40 m limit), river depths 1–3, sea 2–3 near the coast.
+  - 2,102 land columns had water on top: 2,051 are LiDAR land below 0 m
+    beside the sea (terrain Y 62 or lower, flooded to Y 63 once the chunks
+    ticked); the rest is flowing water spreading over low ground.
+  - "Can't keep up … 43 s behind" once while the ~400 chunks generated.
+    Speed isn't measured yet (TERR-18).
+- **Not checked yet (desktop, with DH):** how the river steps near spawn
+  look (around −76045, 93662; the TERR-8 desktop check saw sand rows
+  there), lakes and the river mouth up close and from DH, and that DH
+  water matches the loaded chunks at the boundary.
+

@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@link #elevationMetres} directly (TERR-9).
  */
 public final class NzTerrainSampler {
+   static final int WATER_LAND = 0;
    static final int WATER_SEA = 1;
    static final int WATER_LAKE = 2;
    static final int WATER_RIVER = 3;
@@ -78,6 +79,11 @@ public final class NzTerrainSampler {
       return level < 0 ? -NzSeaFloor.MAX_DEPTH_METRES : bilinearElevation(floor, level, x, z);
    }
 
+   /** The sea floor of the current store, which also gives the store. */
+   NzSeaFloor seaFloor() {
+      return this.seaFloorFor(NzTiles.global());
+   }
+
    /** The sea floor of the current store; the store is replaced at every server start. */
    private NzSeaFloor seaFloorFor(NzTiles tiles) {
       NzSeaFloor floor = this.seaFloor;
@@ -103,7 +109,16 @@ public final class NzTerrainSampler {
       double elevation = level < 0 ? -NzSeaFloor.MAX_DEPTH_METRES : bilinearElevation(floor, level, x, z);
       int cover = level < 0 ? NzCoverClasses.ESA_NO_DATA : coverClass(tiles, level, x, z);
       boolean sea = cover == NzCoverClasses.ESA_NO_DATA;
-      int terrainHeight = TerrainHeightTransform.blockOffset(
+      int terrainHeight = blockY(settings, elevation, z);
+      // Tellus marks samples whose height came from bathymetry; its LOD ocean floor then trusts the height instead of
+      // asking the online source. Every NZ height is final, so all samples say so.
+      boolean oceanElevationSelected = true;
+      return new TerrainPreloadPackage.Sample(terrainHeight, cover, true, !sea, false, false, oceanElevationSelected);
+   }
+
+   /** Y of the top terrain block for an elevation: Tellus's transform, rounded away from sea level. */
+   static int blockY(EarthGeneratorSettings settings, double elevation, int z) {
+      return TerrainHeightTransform.blockOffset(
          elevation,
          z,
          settings.effectiveVerticalWorldScale(),
@@ -112,10 +127,6 @@ public final class NzTerrainSampler {
          settings.experimentalIncreaseHeight(),
          settings.automaticHeightScaling()
       ) + settings.effectiveHeightOffset();
-      // Tellus marks samples whose height came from bathymetry; its LOD ocean floor then trusts the height instead of
-      // asking the online source. Every NZ height is final, so all samples say so.
-      boolean oceanElevationSelected = true;
-      return new TerrainPreloadPackage.Sample(terrainHeight, cover, true, !sea, false, false, oceanElevationSelected);
    }
 
    /** ESA no-data on the sea, water on lakes and rivers, else the land cover; at a level that has the tile. */
