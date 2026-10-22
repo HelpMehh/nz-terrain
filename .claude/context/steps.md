@@ -29,15 +29,15 @@ them when they come up.
 - **Done when:** results are in `testing.md`; HUB-1 records them in the
   hub (and changes the scale only if it doesn't work).
 
-### [ ] TERR-2 — Build check
+### [x] TERR-2 — Build check
 
 - **Goal:** the dev setup works before any code changes.
-- **Do:**
-  - Run `./gradlew -PtellusTargets=mc262 :mc262:build`, then `runClient262`.
-  - Record the time taken and any gotchas in `testing.md`.
-  - Confirm GitHub Actions are off on the fork; the upstream workflow builds
-    all eight targets.
-- **Done when:** the build passes and the dev client starts.
+- **Done (22 Oct 2026):** the build passes (600 tests), and the dev server
+  and dev client start; the client generates an Earth world. GitHub Actions
+  are now off on the fork. Times and expected log noise are in `testing.md`.
+- **Learned:** the client can't run in a sandbox without a display. Use
+  `runServer262` there for a headless check, and run the client on the
+  desktop.
 
 ### [x] TERR-3 — Surface palette from data
 

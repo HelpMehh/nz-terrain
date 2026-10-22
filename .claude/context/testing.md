@@ -89,8 +89,49 @@ Settings as above; Fabric 26.2, released Tellus, Sodium, stock DH
 - **Rivers:** channels are carved but left as stone, with no water. This is a
   Tellus water issue, not a scale issue; see TERR-5 and TERR-10.
 
-## Build check
+## Build check (TERR-2, run 22 Oct 2026)
 
-`./gradlew -PtellusTargets=mc262 :mc262:build` (compiles and runs the
-unit tests in `src/test`, the shared layers and `mc262/src/test`). Not run yet.
-The first run downloads Gradle, Minecraft and mappings, so it takes a while.
+Upstream Tellus 0.8.3 code, no NZ changes, system OpenJDK 25.0.5.
+
+- **`./gradlew -PtellusTargets=mc262 :mc262:build`** passes. It compiles
+  and runs the unit tests in `src/test`, the shared layers and
+  `mc262/src/test`: 600 tests, 0 failures, 1 skipped.
+  - Cold first run, with empty Gradle caches: **about 2 min**, including
+    downloading Gradle 9.4.0, Minecraft and mappings. A rerun with nothing
+    changed: about 1 s.
+  - Output: `mc262/build/libs/Tellus-fabric-26.2-0.8.3.jar` (about 18 MB).
+  - Gradle uses the installed JDK 25 and doesn't download its own.
+    `~/.gradle/caches` is about 400 MB afterwards.
+- **Expected noise, not problems:**
+  - The skipped test, `WorldCoverCogSourceTest.readsTheOfficialNativeHalfDomePixelThroughHttpRanges`,
+    reads WorldCover online and runs only with
+    `TELLUS_LIVE_WORLDCOVER_TEST=true`.
+  - `compileTestJava` prints a deprecated-API note. Gradle's "problems
+    report" (`build/reports/problems/`) contains only that note.
+  - Protobuf 4.28.2 prints `sun.misc.Unsafe` warnings in the tests on
+    Java 25.
+  - At launch, the Fabric mixin warning `ClassNotFoundException:
+    com/seibel/distanthorizons/...AbstractDhLevel` appears when Distant
+    Horizons isn't installed. Tellus's DH mixins are optional.
+- **`runServer262`** (headless, so it works without a display) starts with
+  43 mods (Tellus plus the Fabric API modules) and reaches `Done` about 10 s
+  after launch. It needs `eula=true` in `mc262/run/eula.txt` first. `run/`
+  is git-ignored.
+- **`runClient262`** needs a desktop session. A sandbox without a display
+  can't open the window, so run it from a clone on the desktop. It starts
+  (51 mods: the client adds Fabric API's client modules), and an Earth world
+  with default settings generates. A cold run took about 2 min 45 s,
+  including downloading Gradle and the game assets. Expected log noise:
+  - a `Failed to load library flite` stack trace (twice): the narrator's
+    text-to-speech library isn't installed. It's harmless; installing
+    `flite` removes it;
+  - `Could not authorize you against Realms`: the dev client uses an offline
+    player name;
+  - mixin `ClassNotFoundException` warnings for Distant Horizons and Voxy:
+    both integrations are optional.
+- **GitHub Actions:** the upstream workflow (`.github/workflows/gradle.yml`)
+  builds all eight targets on every push. It is turned off in the fork's
+  repository settings, not by editing the workflow file, so upstream merges
+  stay clean. Actions were on when checked and were turned off on
+  22 Oct 2026. Check: `gh api repos/<owner>/<fork>/actions/permissions`
+  should show `"enabled": false`.

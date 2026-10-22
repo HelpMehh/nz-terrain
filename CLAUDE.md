@@ -57,6 +57,11 @@ Needs Java 25. Build only the 26.2 Fabric target:
 `-PtellusTargets` is read by `settings.gradle`; without it Gradle configures
 all eight targets, and those need other Java versions.
 
+Without a display (e.g. a sandbox), the client can't open a window. Use
+`runServer262` as the headless check (needs `eula=true` in
+`mc262/run/eula.txt`), and run the client on a desktop. Details:
+`testing.md`.
+
 ## Context index
 
 | File | Read when |
