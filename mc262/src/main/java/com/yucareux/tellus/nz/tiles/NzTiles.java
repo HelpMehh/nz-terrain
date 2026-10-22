@@ -40,11 +40,19 @@ public final class NzTiles {
    private final List<String> problems;
    private final LoadingCache<Key, Optional<NzLayerData>> cache;
    private final Set<Path> loggedBadTiles = ConcurrentHashMap.newKeySet();
+   private final boolean allSetsListLevels;
+   /** Per layer (by ordinal), the highest level any set may have; -1 when no set has the layer. */
+   private final int[] topLevels;
 
    private NzTiles(Path dir, List<NzTileSet> sets, List<String> problems, long cacheBytes) {
       this.dir = dir;
       this.sets = List.copyOf(sets);
       this.problems = List.copyOf(problems);
+      this.allSetsListLevels = sets.stream().allMatch(NzTileSet::listsLevels);
+      this.topLevels = new int[NzTileLayer.values().length];
+      for (NzTileLayer layer : NzTileLayer.values()) {
+         this.topLevels[layer.ordinal()] = topLevel(sets, layer);
+      }
       this.cache = CacheBuilder.newBuilder()
          .maximumWeight(cacheBytes)
          .weigher((Key key, Optional<NzLayerData> value) -> (int) Math.min(Integer.MAX_VALUE, value.map(NzLayerData::sizeBytes).orElse(EMPTY_ENTRY_BYTES)))
@@ -180,6 +188,60 @@ public final class NzTiles {
    public int sample(NzTileLayer layer, int level, int x, int z) {
       NzLayerData data = this.layer(layer, level, NzTileFormat.tileOf(x, level), NzTileFormat.tileOf(z, level));
       return data == null ? layer.fill() : data.get(NzTileFormat.pixelOf(x, level), NzTileFormat.pixelOf(z, level));
+   }
+
+   /**
+    * The stored value of pixel (px, pz) of level {@code level}, counted across tiles ({@code px = x >> level}), or
+    * {@link NzTileLayer#fill()} where there is no data. For reading pixel neighbours that may lie in the next tile.
+    */
+   public int pixel(NzTileLayer layer, int level, int px, int pz) {
+      NzLayerData data = this.layer(layer, level, px >> NzTileFormat.TILE_SHIFT, pz >> NzTileFormat.TILE_SHIFT);
+      int mask = NzTileFormat.TILE_PIXELS - 1;
+      return data == null ? layer.fill() : data.get(px & mask, pz & mask);
+   }
+
+   /**
+    * The finest level, from {@code minLevel} up, whose tile holding block (x, z) has {@code layer} in some set; -1 where
+    * none has (hub {@code interfaces.md}, "Finest available level"). The pipeline writes each coarse tile wherever one
+    * of its children exists, up to the top level in the manifest, so when every set lists its levels, a miss at the
+    * top level means no level has data there (one lookup for the open ocean instead of one per level).
+    */
+   public int finestLevel(NzTileLayer layer, int minLevel, int x, int z) {
+      int top = this.topLevels[layer.ordinal()];
+      int from = Math.max(0, minLevel);
+      if (from > top) {
+         return -1;
+      }
+      if (this.hasTile(layer, from, x, z)) {
+         return from;
+      }
+      if (this.allSetsListLevels && !this.hasTile(layer, top, x, z)) {
+         return -1;
+      }
+      for (int level = from + 1; level <= top; level++) {
+         if (this.hasTile(layer, level, x, z)) {
+            return level;
+         }
+      }
+      return -1;
+   }
+
+   private boolean hasTile(NzTileLayer layer, int level, int x, int z) {
+      return this.layer(layer, level, NzTileFormat.tileOf(x, level), NzTileFormat.tileOf(z, level)) != null;
+   }
+
+   /** The highest level any of {@code sets} may have of {@code layer}; -1 when none has it. */
+   private static int topLevel(List<NzTileSet> sets, NzTileLayer layer) {
+      int top = -1;
+      for (NzTileSet set : sets) {
+         for (int level = NzTileFormat.MAX_LEVEL; level > top; level--) {
+            if (set.mayHave(layer, level)) {
+               top = level;
+               break;
+            }
+         }
+      }
+      return top;
    }
 
    private Optional<NzLayerData> load(Key key) {

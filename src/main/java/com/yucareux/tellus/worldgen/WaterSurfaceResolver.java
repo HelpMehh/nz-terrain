@@ -3371,6 +3371,10 @@ public final class WaterSurfaceResolver implements TellusCacheHandle {
    }
 
    private int sampleOceanTerrainHeight(double blockX, double blockZ, int waterSurface, double previewResolutionMeters) {
+      // NZ: the NZ sea floor is part of the tiles' terrain (NzSeaFloor), not OpenWaters bathymetry with a coast profile
+      if (com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(this.settings)) {
+         return this.clampOceanTerrainHeight(this.samplePreloadedTerrain(blockX, blockZ, previewResolutionMeters).terrainHeight(), waterSurface);
+      }
       OceanCoastSample coast = this.oceanCoastField.sample(Mth.floor(blockX), Mth.floor(blockZ));
       if (!coast.complete()) {
          throw new OceanCoverageUnavailableException(coast.coverageStatus(), Mth.floor(blockX), Mth.floor(blockZ));

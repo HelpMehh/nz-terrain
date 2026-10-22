@@ -57,6 +57,11 @@ public final class TerrainPreloadPackageRegistry {
    }
 
    private TerrainPreloadPackageRegistry.SettingsView createSettingsView(EarthGeneratorSettings settings) {
+      // NZ: NZ worlds read every terrain input from the NZ tiles instead of preload packages (tellus-internals.md §6.3)
+      com.yucareux.tellus.nz.terrain.NzTerrainSampler nz = com.yucareux.tellus.nz.terrain.NzTerrainSampler.forSettings(settings);
+      if (nz != null) {
+         return new TerrainPreloadPackageRegistry.SettingsView(this, "", nz);
+      }
       TerrainPreloadStorage storage = TerrainPreloadStorage.instance();
       JsonElement settingsJson = storage.encodeSettings(settings);
       String settingsFingerprint = storage.settingsFingerprint(settingsJson);
@@ -198,10 +203,17 @@ public final class TerrainPreloadPackageRegistry {
       private final TerrainPreloadPackageRegistry registry;
       private final String settingsFingerprint;
       private volatile TerrainPreloadPackageRegistry.CachedIndex cachedIndex = TerrainPreloadPackageRegistry.CachedIndex.empty();
+      private final com.yucareux.tellus.nz.terrain.NzTerrainSampler nz; // NZ: null except in NZ worlds
 
       private SettingsView(TerrainPreloadPackageRegistry registry, String settingsFingerprint) {
+         this(registry, settingsFingerprint, null); // NZ
+      }
+
+      // NZ
+      private SettingsView(TerrainPreloadPackageRegistry registry, String settingsFingerprint, com.yucareux.tellus.nz.terrain.NzTerrainSampler nz) {
          this.registry = registry;
          this.settingsFingerprint = settingsFingerprint;
+         this.nz = nz;
       }
 
       public TerrainPreloadPackage.Sample sample(int blockX, int blockZ) {
@@ -209,6 +221,9 @@ public final class TerrainPreloadPackageRegistry {
       }
 
       public TerrainPreloadPackage.Sample sample(int blockX, int blockZ, double requestedResolutionMeters) {
+         if (this.nz != null) {
+            return this.nz.sample(blockX, blockZ, requestedResolutionMeters); // NZ
+         }
          for (TerrainPreloadPackageRegistry.Entry entry : this.entriesFor(blockX, blockZ)) {
             if (!entry.contains(blockX, blockZ) || !entry.supportsResolution(requestedResolutionMeters)) {
                continue;
@@ -233,6 +248,9 @@ public final class TerrainPreloadPackageRegistry {
       }
 
       public boolean contains(int blockX, int blockZ, double requestedResolutionMeters) {
+         if (this.nz != null) {
+            return true; // NZ: the NZ sampler answers everywhere, so the online terrain prefetch is skipped
+         }
          for (TerrainPreloadPackageRegistry.Entry entry : this.entriesFor(blockX, blockZ)) {
             if (!entry.contains(blockX, blockZ) || !entry.supportsResolution(requestedResolutionMeters)) {
                continue;

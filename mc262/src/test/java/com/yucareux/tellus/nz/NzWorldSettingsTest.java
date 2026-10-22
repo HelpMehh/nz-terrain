@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
 import com.yucareux.tellus.worldgen.EarthGeneratorSettings;
+import com.yucareux.tellus.worldgen.TerrainHeightTransform;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -106,6 +107,52 @@ class NzWorldSettingsTest {
 
       assertTrue(NzWorldSettings.isNzWorld(decode(generator.get("settings").toString())));
       assertTrue(NzWorldSettings.isNzWorld(decode(generator.getAsJsonObject("biome_source").get("settings").toString())));
+   }
+
+   @Test
+   void nzPresetHasTheHubScaleAndWorldHeight() throws IOException {
+      JsonObject overworld = readJson("/data/tellus/worldgen/world_preset/nz.json")
+         .getAsJsonObject("dimensions")
+         .getAsJsonObject("minecraft:overworld");
+      JsonObject generator = overworld.getAsJsonObject("generator");
+      EarthGeneratorSettings settings = decode(generator.get("settings").toString());
+      EarthGeneratorSettings biomeSettings = decode(generator.getAsJsonObject("biome_source").get("settings").toString());
+
+      assertEquals(settings, biomeSettings);
+      // y = 63 + elevation / 2, rounded away from sea level.
+      assertEquals(63, blockY(settings, 0.0));
+      assertEquals(64, blockY(settings, 0.125));
+      assertEquals(64, blockY(settings, 2.0));
+      assertEquals(65, blockY(settings, 2.125));
+      assertEquals(1922, blockY(settings, 3718.0));
+      assertEquals(62, blockY(settings, -0.125));
+      assertEquals(43, blockY(settings, -40.0));
+      assertEquals(63, settings.effectiveHeightOffset());
+      EarthGeneratorSettings.HeightLimits limits = EarthGeneratorSettings.resolveHeightLimits(settings);
+      assertEquals(-272, limits.minY());
+      assertEquals(2304, limits.height());
+      assertEquals(256, settings.undergroundDepth());
+      assertFalse(settings.enableRoads());
+      assertFalse(settings.enableBuildings());
+      assertFalse(settings.enableWater());
+      assertFalse(settings.realtimeTime());
+      assertFalse(settings.realtimeWeather());
+      assertTrue(settings.caveGeneration());
+      assertTrue(settings.oreDistribution());
+
+      // The world uses a fixed NZ dimension type of the same height, so it is right from the first start.
+      assertEquals("tellus:nz", overworld.get("type").getAsString());
+      JsonObject dimension = readJson("/data/tellus/dimension_type/nz.json");
+      assertEquals(limits.minY(), dimension.get("min_y").getAsInt());
+      assertEquals(limits.height(), dimension.get("height").getAsInt());
+      assertEquals(limits.height(), dimension.get("logical_height").getAsInt());
+   }
+
+   private static int blockY(EarthGeneratorSettings settings, double elevationMetres) {
+      return TerrainHeightTransform.blockOffset(
+         elevationMetres, 0.0, settings.effectiveVerticalWorldScale(), settings.effectiveTerrestrialHeightScale(),
+         settings.effectiveOceanicHeightScale(), settings.experimentalIncreaseHeight(), settings.automaticHeightScaling()
+      ) + settings.effectiveHeightOffset();
    }
 
    private static EarthGeneratorSettings decode(String json) {

@@ -50,6 +50,48 @@ class NzTilesTest {
    }
 
    @Test
+   void findsTheFinestLevelThatHasTheTile() {
+      NzTiles tiles = NzTiles.open(NzTileTestFiles.fixtureDir(), CACHE);
+      int x = -157 * 512 + 192;
+      int z = 175 * 512 + 256;
+      // Level-1 tile (-79, 87) also covers level-0 tile (-158, 174), which the fixture lacks.
+      int coarseOnlyX = -158 * 512 + 10;
+      int coarseOnlyZ = 174 * 512 + 10;
+
+      assertEquals(0, tiles.finestLevel(NzTileLayer.HEIGHT, 0, x, z));
+      assertEquals(1, tiles.finestLevel(NzTileLayer.HEIGHT, 1, x, z));
+      assertEquals(1, tiles.finestLevel(NzTileLayer.HEIGHT, 0, coarseOnlyX, coarseOnlyZ));
+      assertEquals(-1, tiles.finestLevel(NzTileLayer.HEIGHT, 0, 0, 0));
+      // The manifest lists height only up to level 1.
+      assertEquals(-1, tiles.finestLevel(NzTileLayer.HEIGHT, 2, x, z));
+      assertEquals(0, tiles.finestLevel(NzTileLayer.CANOPY, 0, x, z));
+      assertEquals(-1, tiles.finestLevel(NzTileLayer.CANOPY, 1, x, z));
+   }
+
+   @Test
+   void finestLevelWithoutLevelsInTheManifest() throws Exception {
+      // No "layers" in the manifest: every level may exist, so each is looked up.
+      Path set = this.temp.resolve("main");
+      NzTileTestFiles.writeManifest(set, "main", "v1", 0);
+      NzTileTestFiles.writeTile(set, 3, 0, 0, Map.of(NzTileLayer.HEIGHT, NzTileTestFiles.filled(8)));
+      NzTiles tiles = NzTiles.open(this.temp, CACHE);
+
+      assertEquals(3, tiles.finestLevel(NzTileLayer.HEIGHT, 0, 100, 100));
+      assertEquals(-1, tiles.finestLevel(NzTileLayer.HEIGHT, 0, -100, 100));
+      assertEquals(-1, tiles.finestLevel(NzTileLayer.HEIGHT, 4, 100, 100));
+   }
+
+   @Test
+   void readsPixelsAcrossTiles() {
+      NzTiles tiles = NzTiles.open(NzTileTestFiles.fixtureDir(), CACHE);
+
+      assertEquals(29, tiles.pixel(NzTileLayer.HEIGHT, 0, -157 * 512 + 192, 175 * 512 + 256));
+      assertEquals(tiles.sample(NzTileLayer.HEIGHT, 1, -157 * 512 + 192, 175 * 512 + 256), tiles.pixel(NzTileLayer.HEIGHT, 1, -79 * 512 + 352, 87 * 512 + 384));
+      // The pixel left of the tile's first column lies in tile -158, which doesn't exist.
+      assertEquals(-32768, tiles.pixel(NzTileLayer.HEIGHT, 0, -157 * 512 - 1, 175 * 512 + 256));
+   }
+
+   @Test
    void aMissingFolderHasNoSets() {
       NzTiles tiles = NzTiles.open(this.temp.resolve("nowhere"), CACHE);
 

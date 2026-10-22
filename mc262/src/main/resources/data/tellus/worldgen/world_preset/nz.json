@@ -1,16 +1,56 @@
 {
   "dimensions": {
     "minecraft:overworld": {
-      "type": "tellus:earth",
+      "type": "tellus:nz",
       "generator": {
         "type": "tellus:earth",
         "biome_source": {
           "type": "tellus:earth",
           "settings": {
+            "world_scale": 3.0,
+            "terrestrial_height_scale": 1.5,
+            "oceanic_height_scale": 1.5,
+            "height_offset": 63,
+            "automatic_height_scaling": false,
+            "experimental_increase_height": false,
+            "min_altitude": -272,
+            "max_altitude": 2031,
+            "underground_depth": 256,
+            "spawn_latitude": -2.5282645047209322,
+            "spawn_longitude": -2.0492233353263454,
+            "enable_roads": false,
+            "enable_buildings": false,
+            "realtime_time": false,
+            "realtime_weather": false,
+            "historical_snow": false,
+            "cave_generation": true,
+            "ore_distribution": true,
+            "lava_pools": true,
+            "geodes": true,
             "nz": {}
           }
         },
         "settings": {
+          "world_scale": 3.0,
+          "terrestrial_height_scale": 1.5,
+          "oceanic_height_scale": 1.5,
+          "height_offset": 63,
+          "automatic_height_scaling": false,
+          "experimental_increase_height": false,
+          "min_altitude": -272,
+          "max_altitude": 2031,
+          "underground_depth": 256,
+          "spawn_latitude": -2.5282645047209322,
+          "spawn_longitude": -2.0492233353263454,
+          "enable_roads": false,
+          "enable_buildings": false,
+          "realtime_time": false,
+          "realtime_weather": false,
+          "historical_snow": false,
+          "cave_generation": true,
+          "ore_distribution": true,
+          "lava_pools": true,
+          "geodes": true,
           "nz": {}
         }
       }

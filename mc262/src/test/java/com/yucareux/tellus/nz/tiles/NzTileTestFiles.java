@@ -15,12 +15,12 @@ import java.util.Map;
 import java.util.zip.Deflater;
 
 /** Writes small tile sets for tests, following the format like the pipeline's {@code tiles.py} writer. */
-final class NzTileTestFiles {
+public final class NzTileTestFiles {
    private NzTileTestFiles() {
    }
 
    /** The pipeline fixture copied from {@code nz-data-pipeline/tests/fixtures/tiles/} (the folder holding {@code nz-main/}). */
-   static Path fixtureDir() {
+   public static Path fixtureDir() {
       URL url = NzTileTestFiles.class.getResource("/nz-tiles-fixture/expected.json");
       if (url == null) {
          throw new IllegalStateException("tile fixture missing from the test resources");
@@ -32,26 +32,26 @@ final class NzTileTestFiles {
       }
    }
 
-   static int[] filled(int value) {
+   public static int[] filled(int value) {
       int[] values = new int[NzTileFormat.TILE_AREA];
       Arrays.fill(values, value);
       return values;
    }
 
-   static void writeManifest(Path setDir, String name, String dataVersion, int priority) throws IOException {
+   public static void writeManifest(Path setDir, String name, String dataVersion, int priority) throws IOException {
       writeManifest(setDir, """
          {"format": "nz-tiles", "format_version": 1, "name": "%s", "data_version": "%s", "priority": %d,
           "crs": "EPSG:2193", "e0": 1600000, "n0": 5470000, "metres_per_block": 3}
          """.formatted(name, dataVersion, priority));
    }
 
-   static void writeManifest(Path setDir, String json) throws IOException {
+   public static void writeManifest(Path setDir, String json) throws IOException {
       Files.createDirectories(setDir);
       Files.writeString(setDir.resolve(NzTileFormat.MANIFEST_FILE), json, StandardCharsets.UTF_8);
    }
 
    /** Writes tile (level, tx, tz) of a set with the given layers (512 × 512 values each, in file order). */
-   static Path writeTile(Path setDir, int level, int tx, int tz, Map<NzTileLayer, int[]> layers) throws IOException {
+   public static Path writeTile(Path setDir, int level, int tx, int tz, Map<NzTileLayer, int[]> layers) throws IOException {
       Path path = NzTileFormat.tilePath(setDir, level, tx, tz);
       Files.createDirectories(path.getParent());
       Files.write(path, encodeTile(level, tx, tz, layers));

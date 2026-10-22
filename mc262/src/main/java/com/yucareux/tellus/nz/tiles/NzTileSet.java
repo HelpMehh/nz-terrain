@@ -86,6 +86,11 @@ public final class NzTileSet {
       return this.priority;
    }
 
+   /** True when the manifest says which levels each layer has. */
+   public boolean listsLevels() {
+      return this.levels != null;
+   }
+
    /** False when the manifest says this set has no such layer at that level, so the file lookup can be skipped. */
    public boolean mayHave(NzTileLayer layer, int level) {
       if (this.levels == null) {

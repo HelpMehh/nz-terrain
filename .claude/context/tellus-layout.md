@@ -58,6 +58,12 @@ That is why NZ code goes in `mc262/src/` and edits elsewhere stay small hooks
 - 26.2-specific: `shared/mc262/.../worldgen/EarthChunkGenerator.java`,
   `compat/`, `mixin/`.
 
+**26.2 API traps** (from compile errors): screens open with
+`minecraft.gui.setScreen(…)`, not `minecraft.setScreen(…)`. 26.2 is
+unobfuscated, so `javap -p` on the Loom jars under
+`~/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/` shows the
+real names and signatures.
+
 Root `src/client/` holds client code shared by every target (e.g. the
 `PresetEditorMixin`). How coordinates, heights and settings flow through
 this code, and where NZ hooks go: `tellus-internals.md`.

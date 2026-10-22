@@ -147,36 +147,42 @@ them when they come up.
     heights (hub `interfaces.md`); `sample` reads one given level, nearest
     pixel.
 
-### [ ] TERR-8 — NZ heights
+### [x] TERR-8 — NZ heights
 
-- **Do:**
-  - The NZ world takes its height from the tiles via the NZTM mapping and
-    the height formula in hub `interfaces.md` (1:3, vertical 1:2, sea
-    level Y 63, world Y −272 to 2,031).
-  - Underground below NZ reaching the new floor at Y −272. Tellus only
-    builds a rock shell `underground_depth` blocks thick, with air below,
-    and its caves, lava (the −54 is a vanilla-relative level) and ores
-    already follow the shell, so there is no lava level to patch.
-  - **Raise first:** how to reach the floor: shell only, shell plus solid
-    fill to −272 (recommended), or an absolute vanilla underground. Options,
-    pros and cons: `tellus-internals.md` §4. Also choose
-    `underground_depth`.
-  - Outside the data: flat ocean for now.
-  - Give the `tellus:nz` preset its values (scale, heights, altitudes,
-    roads, buildings and realtime off), and make the world height right
-    from the first start: the preset has no editor, so today the first
-    start runs at Tellus's default height, and chunks from that session
-    fail to load once the world is reopened (`tellus-internals.md` §6.2).
-    Check: create, walk around, quit, reopen; no "Failed to load chunk".
-  - Refuse an NZ world without tiles (hub `interfaces.md`). TERR-7 only
-    warns. Don't throw from the settings decode or at server start: the
-    first breaks every world type, the second crashes the whole client in
-    single player. Look for a check at world creation instead.
-  - Height reads: the finest level that has the tile and layer, bilinear
-    for heights (hub `interfaces.md`, "Finest available level"), on top of
-    `NzTiles.layer`.
-  - Check heights against the pipeline's `height.tif` at a few known
-    points (e.g. the check peak in the pipeline README, "WorldPainter").
+- **Goal:** NZ worlds take their terrain from the tiles, at the hub scale
+  and world height, solid down to the floor.
+- **Decided (22 Oct 2026):**
+  - Underground: **option B**, shell plus solid fill: Tellus's caves and
+    ores stay in the shell, deepslate fills below it, bedrock only at
+    Y −272. `underground_depth` stays **256**. The deep zone is meant for
+    huge explorable caverns later: TERR-20.
+  - Rounding: **Tellus's**, away from sea level (`ceil` above 0 m, `floor`
+    below), so the coast is always at least one block above the sea.
+- **Done (22 Oct 2026), version `0.8.3+nz.3`:**
+  - `com.yucareux.tellus.nz.terrain`: `NzTerrainSampler` answers Tellus's
+    preload view with tile height, cover class and land mask, so one hook
+    covers the generator, the water resolver and DH; `NzSeaFloor`, a
+    placeholder sea floor; `NzCoverClasses`, a stopgap LCDB → ESA mapping;
+    `NzUnderground`, the fill. How it all works: `tellus-internals.md`
+    §4, §6.3.
+  - `NzTiles.finestLevel` and `pixel`: the finest available level,
+    bilinear heights between pixel centres (level 0 = the block's own
+    pixel).
+  - Preset `tellus:nz` has its values and its own dimension type
+    `tellus:nz` (Y −272..2031), so the height is right from the first
+    start. Caves, ores, lava pools and geodes are on (Tellus has them off
+    by default); roads, buildings, realtime and structures off.
+  - Spawn: Sentinel Rock, Franz Josef (block −76040, 93845), set as the
+    Mercator lat/lon that lands there. Temporary, until NZ spawn handling
+    (TERR-9).
+  - Refusal without tiles: the Create button (client mixin) and a
+    dedicated server's start. An existing single-player world only warns.
+  - Checked: 18,236 land columns against `height.tif`, all exact; Aoraki
+    Y 1,922; reopened world loads (`testing.md`).
+- **Not done:** DH and the desktop client (the desktop check in
+  `testing.md`); the "terrain refinement" rebuild path in
+  `EarthChunkGenerator` has no fill hook (unreachable in NZ worlds,
+  `tellus-internals.md` §4).
 - **Needs:** TERR-7.
 
 ### [ ] TERR-9 — Switch off online features for NZ worlds
@@ -185,6 +191,13 @@ them when they come up.
   work offline and have no roads or buildings. Settings cover only part of
   it; the rest stops once the NZ hooks (§8.4) replace those reads. Check
   with networking blocked that `tellus/cache/` stays empty.
+- **Left after TERR-8** (seen in its server runs): Overture sand (generator
+  surface), WorldCover/Overture land cover and OISST (the biome source),
+  ETH canopy (trees). Heights, cover, land mask, water and the sea floor no
+  longer go online.
+- **Spawn:** the NZ preset sets spawn as a Mercator lat/lon that lands on
+  Sentinel Rock (TERR-8). Give NZ worlds a spawn in block or NZTM
+  coordinates, with `/tellus` location and geo-teleport (§1).
 
 ### [ ] TERR-10 — Water
 
@@ -194,6 +207,11 @@ them when they come up.
 - **Decide:** feed our water tile into Tellus's water resolver (keep its
   river surfaces, bed depth, shores and waterfalls) or write a simpler NZ
   water pass (§11).
+- **Starting point (TERR-8):** NZ worlds already run Tellus's older,
+  non-Overture water path: sea from the land mask, lakes and rivers where
+  the cover class is water, both from our tiles (§11). It was never checked
+  in game, and upstream no longer uses it. The sea floor is a placeholder
+  (`NzSeaFloor`); lake floors are Tellus's invention.
 
 ### [ ] TERR-11 — Surface rules
 
@@ -219,6 +237,11 @@ them when they come up.
   - Keep them out of vanilla structure biome tags (no villages in NZ).
   - Choose sky, fog, water, grass and foliage colours (tussock should look
     golden, not green).
+  - A glow-worm cave biome (wanted since 22 Oct 2026). Real NZ glow-worm
+    caves (Waitomo, Oparara, Ngārua) are fairly shallow limestone stream
+    caves, so they could follow the `rock` layer (PIPE-15); the deep caverns
+    (TERR-20) are the other candidate. The glowing block and particles
+    belong in `nz-mods`, with a vanilla fallback.
   - Decide with MODS-15 how `nz-mods` hangs ambience (sounds, particles)
     onto these biomes without a hard dependency (hub `interfaces.md`).
   - Mob spawns (decided 22 Oct 2026, hub `NZ-MINECRAFT-CONTEXT.md` §2):
@@ -280,6 +303,28 @@ them when they come up.
 - **Do:** run with the full tiles. Measure memory, generation speed and the
   tile cache; decide on pre-generation.
 - **Needs:** PIPE-11.
+
+### [ ] TERR-20 — Deep caverns
+
+- **Goal:** huge explorable caverns in the solid zone below the shell
+  (TERR-8, option B), which today is plain deepslate.
+- **Do:** write a plan in `.claude/plans/` first. Open choices: an absolute
+  band (e.g. Y −272 to −80) or everything below the shell; whether to
+  clamp the shell above that band (this also reduces the cave stretch near
+  the coast, `tellus-internals.md` §4); entrances from the shell caves;
+  lakes, lava, pillars. New NZ code only: the fill already runs through
+  `NzUnderground`.
+- **Needs:** TERR-8. Any time; not needed for the test-area milestone.
+
+### [ ] TERR-21 — Vanilla structures in NZ worlds
+
+- **Goal:** decide which vanilla structures NZ worlds get. Today none:
+  Tellus has them all off and the NZ preset keeps that (TERR-8).
+- **Raise first:** strongholds are the only way to the End in survival;
+  mineshafts, dungeons, trial chambers, ancient cities underground; no
+  villages (hub decision). Keep them out of NZ biome tags as needed
+  (TERR-12).
+- **Needs:** TERR-12.
 
 ### [ ] TERR-19 — First NZ release
 

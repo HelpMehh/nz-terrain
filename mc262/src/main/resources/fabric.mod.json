@@ -27,6 +27,10 @@
 		{
 			"config": "tellus.client.mixins.json",
 			"environment": "client"
+		},
+		{
+			"config": "nz-terrain.client.mixins.json",
+			"environment": "client"
 		}
 	],
 	"depends": {

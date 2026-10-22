@@ -215,3 +215,57 @@ Code: `0.8.3+nz.2`.
     the preset's height problem from TERR-6, with this consequence
     (`tellus-internals.md` §6.2, fixed in TERR-8). Until then, NZ test
     worlds are throwaway; create a new one per test.
+
+## NZ heights check (TERR-8, 22 Oct 2026)
+
+Code: `0.8.3+nz.3`.
+
+- **Build:** passes, 642 tests (600 upstream + 42 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New: sea floor (against brute
+  force on the fixture), sampler (fixture pixels, coarse-level bilinear,
+  outside the data), underground fill, preset values (formula, rounding,
+  world height, dimension type).
+- **Headless server check (passed)** with the real test-area-1 tile set
+  (`nz-data-pipeline` `tiles test-area-1` output, data `2026-10-22`):
+  point `tiles_dir` in `mc262/run/config/nz-terrain.json` at the set's
+  parent folder, set `level-name` to a new name and `level-type=tellus\:nz`,
+  run `runServer262` and send `forceload add <x> <z>` for a few places once
+  `Done (` shows. Put the config and `server.properties` back afterwards.
+  - First start: `Overworld dimension type: minY=-272,height=2304` and
+    `fillFromNoise … minY=-272, height=2304`. Spawn saved at
+    −76040, 212, 93845: Sentinel Rock, 294.5 m in the tiles → surface
+    Y 211.
+  - Saved chunks read with a small Python Anvil/NBT reader and compared
+    with the pipeline's `height.tif` (rounded to ⅛ m, then
+    `63 + ceil(m / 2)`), for land columns at least 4 blocks from any
+    water: **18,236 of 18,236 exact** (skip plants when finding the
+    terrain top). Aoraki's chunk peaks at **Y 1,922**.
+  - Every column: bedrock only at Y −272, deepslate up to the shell, caves
+    in the shell. Ore blobs and gravel reach up to 16 blocks below the
+    shell bottom.
+  - Sea: floor Y 60–61 next to the coast, Y 43 with water to Y 63 in the
+    open ocean outside the data. Before the ocean floor hook it was Y −214
+    (`tellus-internals.md` §11).
+  - Reopened the same world, generated new chunks: same height, no
+    "Failed to load chunk", no height datapack written.
+  - Tiles folder pointed elsewhere, NZ world: the server refuses to start
+    (`IllegalStateException: NZ Terrain: no tile sets found in …`, as a
+    crash report), before any level exists.
+  - Downloads still made (`tellus/cache/`): Overture sand and land cover;
+    ETH canopy answered 404 (trees fall back to biome trees). TERR-9.
+  - Five forceloaded spots plus spawn: "Can't keep up … 12 s behind" once,
+    while those chunks generated. Speed isn't measured yet (TERR-18).
+- **Desktop client check (to do):** copy the test-area-1 set (`nz-main/`)
+  into the dev client's `nz-tiles/`, then:
+  - with an empty `nz-tiles/`, Create New World → New Zealand → Create
+    should show "Can't create a New Zealand world" and the folder, and go
+    back to the screen;
+  - with the tiles: create, look around Sentinel Rock and the glacier
+    valley, `/tp @s -76904 1950 100287` (Aoraki), fly out to sea; quit,
+    reopen, no "Failed to load chunk";
+  - with Distant Horizons: distant terrain matches near terrain (DH reads
+    coarser tile levels), and whether distant LODs still shake now that
+    the world is near 0,0 (hub `NZ-MINECRAFT-CONTEXT.md` §8).
+  - Known and expected: biomes, grass colours and trees are still Tellus's
+    Earth ones read by Mercator (TERR-12/13); lakes and rivers come from a
+    path TERR-10 has yet to check.

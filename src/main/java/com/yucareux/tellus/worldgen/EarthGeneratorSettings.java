@@ -780,7 +780,7 @@ public record EarthGeneratorSettings(
       this.enableRoads = enableRoads;
       this.enableBuildings = enableBuildings;
       // Retain the serialized field for old worlds, but Overture vector water is now the only supported source.
-      this.enableWater = true;
+      this.enableWater = nz.isEmpty(); // NZ: NZ worlds never use Overture water; their water comes from the tiles
       this.thinShellTerrain = thinShellTerrain;
       this.climateBasedBuiltUpTerrain = climateBasedBuiltUpTerrain;
       this.randomBiomes = randomBiomes;

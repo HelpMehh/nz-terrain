@@ -1562,7 +1562,19 @@ public final class EarthChunkGenerator extends ChunkGenerator {
             }
          }
 
-         if (terrainShellBedrockSkinTopYs != null) {
+         // NZ: NZ worlds are solid down to the floor, so they get that fill instead of the bedrock skin against the void
+         if (com.yucareux.tellus.nz.terrain.NzUnderground.fillsBelowShell(this.settings)) {
+            if (sectionWriter != null) {
+               com.yucareux.tellus.nz.terrain.NzUnderground.fillBelowShell(terrainSurfaces, this.settings.undergroundDepth(), chunkMinY, sectionWriter::fillColumnConstant);
+            } else {
+               com.yucareux.tellus.nz.terrain.NzUnderground.fillBelowShell(terrainSurfaces, this.settings.undergroundDepth(), chunkMinY, (localX, localZ, fromY, toY, state) -> {
+                  for (int y = fromY; y <= toY; y++) {
+                     cursor.set(chunkMinX + localX, y, chunkMinZ + localZ);
+                     chunk.setBlockState(cursor, state);
+                  }
+               });
+            }
+         } else if (terrainShellBedrockSkinTopYs != null) {
             if (sectionWriter != null) {
                EarthChunkGenerator.ChunkSectionWriter bedrockWriter = sectionWriter;
                this.applyTerrainShellBedrockSkin(
@@ -4703,6 +4715,10 @@ public final class EarthChunkGenerator extends ChunkGenerator {
             if (index >= 0 && index < states.length) {
                states[index] = y == supportBottomY ? BEDROCK_STATE : y < deepslateBoundaryY ? DEEPSLATE_STATE : STONE_STATE;
             }
+         }
+         // NZ: solid below the shell, bedrock at the floor
+         if (com.yucareux.tellus.nz.terrain.NzUnderground.fillsBelowShell(this.settings)) {
+            com.yucareux.tellus.nz.terrain.NzUnderground.fillBelowShell(states, minY, supportBottomY);
          }
       } else {
          for (int i = 0; i <= surfaceIndex; i++) {

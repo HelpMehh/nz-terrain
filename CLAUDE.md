@@ -11,11 +11,12 @@ coordinates and tile format the generator reads are in
 
 ## Status
 
-- "New Zealand" world type (TERR-6) that still generates like Tellus Earth.
-  It reads the pipeline tiles (TERR-7, `com.yucareux.tellus.nz.tiles`) but
-  doesn't generate from them yet. Next step: see `steps.md`.
+- "New Zealand" world type (TERR-6) that generates NZ terrain from the
+  pipeline tiles (TERR-7 reader `com.yucareux.tellus.nz.tiles`, TERR-8
+  heights `com.yucareux.tellus.nz.terrain`), solid down to Y −272. Biomes,
+  surfaces, trees and water are still Tellus's. Next step: see `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.2`** (TERR-7).
+  **`0.8.3+nz.3`** (TERR-8).
 
 ## Naming and versions (decided in TERR-6)
 
@@ -56,7 +57,11 @@ upstream and we changed.
    `shared/post-1201`, `shared/mc262`, `shared/fabric`, `mc262/`), but only as
    small hooks that call into NZ code. Mark each one with an `// NZ:` comment,
    and list the file in `upstream.md` (JSON files can't hold the marker).
-   Don't reformat or tidy upstream code.
+   Don't reformat or tidy upstream code. In upstream Java files, call NZ
+   classes by their full name (`com.yucareux.tellus.nz.…`) instead of
+   adding imports: import blocks conflict easily in merges.
+   NZ mixins go in NZ's own mixin config (`nz-terrain.client.mixins.json`,
+   package `com.yucareux.tellus.nz.mixin.client`), not Tellus's.
 3. **Never edit** the other version modules (`mc1201*`, `mc1211*`, `mc12111*`,
    `mc262-neoforge`) or the shared layers only they use (`shared/mc1201`,
    `shared/mc1211`, `shared/mc12111`, `shared/pre-26`, `shared/neoforge`).
@@ -87,7 +92,7 @@ Without a display (e.g. a sandbox), the client can't open a window. Use
 |---|---|
 | `.claude/context/steps.md` | Starting a step ("Do step TERR-n"), or picking the next one. |
 | `.claude/context/tellus-layout.md` | Before reading or changing any Java code: how the source layers combine, where things live. |
-| `.claude/context/tellus-internals.md` | Changing coordinates, heights, world height, the underground, world settings, data sources, water, DH or online features: how Tellus does it, file:line pointers, the NZ hook points. |
+| `.claude/context/tellus-internals.md` | Changing coordinates, heights, world height, the underground, world settings, data sources, water, DH or online features: how Tellus does it, file:line pointers, the NZ hooks (§6). |
 | `.claude/context/upstream.md` | Merging upstream Tellus, or editing an upstream file (the list of NZ edits). |
 | `.claude/context/testing.md` | Running or recording tests, including the scale test. |
 | `.claude/context/surface-palette.md` | Choosing surface blocks: rock, scree, riverbeds, snow and ice, soils (TERR-3, TERR-11). |

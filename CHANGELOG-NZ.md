@@ -4,6 +4,25 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.3 (TERR-8, 22 Oct 2026)
+
+- New Zealand worlds now generate from the NZ tiles: real heights at 1:3
+  horizontal and 1:2 vertical (`Y = 63 + elevation / 2`, rounded away from
+  sea level), from the finest tile level available, bilinear on coarser
+  levels (Distant Horizons). Cover classes and the land mask come from the
+  tiles too (LCDB mapped to Tellus's classes for now).
+- The world runs from Y −272 to 2,031 from the first start (its own
+  dimension type), and is solid down to bedrock at Y −272: deepslate fills
+  the space below Tellus's cave layer, which stays 256 blocks deep.
+- Sea and the area outside the tiles get a placeholder sea floor: 4 m deep
+  at the coast, 1 m deeper per 50 m out, 40 m at most. No more online
+  elevation, bathymetry or Overture water in NZ worlds.
+- The New Zealand preset turns on caves, ores, lava pools and geodes, turns
+  off roads, buildings and real-time weather, and spawns at Franz Josef.
+- A New Zealand world can't be created without tiles (the Create button
+  says where they were looked for); a dedicated server with an NZ world
+  and no tiles refuses to start.
+
 ## 0.8.3+nz.2 (TERR-7, 22 Oct 2026)
 
 - Reads the pipeline's NZ tiles (format version 1) from `<game dir>/nz-tiles/`,

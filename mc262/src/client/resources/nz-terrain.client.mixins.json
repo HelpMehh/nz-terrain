@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "com.yucareux.tellus.nz.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"CreateWorldScreenMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

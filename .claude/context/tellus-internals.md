@@ -108,8 +108,12 @@ Where elevation becomes Y (every one calls `blockOffset`):
 because `elevation × 1.5 × 1 / 3 = elevation / 2`. `world_scale` 3.0 is
 also right everywhere Tellus uses it as "metres per block" (ocean-floor
 transitions, waterfall drop, LOD resolution), because with NZTM 3 m per
-block holds everywhere, unlike Mercator. The rounding (away from sea level)
-is decided in TERR-8; the tiles store metres, not block Y (HUB-2).
+block holds everywhere, unlike Mercator. The NZ preset has exactly these
+values. **Rounding (decided in TERR-8): Tellus's own**, away from sea level.
+Tellus fills sea water up to Y 63 inclusive, so land rounded to Y 63 would
+sit level with the sea surface; rounding up keeps every coast at least one
+block above the water. The cost, land about ½ block too high on average,
+can't be seen. The tiles store metres, not block Y (HUB-2).
 
 TERR-1 used world scale 4.2 with automatic scaling **on** instead, because
 released Tellus places NZ by Mercator. That is only right for the TERR-1
@@ -141,6 +145,12 @@ test, not for NZ worlds.
 - `ExperimentalHeightSupport.validateOrThrow`
   (`root:worldgen/ExperimentalHeightSupport.java:72`) does nothing unless
   Increase Height is on.
+- **NZ worlds (TERR-8)** use a fixed dimension type `tellus:nz`
+  (`m262` resources `data/tellus/dimension_type/nz.json`, a copy of
+  `earth.json` with Y −272..2031). `resolveTellusDimensionKey` only knows
+  `tellus:earth` and `tellus:earth_dynamic`, so Tellus leaves it alone and
+  writes no height datapack. The preset's `min_altitude`/`max_altitude`
+  must keep matching it; `NzWorldSettingsTest` checks that.
 
 ## 4. What a world from Y −272 to 2,031 breaks
 
@@ -182,9 +192,11 @@ the shell. That covers:
 - cave biomes and the deep dark (`root:worldgen/EarthBiomeSource.java`, by
   `undergroundDepth`).
 
-So TERR-8's planned "patch the hard-coded lava level (Y −54)" is not needed:
-it already follows the shell, and ores already go below −64 wherever the
-shell does. One side effect: when the shell is deeper than vanilla's
+So no lava level needs patching: it already follows the shell, and ores
+already go below −64 wherever the shell does. Caves, ores, lava pools and
+geodes are **off** in Tellus's defaults (`EarthGeneratorSettings.DEFAULT`,
+which the Customize screen starts from); the NZ preset turns them on. One
+side effect: when the shell is deeper than vanilla's
 column, caves get stretched vertically. Example: ground at Y 113 with depth
 512 → a 385-block shell for a 177-block vanilla column → caves 2.2× taller.
 
@@ -193,16 +205,34 @@ There is a dormant full-fill path in the generator (`!thinShellTerrain` at
 `minY + 64` at `:1048`, bedrock at `minY` at `:1096`). Upstream no longer
 uses it, so it is untested.
 
-### Options for TERR-8 (raise first)
+### NZ worlds: shell plus solid fill (option B, decided in TERR-8)
 
-| Option | How | For | Against |
-|---|---|---|---|
-| **A. Shell only** | Set `underground_depth` (e.g. 335 = 63 − (−272), so ground at sea level reaches the floor). No code. | Zero code, no merge risk. | Under hills and mountains the world ends at bedrock with air below, far above −272. Contradicts "floor at −272" in the hub. |
-| **B. Shell + solid fill (recommended)** | Keep caves and ores in the shell; below the shell, fill plain stone/deepslate down to bedrock at −272 instead of air. One small hook at the shell bottom. | Floor at −272 everywhere, as the hub says. Caves stay vanilla-like near the surface. All-stone chunk sections are cheap (single-block palette). | More blocks per chunk under mountains (some generation time). Deep mountain cores are plain stone, with no caves. |
-| **C. Absolute vanilla underground** | Caves and ores by absolute Y down to −272, like vanilla with a lower floor. | Closest to "vanilla underground". | Fights Tellus's whole surface-relative cave/ore design; large, conflict-prone changes. |
+The options were: A, shell only (no code, but air under every hill); B,
+shell plus solid fill; C, an absolute vanilla underground (fights the whole
+surface-relative design). B was chosen, with `underground_depth` 256. The
+deep zone stays plain deepslate until TERR-20 carves caverns into it.
 
-With A or B, `underground_depth` still sets how deep the caves go and how
-much they stretch; choose it in TERR-8.
+- `m262:nz/terrain/NzUnderground` fills each column from the floor + 1 up to
+  the shell's bedrock block with deepslate and puts bedrock at the floor.
+  Hooks in `EarthChunkGenerator`: after the column loop of
+  `fillTellusSurface`, in place of the bedrock skin and curtains (with no
+  void there is nothing to hide; skins would show as bedrock walls in
+  caves), and at the end of the shell branch of `getBaseColumn`. It took
+  two hooks, not one: the fill must not move the shell bottom, because
+  caves, ores and deepslate are mapped onto the shell.
+- Not hooked: the "terrain refinement" rebuild (`rewriteBottom` path,
+  about `:7344`, and its skin arrays). It only runs with the deferred-shell
+  system properties, or after an `OceanCoverageUnavailableException`,
+  which NZ worlds can't throw (their ocean floor skips the coast field,
+  §11). If either changes, that path needs the same fill.
+- The skin and curtain arrays are still computed for NZ chunks and then
+  ignored; cheap, and skipping them would need a third hook.
+- Measured (TERR-8 server run): every column has bedrock at −272 and
+  deepslate up to the shell; ore blobs and gravel spill up to 16 blocks
+  below the shell bottom, as ore features do.
+- Cave stretch with depth 256 (vanilla's column −64 up to the surface,
+  mapped into 256 blocks): about 2× taller at the coast, 1.45× at 100 m,
+  vanilla-like around Y 190, squashed (0.7×) in the mountains.
 
 ## 5. How settings reach the chunk generator
 
@@ -240,7 +270,7 @@ sources are static singletons (`root:worldgen/TellusWorldgenSources.java:41`),
 and per-world helpers are looked up by settings (as map keys, so equality
 matters).
 
-## 6. Proposed hook points
+## 6. Hook points
 
 1. **NZ flag (built in TERR-6).** Everything gets `EarthGeneratorSettings`,
    so the flag rides on it: a last component `Optional<NzWorldSettings> nz`
@@ -278,47 +308,73 @@ matters).
      them `FabricLoader.getGameDir()` throws "invoked too early?".
    - In 26.2 a world keeps its generator settings in
      `<world>/data/minecraft/world_gen_settings.dat`, not in `level.dat`.
-2. **NZ world preset (built in TERR-6; values in TERR-8).**
+2. **NZ world preset (built in TERR-6, values in TERR-8).**
    `m262` resources `data/tellus/worldgen/world_preset/nz.json`, listed in
    the root `normal` tag as an optional entry, so it shows as "New Zealand" in
-   the World Type list. Its two settings copies hold only `"nz": {}`, so it
-   still generates like Earth. It has no editor (`PresetEditorMixin` maps only
+   the World Type list. It has no editor (`PresetEditorMixin` maps only
    `EARTH`), so Customize is unavailable for it, on purpose: the Earth screen
    shows a Mercator map, spawn picker and scale sliders that would be wrong
-   for NZ. TERR-8 adds the values from section 2: `min_altitude` −272,
-   `max_altitude` 2031, and roads, buildings and realtime off.
-   - **Height on first start:** without the editor, nothing applies the
-     height limits at world creation. The world opens with the preset's
-     dimension type (`tellus:earth`, Y −368..431), and Tellus's height
-     datapack (section 3) only takes effect at the *next* start. TERR-6's
-     server check logged `minY=-368,height=800` on the first start.
-     **This breaks reopened worlds** (TERR-7 desktop check): at the second
-     start the datapack sizes the world from the preset's settings (today
-     Earth's defaults, Y −64..463, 528 tall = 33 sections). Chunks saved in
-     the first session have 50 sections, so loading them fails with
-     `Failed to load chunk … ArrayIndexOutOfBoundsException: Index 38 out of
-     bounds for length 33` (`ChunkAccess.getOrCreateOffsetList`). TERR-8
-     must fix this, e.g. with a static NZ dimension type of Y −272..2031 in
-     the preset (`resolveTellusDimensionKey` then ignores it, which is fine
-     because it is already right), and check it by generating, quitting and
-     reopening a new world.
-3. **Heights (TERR-8):** wherever elevation becomes Y (section 2 table),
-   chiefly the generator's `sampleSurfaceHeight` family
-   (`EarthChunkGenerator.java:5253`–`:5294`: blocking, local-only and
-   memory-only variants), its resolved/ocean variants (`:10021`–`:10184`),
-   and `WaterSurfaceResolver.sampleSurface` (`:3355`). Tellus's own
-   **preload package** override already sits at exactly these places
-   (`samplePreloadedTerrain`: a ready Y by block x/z, else the online
-   source), so an NZ hook goes right next to it. The preload package itself
-   is not the right vehicle: it loads asynchronously and falls back to
-   online sources while loading, and it is keyed to a settings fingerprint.
-   TERR-5 confirmed the full list of call sites, including DH: §8.4.
+   for NZ. Both settings copies hold the same values: the section 2 scales,
+   `min_altitude` −272, `max_altitude` 2031, `underground_depth` 256, caves,
+   ores, lava pools and geodes on, roads, buildings and realtime off, the
+   spawn, and `"nz": {}`.
+   - **Height on first start (fixed in TERR-8):** without an editor, nothing
+     applies the height limits at world creation, and Tellus's height
+     datapack (section 3) only takes effect at the *next* start. With
+     Tellus's `tellus:earth` type, the first session ran at Y −368..431 and
+     a reopened world failed with `Failed to load chunk …
+     ArrayIndexOutOfBoundsException` (a different section count). The
+     preset now uses the fixed type `tellus:nz` (section 3), so the height
+     is right from the start; checked by reopening a world (`testing.md`).
+   - **Spawn (temporary):** `spawn_latitude`/`spawn_longitude` are the
+     Mercator values that land on block −76040, 93845 (Sentinel Rock, Franz
+     Josef) at world scale 3, so no spawn code was needed. Real NZ spawn
+     handling is TERR-9 (item 4).
+   - **No tiles, no world (TERR-8):** `nz/mixin/client/CreateWorldScreenMixin`
+     (its own mixin config, `nz-terrain.client.mixins.json`) stops the
+     Create button for this preset when `NzTerrain.creationRefusal()` finds
+     no usable tile set, and shows where it looked. A dedicated server with
+     an NZ world and no tiles throws at `SERVER_STARTING`, before any level
+     exists. An existing single-player world only warns: throwing at server
+     start would crash the client.
+3. **Terrain inputs (built in TERR-8): one hook, in the preload view.** The
+   generator, the water resolver and the DH fast LOD all ask
+   `TerrainPreloadPackageRegistry.SettingsView` first for height, cover
+   class, land mask and ocean flags (`samplePreloadedTerrain`, 13 calls in
+   the generator, all of the resolver's `sampleSurface`, `sampleCoverClass`
+   and `sampleLandMask`), and use the online sources only when it has
+   nothing. For NZ settings, `createSettingsView` returns a view backed by
+   `m262:nz/terrain/NzTerrainSampler`, which answers every block with a
+   `TerrainPreloadPackage.Sample` built from the tiles:
+   - height: the finest available level for the requested resolution
+     (`levelFor`: level = log2 of the resolution in blocks; chunks ask
+     level 0, DH coarser), bilinear between pixel centres, so level 0 gives
+     each block its own pixel. Sea and nodata pixels use the placeholder
+     floor (`NzSeaFloor`, §11). Then Tellus's `TerrainHeightTransform`;
+   - land mask: known everywhere, land where the water layer isn't sea or
+     nodata;
+   - cover: ESA no-data (0) on the sea, which Tellus treats as ocean, water
+     (80) on lakes and rivers, else LCDB mapped by `NzCoverClasses`
+     (stopgap until TERR-11/12);
+   - `oceanElevationSelected` true everywhere, so DH's LOD ocean floor
+     trusts the sample instead of asking OpenWaters.
+
+   `contains` is always true, which also skips Tellus's online terrain
+   prefetch per chunk. Preload packages themselves were not the vehicle: they
+   load asynchronously, fall back to online sources while loading, and are
+   keyed to a settings fingerprint. The view is cached per settings value
+   for the whole JVM, so the sampler looks up `NzTiles.global()` on each
+   call (the store is rebuilt at every server start) and rebuilds its sea
+   floor cache when the store changes.
+
+   Two height paths bypass the view and needed their own hooks: the ocean
+   floor (§11) and Tellus forcing Overture water on (§10). What still reads
+   online data by Mercator in NZ worlds is listed in §10.
 4. **Spawn:** `EarthChunkGenerator.java:420`–`:424` and
    `getSurfacePosition` (`:524`) turn spawn lat/lon into blocks by Mercator.
-   NZ worlds need NZTM or block coordinates here.
-5. **Underground floor (TERR-8, option B):** the shell bottom,
-   `TerrainShellBedrockProtection.supportBottomY` and the column fill at
-   `EarthChunkGenerator.java:1317`–`:1334`.
+   NZ worlds need NZTM or block coordinates here (TERR-9; the preset's
+   Mercator spawn is a stopgap, item 2).
+5. **Underground floor (built in TERR-8, option B):** §4.
 6. **Lat/lon users** (section 1): switch off or redirect for NZ worlds
    (list: §10; TERR-9 acts).
 
@@ -456,10 +512,10 @@ searching for the `…_SOURCE.` fields (`:166`–`:175`):
 
 | Data | Generator methods (line) | NZ replacement |
 |---|---|---|
-| Height | `sampleSurfaceHeight` / `…LocalOnly` / `…MemoryOnly` (`:5253`–`:5294`); `useOceanZoom*` (`:5314`–`:5350`); `resolveLodMapterhornLandOverride`, `resolveLodOceanTerrainSurface`, `fallbackLodOceanTerrainSurface` (`:10153`–`:10180`) | height tile (TERR-8) |
+| Height | `sampleSurfaceHeight` / `…LocalOnly` / `…MemoryOnly` (`:5253`–`:5294`); `useOceanZoom*` (`:5314`–`:5350`); `resolveLodMapterhornLandOverride`, `resolveLodOceanTerrainSurface`, `fallbackLodOceanTerrainSurface` (`:10153`–`:10180`) | **done (TERR-8)**: preload view (§6.3) |
 | DEM slope | `sampleDemSlopeDegrees` (`:6051`) | slope tile |
-| Cover class | `sampleCoverClassFor{Base,Exact}Terrain`, `…ForTerrainShell`, `sampleVisualCoverClassFor…` (`:5361`–`:5406`); `sampleCoverClass`, `sampleVisualCoverClass` (`:10073`–`:10103`); `resolveDryOsmTerrainCoverClass` (`:10228`) | vegetation class (TERR-11/12) |
-| Land mask | `isKnownOceanLandMask` (`:10026`) | water tile (sea) |
+| Cover class | `sampleCoverClassFor{Base,Exact}Terrain`, `…ForTerrainShell`, `sampleVisualCoverClassFor…` (`:5361`–`:5406`); `sampleCoverClass`, `sampleVisualCoverClass` (`:10073`–`:10103`); `resolveDryOsmTerrainCoverClass` (`:10228`) | stopgap LCDB → ESA in the preload view (TERR-8); vegetation class (TERR-11/12) |
+| Land mask | `isKnownOceanLandMask` (`:10026`) | **done (TERR-8)**: water tile, preload view |
 | Köppen | `sampleKoppenCode` (`:3895`) | NZ biome/climate (TERR-12) |
 | Canopy, ecoregion | `placeTrees`, `applyPreparedTreePlacement` (`:4816`, `:4952`) | canopy + vegetation class (TERR-13), or `custom_trees` off |
 | Sand | `hasOvertureSandAt` (`:6047`) | surface palette (TERR-11) |
@@ -471,11 +527,14 @@ and the Overture water query (`:646`, `:1860`); `EarthBiomeSource` (§8.3);
 `TellusWorldgenSources.samplePreloadTerrain`; the client preview
 (`s262-client:client/preview/TerrainPreview.java`).
 
-Almost all height and cover reads already check `samplePreloadedTerrain`
-first (13 calls in the generator), so an NZ hook "if NZ world, read the NZ
-tile" fits the same spots. Every height path goes through the
-`sampleSurfaceHeight` family, and so does DH (§9). A hook there therefore
-covers chunks and LODs together.
+Almost all height and cover reads check `samplePreloadedTerrain` first (13
+calls in the generator), which is why TERR-8 hooked the preload view
+itself instead of each call (§6.3). Every height path goes through the
+`sampleSurfaceHeight` family, and so does DH (§9), so that covers chunks
+and LODs together. Exceptions: the resolver's ocean floor (§11) and the
+DEM slope (`sampleDemSlopeDegrees`, LocalOnly, so it reads only what is
+already cached and otherwise has no value; TERR-11 computes slope from the
+height tile).
 
 ## 9. Distant Horizons
 
@@ -531,12 +590,12 @@ pixels are 2^d blocks (hub `interfaces.md`).
 | Real-time time of day | Open-Meteo (time zone) | `realtime_time: false` (default) | `/tellus` command overrides exist (`TellusCommon.java:110`–`:150`) |
 | Real-time weather | Open-Meteo | `realtime_weather: false` (default) | |
 | Historical snow | Open-Meteo past days | `historical_snow: false` (default) | |
-| Elevation and bathymetry | Mapterhorn, OpenWaters, Mapterhorn coverage | **no setting**: NZ height hook (TERR-8) | `dem_*` only picks providers |
-| Land cover | WorldCover COG, Overture land_cover | **no setting**: NZ cover hook (TERR-11/12) | |
-| Land mask | Tellus land polygons (GitHub) | **no setting**: NZ water tile | downloaded once, but still Mercator |
-| Water | Overture water | `enable_water: false` turns off Overture water, but then WorldCover class 80 becomes water instead (§11); NZ needs a water hook (TERR-10) | |
-| Sand | Overture land/sand | **no setting**: hook or ignore for NZ | |
-| Canopy height | ETH via ArcGIS | `custom_trees: false`, or hook (TERR-13) | also feeds DH canopy |
+| Elevation and bathymetry | Mapterhorn, OpenWaters, Mapterhorn coverage | **done (TERR-8)**: preload view (§6.3), ocean floor hook (§11) | the biome source still reads elevation itself (§8.3, TERR-12) |
+| Land cover | WorldCover COG, Overture land_cover | generator and water: **done (TERR-8)**, stopgap mapping (§6.3); the biome source still reads it (TERR-12) | |
+| Land mask | Tellus land polygons (GitHub) | **done (TERR-8)**: water tile, preload view | |
+| Water | Overture water | **done (TERR-8)**: NZ settings force `enable_water` off (§11). The setting itself does nothing for Earth worlds | |
+| Sand | Overture land/sand | **no setting**: hook or ignore for NZ (TERR-11) | still fetched after TERR-8 |
+| Canopy height | ETH via ArcGIS | `custom_trees: false`, or hook (TERR-13) | also feeds DH canopy; answered HTTP 404 in TERR-8's runs, so trees used biome fallbacks |
 | Ocean temperature | NOAA OISST | **no setting**: NZ biome source (TERR-12) | |
 | Köppen, RESOLVE ecoregions | bundled, offline | — | Mercator lookups read West Africa in an NZ world; replace in TERR-12/13 |
 | Preload packages, managed DH downloads | all of the above | `tellus_managed_terrain_downloads: false` (default); don't offer the preload screen | |
@@ -544,11 +603,14 @@ pixels are 2^d blocks (hub `interfaces.md`).
 | `/tellus` geo-teleport and location text | Mercator | NZ version or off (§1) | |
 
 So settings alone switch off roads, buildings, lights, realtime and managed
-downloads. Elevation, cover, land mask, sand, OISST and water need NZ
-hooks, because Tellus has no "offline" switch for them. All of their
-fetches go through the sources in §7, so once NZ worlds stop calling them
-(§8.4), nothing else downloads. For a safety net, a test can run the dev
-server with networking blocked and check the cache folder stays empty.
+downloads. The rest needs NZ hooks, because Tellus has no "offline" switch
+for them. After TERR-8, NZ worlds still downloaded Overture sand (most new
+files), Overture land cover (the biome source) and tried ETH canopy, in a
+server run that generated a few chunks; nothing for heights, water or the
+sea floor. All fetches go through the sources in §7, so once NZ worlds
+stop calling them (§8.4), nothing else downloads. For a safety net, a test
+can run the dev server with networking blocked and check the cache folder
+stays empty.
 
 ## 11. Water, and why rivers stayed dry in TERR-1
 
@@ -558,16 +620,40 @@ and cached (`buildRegionData` `:785`).
 
 **Where water comes from:**
 
-- With `enable_water` on (the default), inland water and ocean come **only
-  from Overture water shapes** (`populateOsmBaseWaterMask` `:1841`; the
-  `osmWaterEnabled` flag is just `enableWater`, `:147`).
+- **`enable_water` is ignored** (found in TERR-8): the settings
+  constructor sets `enableWater = true` whatever was saved ("Overture
+  vector water is now the only supported source"). So for Earth worlds,
+  inland water and ocean come **only from Overture water shapes**
+  (`populateOsmBaseWaterMask` `:1841`; the `osmWaterEnabled` flag is just
+  `enableWater`, `:147`). About 60 places read the flag (resolver,
+  generator, DH water, biome source).
   - Areas are scanline-filled.
   - Centrelines (rivers and streams mapped as lines) are drawn **1 block
     wide** (`halfWidth = 0.5`, `:2060`), with small gaps bridged.
   - Ocean polygons override everything.
   - WorldCover's water class is then *not* water.
-- With `enable_water` off, WorldCover class 80 plus the land mask make the
-  water instead (`:872`).
+- With the flag off, WorldCover class 80 plus the land mask make the water
+  instead (`:872`). Upstream no longer reaches this path, but **NZ worlds
+  do**: the constructor hook gives NZ settings `enableWater = false`, and
+  the preload view (§6.3) supplies the cover class and land mask from our
+  tiles. So the sea comes from the water layer (land mask), and lakes and
+  rivers wherever the water layer says so (cover 80). TERR-8 checked only
+  the sea in game.
+- **The ocean floor bypasses the preload view.**
+  `sampleOceanTerrainHeight` builds every ocean column's floor from
+  OpenWaters bathymetry (`sampleRawOceanDepth`, online, by Mercator) and a
+  coast profile (`OceanCoastField`, `OceanFloorProfile`). In an NZ world
+  that put the whole sea floor near Y −214 (deep Gulf of Guinea, clamped).
+  TERR-8 hooks the method: NZ worlds take the preload sample's height,
+  clamped one block below the water surface.
+- **NZ placeholder sea floor (TERR-8, `m262:nz/terrain/NzSeaFloor`):** the
+  pipeline's WorldPainter rule (`worldpainter.py` `placeholder_depth`):
+  1 m deeper per 50 m from the nearest non-sea pixel, at least 4 m, at
+  most 40 m (Y 61 at the coast down to Y 43). Outside the data counts as
+  sea, so the flat ocean around the tiles is the same floor at 40 m.
+  Exact Euclidean distance per tile and level, with a 2 km margin from the
+  neighbouring tiles, cached in ¼ m steps. Real bathymetry (`bed`, PIPE-10)
+  replaces it.
 
 **River surfaces:**
 
@@ -611,7 +697,8 @@ To confirm, look at one riverbed with the F3 screen or with
 **For NZ (TERR-10):**
 
 - Our water layer (sea / lake / river, with one surface height per lake)
-  replaces the Overture shapes.
+  replaces the Overture shapes. Since TERR-8 it already feeds the
+  non-Overture path above; check lakes and rivers there first.
 - The resolver's later stages could be reused, by filling its masks from
   our tile instead of Overture in `populateOsmBaseWaterMask` and the ocean
   field: components, river surfaces from the DEM, bed depth, shore blending

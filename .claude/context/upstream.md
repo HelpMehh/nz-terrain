@@ -40,11 +40,14 @@ also carry `// NZ:`; JSON can't. Add each new one here.
 |---|---|---|
 | `build.gradle` | `version` = `mod_version+nz.nz_version` | TERR-6 |
 | `gradle.properties` | `archives_base_name=nz-terrain`; `nz_version` at the end | TERR-6 |
-| `mc262/src/main/resources/fabric.mod.json` | `name`, `description` | TERR-6 |
-| `src/main/java/…/worldgen/EarthGeneratorSettings.java` | `nz` component, compatibility constructor, `CODEC` wrapped (`tellus-internals.md` §6) | TERR-6 |
+| `mc262/src/main/resources/fabric.mod.json` | `name`, `description`; the NZ client mixin config (TERR-8) | TERR-6 |
+| `src/main/java/…/worldgen/EarthGeneratorSettings.java` | `nz` component, compatibility constructor, `CODEC` wrapped (`tellus-internals.md` §6); `enableWater` false for NZ settings (TERR-8, §11) | TERR-6 |
 | `src/main/resources/data/minecraft/tags/worldgen/world_preset/normal.json` | optional entry `tellus:nz` | TERR-6 |
 | `mc262/src/main/java/…/Tellus.java` | calls `NzTerrain.initialize()` at the end of `onInitialize` | TERR-7 |
 | `src/main/resources/assets/tellus/lang/{en_us,es_es,ja_jp}.json` | `generator.tellus.nz`. Upstream's `LocalizationCoverageTest` needs every lang key in all three files | TERR-6 |
+| `src/main/java/…/preload/TerrainPreloadPackageRegistry.java` | NZ settings get a view backed by `NzTerrainSampler` (`createSettingsView`, `SettingsView` constructor, `sample`, `contains`; `tellus-internals.md` §6.3) | TERR-8 |
+| `src/main/java/…/worldgen/WaterSurfaceResolver.java` | `sampleOceanTerrainHeight`: NZ sea floor from the tiles (§11) | TERR-8 |
+| `shared/mc262/src/main/java/…/worldgen/EarthChunkGenerator.java` | solid fill below the shell instead of the bedrock skin (`fillTellusSurface`), and in `getBaseColumn` (§4) | TERR-8 |
 
 **When upstream adds a settings component** to `EarthGeneratorSettings`, the
 merge conflicts in the record header and the constructors. Add the new
