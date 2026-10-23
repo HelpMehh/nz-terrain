@@ -576,7 +576,32 @@ Code: `0.8.3+nz.9`, tiles as in TERR-14 step 2.
     blobs in the stone). 3 columns elsewhere lack their top 1–2 blocks
     (a cave or feature of that world's seed; each new test world has a
     random seed, so features differ between runs).
-- **Second desktop check: open.** The gorge at about (−76941, 93830):
-  ledges, wall tops, no dirt on the walls; whether undercut walls are
-  still wanted (a 3D carve). Note `bare_step` changes every cliff edge,
-  not only gorges.
+- **Second desktop look (`0.8.3+nz.10`):** walls without dirt and the
+  gravel ledges looked right. Wrong: single stone pillars beside the water
+  (−73203, 89667; −83647, 98627), spiky wall tops like a fence of
+  columns at the big scrub gorge (−73607, 101455), and small creeks as a
+  1-wide corridor between bare walls about 15 blocks high (−76942, 93848).
+  Fixed in `0.8.3+nz.11` (`tellus-internals.md` §11.2).
+- **Second follow-up (`0.8.3+nz.11`, 24 Oct 2026):** build passes, 696
+  tests (600 upstream + 96 NZ). New: wall height by size class, the bend
+  side. The test V's creek is now class 50 (1 wide, walls up to 9): a
+  wider class spreads its water onto the shallow floor past the gorge
+  and moves the ledges there.
+  - Headless, a new world, four 128 × 128 areas: the three small-creek
+    gorges as before plus the big scrub gorge (`-83701 98568 -83574 98695`,
+    `-73668 101348 -73541 101475`). All 387 wall and 760 ledge columns at
+    exactly the expected height; no wall column with ledge or water on 3+
+    sides (pillars); no water on dry land; all 1,100 stream columns wet.
+    Ledge tops: gravel 465, cobblestone 188, mossy cobblestone 104, plus
+    3 soil tops from decorations (dirt under an oak trunk, 2 grass).
+    Water above its own surface (447 columns): all fed from upstream,
+    some through a chain of falling water at 3–5-block drops; a check
+    that looks only at the 4 neighbours' *expected* water misses those
+    and the first row of an area.
+  - Wall raises are now mostly 1–4 blocks (small creeks), up to 10 here.
+  - "Can't keep up … 55 s behind" while four areas generated at once.
+  - The test scratchpad doesn't survive a restart: the expected columns
+    were regenerated from the same code the next day.
+- **Third desktop check: open.** The same five gorges: small creeks as
+  wooded gullies with a low rock cut; gravel bars on the inside of bends;
+  no pillars; smoother wall tops; the big scrub gorge's full walls.

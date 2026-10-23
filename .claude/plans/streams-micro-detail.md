@@ -130,13 +130,16 @@ land columns.
 
 ## Step 3 — Slot gorges along streams
 
-**Built (23 Oct 2026, `0.8.3+nz.9`), then fixed after the first desktop
-look (`0.8.3+nz.10`: ledges and rims vary by noise, gravel ledges, the
-palette's `bare_step`); second desktop check open** (`testing.md`).
-Decided: (a), gorges only where the LiDAR shows a deep V (3.9 % of stream
-blocks in test area 1), and the V's sides are **filled up to the rim**
-(vertical walls, 1-block ledges, flat top), never cut down; undercut
-walls wait for the desktop check. Details: `tellus-internals.md` §11.2.
+**Built (23 Oct 2026, `0.8.3+nz.9`), fixed after the first desktop look
+(`nz.10`: noise on ledges and rims, gravel ledges, the palette's
+`bare_step`) and the second (`nz.11`, 24 Oct: wall height by size class,
+bars on the inside of bends, no pillars, smoother rims); third desktop
+check open** (`testing.md`). Decided: (a), gorges only where the LiDAR
+shows a deep V (3.9 % of stream blocks in test area 1); the V's sides
+are **filled up to the rim**, never cut down; small creeks keep a low
+cut and their wooded gully, big streams get full slots; **no undercut
+walls** (photos of South Westland gorges). Details:
+`tellus-internals.md` §11.2.
 Lessons for steps 4–5: the per-tile pass in `NzStreams` is the place
 for any change to the height of land near streams (no hook needed);
 a rule measured on the rasters in Python first (pipeline venv,

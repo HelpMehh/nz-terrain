@@ -4,6 +4,19 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.11 (TERR-14 step 3, second follow-up, 24 Oct 2026)
+
+- Gorge walls follow the size of the stream: a small creek gets a short
+  rock cut of a few blocks at the water, with its steep, wooded gully
+  left above it; walls grow with the catchment, up to 16 blocks for big
+  streams.
+- Gravel ledges lie on the inside of bends, and the water runs against
+  the wall on the outside. Both sides of a creek take their ledge width
+  from the same place, so no single stone pillars stand between ledge
+  and water any more.
+- Wall tops vary more gently (over about 8 blocks instead of 3), so the
+  walls no longer look like a fence of narrow columns.
+
 ## 0.8.3+nz.10 (TERR-14 step 3 follow-up, 23 Oct 2026)
 
 - Gorges look less man-made: the ledges beside the creek vary from none

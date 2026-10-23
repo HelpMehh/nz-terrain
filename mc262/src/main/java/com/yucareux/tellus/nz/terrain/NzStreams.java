@@ -38,13 +38,17 @@ import java.util.Optional;
  *    the lower side is at least {@link #GORGE_NEAR_DEPTH_BLOCKS} higher {@link #GORGE_NEAR_RADIUS_BLOCKS} blocks
  *    out and at least {@link #GORGE_DEPTH_BLOCKS} higher {@link #GORGE_RADIUS_BLOCKS} out, across the stream, in a
  *    run of at least {@link #GORGE_MIN_RUN_BLOCKS}. The rim is that lower side's height
- *    {@link #GORGE_RADIUS_BLOCKS} out, at most {@link #GORGE_MAX_WALL_BLOCKS} above the stream's ground, and rises
+ *    {@link #GORGE_RADIUS_BLOCKS} out, at most {@link #wallCap} above the stream's ground (a few blocks for a small
+ *    creek, whose V above stays a vegetated gully; up to {@link #GORGE_MAX_WALL_BLOCKS} for a big stream), and rises
  *    by {@link #GORGE_TAPER_BLOCKS} per block from the ends of a run. Land within {@link #GORGE_RADIUS_BLOCKS} of a
  *    gorge's centreline (nearer to it than to any other) is raised to the rim, by at most
  *    {@link #GORGE_MAX_WALL_BLOCKS}, give or take {@link #rimJitter} so the walls aren't flat planes. Except the
- *    ledges: land within {@link #ledgeWidth} blocks (0–2 by noise along the gorge) of the stream's water is a gravel
- *    ledge at most 1 block above that water ({@link #isGorgeLedge}: {@code NzSurface} gives it the stream bed), so
- *    in places the water runs from wall to wall. A gorge is level-0 detail like the streams.</li>
+ *    ledges: land within the ledge width of the stream's water is a gravel ledge at most 1 block above that water
+ *    ({@link #isGorgeLedge}: {@code NzSurface} gives it the stream bed). The width is {@link #ledgeWidth} (0–2 by
+ *    noise along the stream) at the column's centreline, 1 more on the inside of a bend and 1 less on the outside
+ *    ({@link #bendSide}), so in places the water runs from wall to wall and gravel bars lie on the inside of bends. A
+ *    wall column with ledge or water on 3 of its 4 sides becomes ledge too: no pillars. A gorge is level-0 detail
+ *    like the streams.</li>
  *    <li>Steps: stream water with lower water (stream, lake, river or sea) on one of its four sides flows, as river
  *    steps do ({@link NzWater#isStepSource}).</li>
  * </ul>
@@ -66,13 +70,21 @@ final class NzStreams {
    static final int GORGE_RADIUS_BLOCKS = 6;
    static final int GORGE_DEPTH_BLOCKS = 8;
    static final int GORGE_MAX_WALL_BLOCKS = 16;
+   /** Wall height by size class: {@link #SMALL_WALL_BLOCKS} up to this class (16 ha), the full height from this one (1,000 ha). */
+   static final int SMALL_WALL_UP_TO_CLASS = 30;
+   static final int FULL_WALL_FROM_CLASS = 76;
+   static final int SMALL_WALL_BLOCKS = 4;
    /** Shorter runs of gorge blocks are left as they are; longer ones rise this many blocks per block from each end. */
    static final int GORGE_MIN_RUN_BLOCKS = 5;
    static final int GORGE_TAPER_BLOCKS = 2;
    /** The noise that varies ledges and rims: lattice points this many blocks apart, and the rim's range (±). */
    static final int LEDGE_NOISE_PERIOD_BLOCKS = 6;
-   static final int RIM_NOISE_PERIOD_BLOCKS = 3;
+   static final int RIM_NOISE_PERIOD_BLOCKS = 8;
    static final int RIM_JITTER_BLOCKS = 2;
+   /** Bends: the centreline within this many blocks (a square) shows which way a stream curves. */
+   static final int BEND_RADIUS_BLOCKS = 4;
+   /** The mean offset of that centreline (blocks) from which a stream counts as bending. */
+   static final double BEND_MIN_OFFSET_BLOCKS = 0.5;
    private static final long LEDGE_SALT = 0x6C65646765L;
    private static final long RIM_SALT = 0x72696DL;
    private static final int MAX_RADIUS_BLOCKS = MAX_WIDTH_BLOCKS / 2;
@@ -119,7 +131,28 @@ final class NzStreams {
       return tile != null && tile.ledge.get(index(x, z));
    }
 
-   /** Width in blocks of the ledges at block (x, z) of a gorge: 0, 1 or 2, varying smoothly along it. */
+   /** Highest wall in blocks over a gorge stream of {@code sizeClass}: small creeks low, big streams up to the most. */
+   static int wallCap(int sizeClass) {
+      double t = (sizeClass - SMALL_WALL_UP_TO_CLASS) / (double) (FULL_WALL_FROM_CLASS - SMALL_WALL_UP_TO_CLASS);
+      return (int) Math.round(SMALL_WALL_BLOCKS + Math.clamp(t, 0.0, 1.0) * (GORGE_MAX_WALL_BLOCKS - SMALL_WALL_BLOCKS));
+   }
+
+   /**
+    * Which side of a bend land at offset (dx, dz) from a centreline block lies on, given the mean offset (bx, bz) of the
+    * centreline around that block, which points to the inside of a bend: 1 inside, -1 outside, 0 on a straight reach or
+    * along the stream.
+    */
+   static int bendSide(int dx, int dz, double bx, double bz) {
+      double bend = Math.hypot(bx, bz);
+      double length = Math.hypot(dx, dz);
+      if (bend < BEND_MIN_OFFSET_BLOCKS || length == 0.0) {
+         return 0;
+      }
+      double side = (dx * bx + dz * bz) / (bend * length);
+      return side > 0.3 ? 1 : side < -0.3 ? -1 : 0;
+   }
+
+   /** Width in blocks of the ledges at centreline block (x, z) of a gorge: 0, 1 or 2, varying smoothly along it. */
    static int ledgeWidth(int x, int z) {
       double noise = NzSurfaceMix.smoothNoise(LEDGE_SALT, x, z, LEDGE_NOISE_PERIOD_BLOCKS);
       return noise < -0.15 ? 0 : noise < 0.3 ? 1 : 2;
@@ -361,7 +394,7 @@ final class NzStreams {
             }
             int far = vDepth(water, ground, surface, size, i, r);
             boolean deep = vDepth(water, ground, surface, size, i, GORGE_NEAR_RADIUS_BLOCKS) >= GORGE_NEAR_DEPTH_BLOCKS && far >= GORGE_DEPTH_BLOCKS;
-            height[i] = deep ? Math.min(far, GORGE_MAX_WALL_BLOCKS) : 0;
+            height[i] = deep ? Math.min(far, wallCap(streams[i])) : 0;
          }
       }
 
@@ -423,11 +456,13 @@ final class NzStreams {
          }
       }
 
-      // Land takes the rim of its nearest centreline, if that one is in a gorge; near the water it is a ledge.
+      // Land takes the rim of its nearest centreline (its owner), if that one is in a gorge.
       Arrays.fill(wall, NONE);
       Arrays.fill(ledge, NONE);
       int[] distance = new int[area];
       Arrays.fill(distance, Integer.MAX_VALUE);
+      int[] owner = new int[area];
+      Arrays.fill(owner, -1);
       for (int c = 0; c < area; c++) {
          if (height[c] < 0) {
             continue;
@@ -444,11 +479,15 @@ final class NzStreams {
                }
                distance[q] = d2;
                wall[q] = rim;
+               owner[q] = c;
             }
          }
       }
-      for (int pz = 2; pz < size - 2; pz++) {
-         for (int px = 2; px < size - 2; px++) {
+
+      // Near the water a column is a ledge: within its owner's ledge width, wider on the inside of a bend.
+      int b = BEND_RADIUS_BLOCKS;
+      for (int pz = r + b; pz < size - r - b; pz++) {
+         for (int px = r + b; px < size - r - b; px++) {
             int i = pz * size + px;
             if (wall[i] == NONE) {
                continue;
@@ -457,24 +496,71 @@ final class NzStreams {
                wall[i] = NONE;
                continue;
             }
-            int x = originX + px;
-            int z = originZ + pz;
-            int width = ledgeWidth(x, z);
-            int near = NONE;
-            for (int dz = -width; dz <= width; dz++) {
-               for (int dx = -width; dx <= width; dx++) {
-                  near = Math.max(near, surface[i + dz * size + dx]);
+            int c = owner[i];
+            int cx = c % size;
+            int cz = c / size;
+            double bx = 0.0;
+            double bz = 0.0;
+            int count = 0;
+            for (int dz = -b; dz <= b; dz++) {
+               for (int dx = -b; dx <= b; dx++) {
+                  if (height[c + dz * size + dx] >= 0) {
+                     bx += dx;
+                     bz += dz;
+                     count++;
+                  }
                }
             }
+            int width = ledgeWidth(originX + cx, originZ + cz) + bendSide(px - cx, pz - cz, bx / count, bz / count);
+            int near = nearWater(surface, size, i, width);
             if (near != NONE) {
                ledge[i] = Math.min(ground[i], near + 1);
-               wall[i] = NONE;
+            }
+         }
+      }
+      // Lone wall columns between ledges and water become ledge (judged on the ledges before this pass, so the result
+      // doesn't depend on the order of the scan); the rest of the wall takes its jittered rim.
+      boolean[] ledgeBefore = new boolean[area];
+      for (int i = 0; i < area; i++) {
+         ledgeBefore[i] = ledge[i] != NONE;
+      }
+      for (int pz = 2; pz < size - 2; pz++) {
+         for (int px = 2; px < size - 2; px++) {
+            int i = pz * size + px;
+            if (wall[i] == NONE || ledgeBefore[i]) {
                continue;
             }
             // A column below its centreline's ground (beside a waterfall) is raised by at most a wall's height.
-            wall[i] = Math.min(wall[i] + rimJitter(x, z), ground[i] + GORGE_MAX_WALL_BLOCKS);
+            int top = Math.min(wall[i] + rimJitter(originX + px, originZ + pz), ground[i] + GORGE_MAX_WALL_BLOCKS);
+            int open = 0;
+            for (int q : new int[] {i - 1, i + 1, i - size, i + size}) {
+               open += ledgeBefore[q] || surface[q] != NONE ? 1 : 0;
+            }
+            // Only a raised column can be a pillar; land the gorge leaves as it is stays.
+            int near = open >= 3 && top > ground[i] ? nearWater(surface, size, i, 2) : NONE;
+            if (near != NONE) {
+               ledge[i] = Math.min(ground[i], near + 1);
+               continue;
+            }
+            wall[i] = top;
          }
       }
+      for (int i = 0; i < area; i++) {
+         if (ledge[i] != NONE) {
+            wall[i] = NONE;
+         }
+      }
+   }
+
+   /** The highest stream water within {@code reach} blocks (a square) of window pixel {@code i}; {@link #NONE} without. */
+   private static int nearWater(int[] surface, int size, int i, int reach) {
+      int near = NONE;
+      for (int dz = -reach; dz <= reach; dz++) {
+         for (int dx = -reach; dx <= reach; dx++) {
+            near = Math.max(near, surface[i + dz * size + dx]);
+         }
+      }
+      return near;
    }
 
    /**

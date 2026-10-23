@@ -48,8 +48,8 @@ class NzStreamsTest {
     *    <li>a diagonal creek (class 30) at 90 m from (300, 100) to (320, 120);</li>
     *    <li>a big stream (class 90, 12 blocks wide) along row 300 from x 400 to 700, across the tile border, at 60 m
     *    (Y 93) in a gully whose floor is 7 blocks wide (rows 297–303, 61 m: Y 94);</li>
-    *    <li>a creek (class 20) along row 400 from x 780 to 1000 at 60 m (Y 93), in a shallow valley (0.5 m per block)
-    *    except for a deep V (4 m per block: 2 blocks per block in game) from x 800 to 900 and from x 950 to 952.</li>
+    *    <li>a creek (class 50: 1 block wide, walls up to 9 blocks) along row 400 from x 780 to 1000 at 60 m (Y 93), in
+    *    a shallow valley (0.5 m per block) except for a deep V (4 m per block: 2 blocks per block in game) from x 800 to 900 and from x 950 to 952.</li>
     * </ul>
     */
    @BeforeEach
@@ -92,7 +92,7 @@ class NzStreamsTest {
                for (int pz = 380; pz <= 420; pz++) {
                   set(height, px, pz, metres(Math.min(100.0, 60.0 + rise * Math.abs(pz - 400))));
                }
-               stream(streams, level, height, px, 400, 20, 60.0);
+               stream(streams, level, height, px, 400, 50, 60.0);
             }
          }
          if (tx == 0) {
@@ -210,15 +210,16 @@ class NzStreamsTest {
 
    @Test
    void aDeepVBecomesASlotWithVerticalWalls() {
-      // Middle of the gorge: water at Y 93, the LiDAR's V 6 blocks out is 12 blocks higher (Y 105): the rim.
+      // Middle of the gorge: water at Y 93, the LiDAR's V 6 blocks out is 12 blocks higher, the wall at most 9: rim Y 102.
+      assertEquals(9, NzStreams.wallCap(50));
       assertEquals(93, this.streams.surfaceY(850, 400));
       assertEquals(92, this.streams.groundY(850, 400));
       int[] widths = new int[3];
       for (int x = 810; x <= 890; x++) {
          for (int d = 1; d <= 7; d++) {
             for (int z : new int[] {400 - d, 400 + d}) {
-               widths[NzStreams.ledgeWidth(x, z)]++;
-               this.assertBeside(x, z, d, 105);
+               widths[NzStreams.ledgeWidth(x, 400)]++;
+               this.assertBeside(x, z, d, 102);
             }
          }
       }
@@ -233,6 +234,27 @@ class NzStreamsTest {
          assertFalse(column.hasWater());
          assertEquals(expected, column.terrainSurface());
       }
+   }
+
+   @Test
+   void smallCreeksGetLowWallsBigStreamsHighOnes() {
+      assertEquals(NzStreams.SMALL_WALL_BLOCKS, NzStreams.wallCap(1));
+      assertEquals(NzStreams.SMALL_WALL_BLOCKS, NzStreams.wallCap(30));
+      assertEquals(10, NzStreams.wallCap(53));
+      assertEquals(NzStreams.GORGE_MAX_WALL_BLOCKS, NzStreams.wallCap(76));
+      assertEquals(NzStreams.GORGE_MAX_WALL_BLOCKS, NzStreams.wallCap(200));
+   }
+
+   @Test
+   void bendsWidenTheInsideAndNarrowTheOutside() {
+      // A stream turning from west to south around (0, 0): its centreline lies to the west and the south, so the mean
+      // offset points south-west, to the inside of the bend.
+      double bx = -10.0 / 9.0;
+      double bz = 10.0 / 9.0;
+      assertEquals(1, NzStreams.bendSide(-1, 1, bx, bz));
+      assertEquals(-1, NzStreams.bendSide(1, -1, bx, bz));
+      // Straight: no bend.
+      assertEquals(0, NzStreams.bendSide(0, 2, 0.0, 0.0));
    }
 
    @Test
@@ -251,11 +273,11 @@ class NzStreamsTest {
    @Test
    void aGorgeRisesFromItsEnds() {
       // The run starts at x 800 next to the shallow valley and ends at x 900: walls of 2, 4, 6, … blocks over the
-      // stream's ground (Y 93), up to the rim 12 above it.
+      // stream's ground (Y 93), up to the wall's cap 9 above it.
       for (int x = 800; x <= 900; x++) {
          int along = Math.min(x - 800, 900 - x);
          for (int d = 1; d <= 5; d++) {
-            this.assertBeside(x, 400 + d, d, 93 + Math.min(12, 2 * (along + 1)));
+            this.assertBeside(x, 400 + d, d, 93 + Math.min(9, 2 * (along + 1)));
          }
       }
       // Beside the stream outside the gorge, nearer to a centreline that isn't one: untouched.
@@ -278,7 +300,8 @@ class NzStreamsTest {
    private void assertBeside(int x, int z, int d, int rim) {
       String at = x + ", " + z;
       int lidar = 93 + 2 * d;
-      if (d <= NzStreams.ledgeWidth(x, z)) {
+      // Ledge width from the column's centreline (x, 400); the creek is straight, so no bend changes it.
+      if (d <= NzStreams.ledgeWidth(x, 400)) {
          assertTrue(this.streams.isGorgeLedge(x, z), at);
          assertEquals(Math.min(lidar, 94), this.streams.groundY(x, z), at);
          return;

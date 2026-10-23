@@ -834,8 +834,8 @@ the ground of dry ones (above). Rules in its Javadoc; in short:
   a narrow open strip in places (desktop check); TERR-13 replaces the
   tree pass anyway.
 
-**Slot gorges (TERR-14 step 3, `0.8.3+nz.9`).** In the same per-tile pass
-of `NzStreams` (`gorgeWalls`), so no new hook: walls are dry columns and
+**Slot gorges (TERR-14 step 3, `0.8.3+nz.9`–`nz.11`).** In the same
+per-tile pass of `NzStreams` (`gorges`), so no new hook: walls are dry columns and
 reach the chunk generator through `NzWater.streamGround` and the sampler,
 like banks. Rules and constants are in its Javadoc; in short:
 
@@ -849,28 +849,50 @@ like banks. Rules and constants are in its Javadoc; in short:
   forest, scrub, tussock and alpine land; none in pasture. Big streams
   almost never qualify: 3 blocks out is still their own water.
 - **Shape (decided: fill up to the rim):** land within 6 blocks of a
-  gorge centreline, nearer to it than to any other centreline, is raised
-  to the rim (that lower side 6 blocks out, at most 16 above the stream's
-  ground), ±2 blocks of smooth noise (`rimJitter`, lattice 3 blocks).
+  gorge centreline, nearer to it than to any other centreline (its
+  *owner*), is raised to the rim: that lower side 6 blocks out, at most
+  `wallCap(class)` above the stream's ground, ±2 blocks of smooth noise
+  (`rimJitter`, lattice 8 blocks; 3 looked like a fence of columns).
   Walls rise 2 blocks per block from a run's ends (next to a non-gorge
   centreline), so a gorge opens out instead of ending in a cross wall; a
   run that ends in a river keeps its full walls. A column lower than its
   centreline's ground (beside a waterfall) is raised by at most 16.
-- **Ledges:** land within `ledgeWidth` blocks (Chebyshev) of the stream's
-  water is a ledge instead of wall: 0, 1 or 2 blocks by smooth noise
-  (lattice 6 blocks; about a third each in the test valley), so in
-  places the water runs wall to wall. A ledge is at most 1 block above
-  the highest stream water within its width: the only place a gorge
-  lowers land. `NzStreams.isGorgeLedge` → `NzSurface` gives it the
-  stream-bed surface. The stream and its bed never change.
+- **Wall height by size class (decided 24 Oct 2026, after the second
+  desktop look):** 4 blocks up to class 30 (16 ha), rising linearly to
+  16 at class 76 (1,000 ha). A small creek thus keeps the LiDAR's steep
+  V as a wooded gully with a short rock cut at the water; full slots are
+  for big streams. This matches photos of South Westland creeks
+  (boulder-choked channels in vegetated V gullies, bare rock only near
+  the water) and replaced a separate "rock only low on the wall" rule.
+- **Ledges:** land within the ledge width (Chebyshev) of the stream's
+  water is a ledge instead of wall. The width is `ledgeWidth` (0, 1 or 2
+  by smooth noise, lattice 6) evaluated **at the owner centreline**, so
+  both sides agree, plus `bendSide`: +1 on the inside of a bend, −1 on
+  the outside (the mean offset of the centreline within 4 blocks points
+  to the inside; a bend counts from 0.5 blocks). A ledge is at most 1
+  block above the highest stream water within its width: the only place
+  a gorge lowers land. `NzStreams.isGorgeLedge` → `NzSurface` gives it
+  the stream-bed surface. The stream and its bed never change.
+- **No pillars:** in `nz.10` each column took the noise at its own
+  position, so where the width changed a single wall column stood
+  between ledges. Now, besides the owner rule, a *raised* wall column
+  with ledge or water on 3 of its 4 sides becomes ledge, judged on the
+  ledges before that pass (so the result doesn't depend on the scan
+  order, which differs per tile window). Unraised land is left alone.
 - **First desktop look (23 Oct 2026, `0.8.3+nz.9`):** right from a
   distance, but up close the 3-wide slot with parallel flat walls looked
   cut by a machine, and soil showed on the walls as dirt bands and 1 × 1
   dirt pillars: the surface rule follows the LiDAR slope (under 63° on a
   V's sides, so `forest_floor`), not the raised heights. Fixed by the
   noise above and the palette's `bare_step` (§12).
-- Vertical walls at most: undercut walls would need a 3D carve after the
-  fill. Not done; decide after the desktop check.
+- **Second desktop look (23–24 Oct 2026, `0.8.3+nz.10`):** no dirt on
+  walls, gravel ledges good; but single stone pillars beside the water,
+  spiky wall tops, and small creeks as 1-wide corridors between 15-block
+  bare walls. Fixed in `nz.11` (the rules above).
+- Vertical walls at most. **Decided (24 Oct 2026): no undercut walls.**
+  Photos of South Westland gorges (Callery, Gates of Haast, Copland
+  creeks) show overhangs only as small undercuts at the waterline in
+  greywacke and schist; not worth a 3D carve.
 - Cost: about 20 ms per tile for streams and gorges together, the first
   time (test area 1, 896 tiles).
 
