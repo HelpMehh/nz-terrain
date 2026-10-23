@@ -126,6 +126,16 @@ public final class NzSurface {
       return surface;
    }
 
+   /**
+    * Which surface each column of a chunk has, for passes after the fill ({@link NzBoulders}): only
+    * {@link #surfaceAt}, {@link #slopeDegrees} and {@link #heightMetres} work on it, it writes nothing.
+    */
+   static NzSurface columns(NzSurfacePalette palette, EarthGeneratorSettings settings, NzSeaFloor floor, NzStreams streams, int chunkMinX, int chunkMinZ) {
+      NzSurface surface = new NzSurface(palette, settings, floor, chunkMinX, chunkMinZ, 0, 0, null, 0, 0, null);
+      surface.markGorgeLedges(streams::isGorgeLedge);
+      return surface;
+   }
+
    /** Marks the chunk's columns for which {@code isLedge} (block x, z) says gorge ledge. */
    void markGorgeLedges(BiPredicate<Integer, Integer> isLedge) {
       for (int localZ = 0; localZ < CHUNK_SIDE; localZ++) {
@@ -205,7 +215,7 @@ public final class NzSurface {
             default -> this.palette.lake();
          };
       }
-      return this.palette.land(this.lcdb[index], this.slopeDegrees(localX, localZ), this.metres[(localZ + 1) * GRID + localX + 1]);
+      return this.palette.land(this.lcdb[index], this.slopeDegrees(localX, localZ), this.heightMetres(localX, localZ));
    }
 
    /** The game slope at a column in degrees: Horn's method on the tile heights, scaled to block heights. */
@@ -223,6 +233,11 @@ public final class NzSurface {
       double dx = ((c + 2.0 * f + i) - (a + 2.0 * d + g)) / 8.0 * this.blocksPerMetre;
       double dz = ((g + 2.0 * h + i) - (a + 2.0 * b + c)) / 8.0 * this.blocksPerMetre;
       return Math.toDegrees(Math.atan(Math.sqrt(dx * dx + dz * dz)));
+   }
+
+   /** The height of a column in metres, from the tiles. */
+   double heightMetres(int localX, int localZ) {
+      return this.metres[(localZ + 1) * GRID + localX + 1];
    }
 
    /** The lowest terrain Y of the four columns beside this one. */

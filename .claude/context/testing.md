@@ -614,3 +614,57 @@ Code: `0.8.3+nz.9`, tiles as in TERR-14 step 2.
 - **How these desktop checks worked best:** a list of named spots with
   `/tp` coordinates and what to look for, screenshots with F3 on (the
   coordinates show in them), and the same spots in every round.
+
+## Boulders check (TERR-14 step 4, 24 Oct 2026)
+
+Code: `0.8.3+nz.12`, tiles as in TERR-14 step 2.
+
+- **Build:** passes, 707 tests (600 upstream + 107 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New: `NzBouldersTest` (below a
+  cliff, domes inside their chunk and the same every time, a creek
+  boulder on the bed and bare under water, moss tops, a tall plant's top
+  half removed, trees, earlier boulders and holes keeping a boulder out,
+  what counts as replaceable) and the palette's `"boulders"` (the jar's
+  rules, size weights, mistakes named by place).
+- **Survey of test area 1** (throwaway JUnit test, every 4th chunk each
+  way, 57,344 chunks): 14,697 boulders; forest floor 3,769, scree and
+  landslide 2,554, bush creeks 2,227, below cliffs 3,134, moraine 1,400,
+  riverbeds and outwash 867, tussock 566, alpine creeks 180. 1.3 ms per
+  chunk. A full-area scan needs more heap than the 2 GB test JVM: a
+  Gradle init script in the scratchpad (`-I heap.gradle`) setting
+  `maxHeapSize = '6g'` and `-XX:G1HeapRegionSize=4m` on every `Test`
+  task, without touching the build files.
+- **Headless server check (passed)**, set up as in TERR-10 (a new world,
+  `tiles_dir` pointed at the current test-area-1 set: the copy in
+  `mc262/run/nz-tiles/` is from 22 Oct, without `stream_level`). Five
+  128 × 128 areas forceloaded: forest creeks (`-76416 93568 -76289 93695`),
+  the forest gorge (`-77005 93766 -76878 93893`), the big scrub gorge
+  (`-73668 101348 -73541 101475`), moraine at 600–1,000 m
+  (`-73600 101888 -73473 102015`) and Waiho outwash
+  (`-77056 91008 -76929 91135`); 90 s of ticking, `save-all flush`.
+  Expected boulders from a throwaway JUnit test calling
+  `NzBoulders.boulders()` on the real tiles; saved chunks read with a
+  small Python Anvil reader.
+  - 267 of 278 boulders placed exactly (every block from the body or top
+    mix, moss tops only above water). None over a non-solid ground block,
+    no log right above one. 1 plant on a boulder top (grass on a moss
+    cap, from a neighbour chunk's decoration).
+  - The 11 others: 5 had a tree in their space (logs, leaves), 5
+    overlapped an earlier boulder in the chunk (moraine, a creek): both
+    by design. 1 gorge ledge column (−76945, 93856) stood 1 block above
+    `NzWater.column` (gravel at 570 for 569), so its boulder found
+    gravel in its space. Not followed up; the step-3 checks had every
+    ledge exact.
+  - Saved worlds keep their regions under
+    `<world>/dimensions/minecraft/overworld/region` in 26.2, not
+    `<world>/region`.
+- **Desktop check: open.** Spots, new world:
+  - Waiho outwash (−76990, 91070): scattered 1–3-block grey boulders on
+    gravel.
+  - Moraine (−73540, 101950): the biggest boulders (up to 5), denser.
+  - Forest creeks (−76350, 93630) and the forest gorge (−76942, 93848):
+    mossy boulders in creek beds and on ledges, moss caps above water.
+  - Big scrub gorge (−73609, 101434): bare rockfall at the wall feet.
+  - What to judge: density per place, sizes, the dome shape up close,
+    moss, and whether boulders in 1-wide creeks look right or block the
+    water oddly.

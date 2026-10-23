@@ -874,6 +874,7 @@ public final class EarthChunkGenerator extends ChunkGenerator {
             this.placeTrees(level, chunk);
          }
          endFullChunkProfiling(EarthChunkGenerator.FullChunkPhase.DECORATION_TREES, phaseStartNs);
+         com.yucareux.tellus.nz.terrain.NzBoulders.place(this.settings, level, chunk); // NZ: boulders in NZ worlds, after the trees (TERR-14)
          if (!delayTellusDecoration && !this.shouldDeferBuildingDetails()) {
             phaseStartNs = beginFullChunkProfiling();
             this.placePreparedBuildings(level, chunk);

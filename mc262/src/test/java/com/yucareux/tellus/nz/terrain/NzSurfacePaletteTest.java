@@ -153,6 +153,55 @@ class NzSurfacePaletteTest {
    }
 
    @Test
+   void bundledBouldersFollowTheirRules() {
+      NzSurfacePalette palette = NzSurfacePalette.bundled();
+      // Below a cliff in the bush: mossy rockfall; the same ground away from cliffs: a boulder here and there.
+      NzSurfacePalette.BoulderRule rockfall = palette.boulders("forest_floor", 20.0, 300.0, true);
+      assertEquals(0.04, rockfall.chance(), 1.0e-12);
+      assertEquals(Set.of(Blocks.MOSS_BLOCK, Blocks.MOSSY_COBBLESTONE), blocks(rockfall.top()));
+      assertEquals(0.001, palette.boulders("forest_floor", 20.0, 300.0, false).chance(), 1.0e-12);
+      // Too steep for a boulder to stay; no boulders on snow or in the sea.
+      assertNull(palette.boulders("forest_floor", 46.0, 300.0, false));
+      assertNull(palette.boulders("snow", 10.0, 2000.0, true));
+      assertNull(palette.boulders("sea_floor", 0.0, -10.0, false));
+      // Moraine up high, riverbeds down low; creeks mossy in the bush, bare above it.
+      assertEquals(0.01, palette.boulders("gravel_flats", 5.0, 700.0, false).chance(), 1.0e-12);
+      assertEquals(0.003, palette.boulders("gravel_flats", 5.0, 50.0, false).chance(), 1.0e-12);
+      assertSame(palette.boulders("stream_bed", 10.0, 500.0, false).top(), rockfall.top());
+      NzSurfacePalette.BoulderRule alpineCreek = palette.boulders("stream_bed", 10.0, 1200.0, false);
+      assertSame(alpineCreek.block(), alpineCreek.top());
+   }
+
+   @Test
+   void boulderSizesFollowTheirWeights() {
+      NzSurfacePalette palette = NzSurfacePalette.parse(MINIMAL.replace("\"surfaces\":",
+         "\"boulders\": [{\"surface\": [\"rock\"], \"per_1000\": 5, \"sizes\": {\"1\": 3, \"4\": 1}, \"block\": \"stone\"}], \"surfaces\":"));
+      NzSurfacePalette.BoulderRule rule = palette.boulders("rock", 0.0, 0.0, false);
+      assertSame(rule.block(), rule.top());
+      assertNull(palette.boulders("soil", 0.0, 0.0, false));
+      int ones = 0;
+      for (int i = 0; i < 10_000; i++) {
+         int size = rule.size(NzSurfaceMix.hash(1L, i, 0, 0));
+         assertTrue(size == 1 || size == 4, "size " + size);
+         ones += size == 1 ? 1 : 0;
+      }
+      assertEquals(7_500, ones, 200);
+   }
+
+   @Test
+   void boulderMistakesNameTheirPlaceInTheFile() {
+      String rule = "{\"surface\": [\"rock\"], \"per_1000\": 5, \"sizes\": {\"2\": 1}, \"block\": \"stone\"}";
+      String file = MINIMAL.replace("\"surfaces\":", "\"boulders\": [" + rule + "], \"surfaces\":");
+      assertError("boulders[0].surface[0] names surface \"rok\"", file.replace("[\"rock\"]", "[\"rok\"]"));
+      assertError("boulders[0].per_1000 must be 0 to 1000", file.replace("\"per_1000\": 5", "\"per_1000\": 1001"));
+      assertError("boulders[0].per_1000 is missing", file.replace("\"per_1000\": 5, ", ""));
+      assertError("boulders[0].sizes.9 must be a size of 1 to 8", file.replace("{\"2\": 1}", "{\"9\": 1}"));
+      assertError("boulders[0].sizes.big must be a size", file.replace("{\"2\": 1}", "{\"big\": 1}"));
+      assertError("boulders[0].below_cliff must be true or false", file.replace("\"block\": \"stone\"", "\"below_cliff\": 1, \"block\": \"stone\""));
+      assertError("boulders[0].blok is not a known key", file.replace("\"block\": \"stone\"", "\"blok\": \"stone\""));
+   }
+
+   @Test
    void namedMixesAreShared() {
       NzSurfacePalette palette = NzSurfacePalette.bundled();
       assertSame(palette.land(16, 50.0, 100.0).top(), palette.land(16, 50.0, 100.0).face());

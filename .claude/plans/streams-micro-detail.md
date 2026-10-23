@@ -177,6 +177,15 @@ get the `face` mix from `NzSurface` without new code.
 
 ## Step 4 — Boulders
 
+**Built (24 Oct 2026, `0.8.3+nz.12`); desktop check open** (spots in
+`testing.md`). Decided: (a), an NZ decoration pass (`NzBoulders`, one
+hook after `placeTrees`), rules in the surface palette's `"boulders"`
+list, boulders placed after the trees and only fully inside their
+chunk. Headless check passed. Details: `tellus-internals.md` §12.
+Lessons for step 5: block tags are empty in unit tests, so check
+blocks by shape (collision, replaceable) rather than by tag; a
+full-area survey needs a bigger test heap (init script, `testing.md`).
+
 1:1 rocks (1–4 blocks) on riverbeds and gravel flats, in stream beds,
 at the foot of cliffs and scree, on moraine; moss-covered in forest.
 Independent of steps 1–3 except for stream beds.

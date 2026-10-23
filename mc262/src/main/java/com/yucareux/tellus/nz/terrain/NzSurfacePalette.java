@@ -43,6 +43,8 @@ public final class NzSurfacePalette {
    static final int FORMAT = 1;
    /** {@code "bare_step"} when the file gives none. */
    static final int DEFAULT_BARE_STEP = 3;
+   /** The widest boulder the file may ask for, in blocks: it must fit in a chunk with room around it. */
+   static final int MAX_BOULDER_SIZE = 8;
    private static final Logger LOGGER = LoggerFactory.getLogger("tellus/nz");
    private static final BlockState AIR = Blocks.AIR.defaultBlockState();
    private static volatile NzSurfacePalette global;
@@ -54,14 +56,18 @@ public final class NzSurfacePalette {
    private final Surface river;
    private final Surface stream;
    private final int bareStep;
+   private final List<BoulderRule> boulders;
 
-   private NzSurfacePalette(List<Rule> land, Surface sea, Surface lake, Surface river, Surface stream, int bareStep) {
+   private NzSurfacePalette(
+      List<Rule> land, Surface sea, Surface lake, Surface river, Surface stream, int bareStep, List<BoulderRule> boulders
+   ) {
       this.land = List.copyOf(land);
       this.sea = sea;
       this.lake = lake;
       this.river = river;
       this.stream = stream;
       this.bareStep = bareStep;
+      this.boulders = List.copyOf(boulders);
    }
 
    /** One kind of ground: its top block, the layers under it, its step sides, and what lies on top (null: nothing). */
@@ -100,6 +106,47 @@ public final class NzSurfacePalette {
       }
    }
 
+   /**
+    * A boulder rule (TERR-14): matches a column whose surface is one of {@code surfaces}, within the slope (game
+    * degrees) and height (metres) limits, and below a cliff when {@code belowCliff}. A matching column holds the middle
+    * of a boulder with the chance {@code chance}; its size (across, in blocks) is picked from {@code sizes} by weight.
+    * The boulder is made of {@code block}, the top block of each of its columns above water of {@code top}.
+    */
+   record BoulderRule(
+      Set<String> surfaces,
+      double minSlope,
+      double maxSlope,
+      double minHeight,
+      double maxHeight,
+      boolean belowCliff,
+      double chance,
+      int[] sizes,
+      int[] cumulative,
+      NzSurfaceMix block,
+      NzSurfaceMix top,
+      long salt
+   ) {
+      boolean matches(String surface, double slopeDegrees, double heightMetres, boolean underCliff) {
+         return this.surfaces.contains(surface)
+            && slopeDegrees >= this.minSlope
+            && slopeDegrees < this.maxSlope
+            && heightMetres >= this.minHeight
+            && heightMetres < this.maxHeight
+            && (!this.belowCliff || underCliff);
+      }
+
+      /** The size for a roll: a size from {@code sizes} by weight. */
+      int size(long roll) {
+         int value = (int) Long.remainderUnsigned(roll, this.cumulative[this.cumulative.length - 1]);
+         for (int i = 0; i < this.cumulative.length; i++) {
+            if (value < this.cumulative[i]) {
+               return this.sizes[i];
+            }
+         }
+         return this.sizes[this.sizes.length - 1];
+      }
+   }
+
    /** The surface of a land column: the first matching rule's (the last rule matches every column). */
    Surface land(int lcdbClass, double slopeDegrees, double heightMetres) {
       for (Rule rule : this.land) {
@@ -130,6 +177,16 @@ public final class NzSurfacePalette {
    /** A column standing this many blocks or more above a neighbour shows no "under" layers on its side. */
    int bareStep() {
       return this.bareStep;
+   }
+
+   /** The boulders of a column: the first matching boulder rule, or null for none. */
+   BoulderRule boulders(String surface, double slopeDegrees, double heightMetres, boolean underCliff) {
+      for (BoulderRule rule : this.boulders) {
+         if (rule.matches(surface, slopeDegrees, heightMetres, underCliff)) {
+            return rule;
+         }
+      }
+      return null;
    }
 
    /** The palette in use: the one read at the last server start, else the jar's. */
@@ -211,7 +268,7 @@ public final class NzSurfacePalette {
       private final Map<String, NzSurfaceMix> mixes = new HashMap<>();
 
       NzSurfacePalette palette(JsonObject root) {
-         keys(root, "", "format", "mixes", "face", "bare_step", "land", "water", "surfaces");
+         keys(root, "", "format", "mixes", "face", "bare_step", "land", "water", "surfaces", "boulders");
          int format = integer(required(root, "", "format"), "format");
          if (format != FORMAT) {
             throw error("format", "is " + format + ", this version of the mod reads format " + FORMAT);
@@ -244,13 +301,87 @@ public final class NzSurfacePalette {
          JsonObject water = object(required(root, "", "water"), "water");
          keys(water, "water", "sea", "lake", "river", "stream");
          Surface river = surfaceRef(required(water, "water", "river"), "water.river", surfaces);
+         List<BoulderRule> boulders = new ArrayList<>();
+         if (root.has("boulders")) {
+            JsonArray boulderRules = array(root.get("boulders"), "boulders");
+            for (int i = 0; i < boulderRules.size(); i++) {
+               boulders.add(this.boulderRule(object(boulderRules.get(i), "boulders[" + i + "]"), "boulders[" + i + "]", surfaces));
+            }
+         }
          return new NzSurfacePalette(
             land,
             surfaceRef(required(water, "water", "sea"), "water.sea", surfaces),
             surfaceRef(required(water, "water", "lake"), "water.lake", surfaces),
             river,
             water.has("stream") ? surfaceRef(water.get("stream"), "water.stream", surfaces) : river,
-            bareStep
+            bareStep,
+            boulders
+         );
+      }
+
+      private BoulderRule boulderRule(JsonObject json, String path, Map<String, Surface> surfaces) {
+         keys(json, path, "surface", "min_slope", "max_slope", "min_height", "max_height", "below_cliff", "per_1000", "sizes", "block", "top");
+         JsonArray names = array(required(json, path, "surface"), path + ".surface");
+         if (names.isEmpty()) {
+            throw error(path + ".surface", "is empty");
+         }
+         List<String> surfaceNames = new ArrayList<>();
+         for (int i = 0; i < names.size(); i++) {
+            surfaceNames.add(surfaceRef(names.get(i), path + ".surface[" + i + "]", surfaces).name());
+         }
+         boolean belowCliff = false;
+         if (json.has("below_cliff")) {
+            JsonElement value = json.get("below_cliff");
+            if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean()) {
+               throw error(path + ".below_cliff", "must be true or false");
+            }
+            belowCliff = value.getAsBoolean();
+         }
+         double perThousand = number(json, path, "per_1000", Double.NaN);
+         if (!(perThousand >= 0.0 && perThousand <= 1000.0)) {
+            throw error(path + ".per_1000", json.has("per_1000") ? "must be 0 to 1000" : "is missing");
+         }
+         JsonObject sizeWeights = object(required(json, path, "sizes"), path + ".sizes");
+         if (sizeWeights.isEmpty()) {
+            throw error(path + ".sizes", "is empty");
+         }
+         int[] sizes = new int[sizeWeights.size()];
+         int[] cumulative = new int[sizeWeights.size()];
+         int total = 0;
+         int i = 0;
+         for (Map.Entry<String, JsonElement> entry : sizeWeights.entrySet()) {
+            String sizePath = path + ".sizes." + entry.getKey();
+            try {
+               sizes[i] = Integer.parseInt(entry.getKey());
+            } catch (NumberFormatException e) {
+               sizes[i] = 0;
+            }
+            if (sizes[i] < 1 || sizes[i] > MAX_BOULDER_SIZE) {
+               throw error(sizePath, "must be a size of 1 to " + MAX_BOULDER_SIZE + " blocks, like \"2\"");
+            }
+            int weight = integer(entry.getValue(), sizePath);
+            if (weight <= 0) {
+               throw error(sizePath, "must be above 0");
+            }
+            total += weight;
+            cumulative[i] = total;
+            i++;
+         }
+         NzSurfaceMix block = this.material(required(json, path, "block"), path + ".block");
+         NzSurfaceMix top = json.has("top") ? this.material(json.get("top"), path + ".top") : block;
+         return new BoulderRule(
+            Set.copyOf(surfaceNames),
+            number(json, path, "min_slope", Double.NEGATIVE_INFINITY),
+            number(json, path, "max_slope", Double.POSITIVE_INFINITY),
+            number(json, path, "min_height", Double.NEGATIVE_INFINITY),
+            number(json, path, "max_height", Double.POSITIVE_INFINITY),
+            belowCliff,
+            perThousand / 1000.0,
+            sizes,
+            cumulative,
+            block,
+            top,
+            salt(path)
          );
       }
 

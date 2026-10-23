@@ -127,6 +127,16 @@ public final class NzWater {
       return ground == NzStreams.NONE ? terrain : ground;
    }
 
+   /** The streams of the current store, with their lakes and rivers ({@link NzBoulders} asks). */
+   NzStreams streams() {
+      return this.streamsFor(this.sampler.seaFloor().tiles());
+   }
+
+   /** The sea floor of the current store, which also gives the store. */
+   NzSeaFloor seaFloor() {
+      return this.sampler.seaFloor();
+   }
+
    /** Streams, and through them lakes and rivers, of the current store; the store is replaced at every server start. */
    private NzStreams streamsFor(NzTiles tiles) {
       NzStreams water = this.streams;

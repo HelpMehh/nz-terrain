@@ -403,6 +403,8 @@ matters).
    stops new sources near steps (§11.2).
 8. **Surfaces (TERR-11):** `fillTellusSurface` hands every column to
    `NzSurface` instead of Tellus's surface palette and snow (§12).
+9. **Boulders (TERR-14):** `applyBiomeDecoration` calls `NzBoulders.place`
+   right after `placeTrees` (§12, "Boulders").
 
 ## 7. Data sources: fetch, cache, sample
 
@@ -959,3 +961,41 @@ surface rules above run. The shell fill and `resolveMountainMassFillBlock`
   - Ore features (and `ore_gravel`) replace stone, andesite and tuff, so a
     few ore and gravel blocks show at the surface of rock (about 0.1 % of
     columns).
+
+**Boulders (TERR-14 step 4, `0.8.3+nz.12`).** `m262:nz/terrain/NzBoulders`,
+called once per chunk from `applyBiomeDecoration` right after
+`placeTrees` (hook 9, §6). Rules and constants are in its Javadoc; in
+short:
+
+- **Decided (24 Oct 2026): option (a)**, a decoration pass of its own.
+  Vanilla features through NZ biomes would wait for TERR-12 and can only
+  vary density per biome; bumps in the column fill can't be round or
+  stand in water.
+- **Rules** come from the surface palette's `"boulders"` list (first
+  match wins, as `"land"`): surface name (under water the floor's:
+  `stream_bed`, `riverbed`), game slope, height, and `below_cliff`
+  (ground rising 8+ blocks within 4, a square: about 63°, which includes
+  the foot of a gorge wall). Each gives a chance per column, weighted
+  sizes, a body material and a top for columns above water (moss in the
+  bush). The column's surface comes from `NzSurface.columns`, the same
+  pick as the fill, gorge ledges included; the ground and water from
+  `NzWater.column`.
+- **Shape:** a dome with a flattish top, as wide as the size (stretched
+  up to 20 % along one axis, corners cut from size 3), 0.5–0.8 times as
+  high, ±0.4 blocks per column; it stands on the lowest ground under it.
+- **Left out:** a boulder not fully inside its chunk (so the chunk's own
+  trees, placed first, are the only ones it can meet, and a later
+  chunk's tree pass never anchors a tree on it); ground varying by more
+  than 2 blocks under it; anything solid in its space (a log, leaves, an
+  earlier boulder in the same chunk; the scan order is fixed, so the same
+  one wins every time); a non-solid block at its ground (a cave mouth, a
+  lava pool). Plants in its space are replaced; a plant left on top
+  (the upper half of a tall plant) is removed.
+- **Unit tests can't use block tags:** `BlockTags.LOGS` is empty until
+  a world loads its data, so a tag check passes in tests by accident.
+  "Anything solid" needs no tags.
+- Test area 1 (every 4th chunk each way): 14,697 boulders in 57,344
+  chunks at the first densities, about 1 per 1,000 columns; most on
+  forest floor, scree, creek beds, below cliffs and on moraine. The size-4 share comes out at about half its
+  weight (more of them miss their chunk or stand on uneven ground). Cost
+  1.3 ms per chunk, cold caches included.

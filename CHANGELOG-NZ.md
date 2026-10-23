@@ -4,6 +4,19 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.12 (TERR-14 step 4, 24 Oct 2026)
+
+- Boulders: 1:1 rocks of 1 to 5 blocks, placed after the trees. They lie
+  at the foot of cliffs and gorge walls, in creek beds and on gorge ledges,
+  on riverbeds, outwash and moraine (the biggest ones), on scree, and here
+  and there in tussock and forest. In the bush they are mossy, with a moss
+  cap above the water.
+- Where they go, how many, how big and what they are made of comes from a
+  new optional `"boulders"` list in the surface palette file, so they can
+  be tuned in `config/nz-terrain-surface.jsonc` without a rebuild.
+- A boulder never cuts a tree, floats, or stands over a hole. The same
+  spot always gets the same boulder, whatever the world seed.
+
 ## 0.8.3+nz.11 (TERR-14 step 3, second follow-up, 24 Oct 2026)
 
 - Gorge walls follow the size of the stream: a small creek gets a short

@@ -24,7 +24,10 @@
     "schist": {"blocks": {"stone": 60, "andesite": 25, "tuff": 15}, "pattern": "noise"},
     // Greywacke of the main divide: darker. Not used yet; to compare with schist in the tuning box.
     "greywacke": {"blocks": {"stone": 50, "andesite": 30, "cobbled_deepslate": 20}, "pattern": "noise"},
-    "mossy_rock": {"blocks": {"stone": 50, "mossy_cobblestone": 25, "moss_block": 25}, "pattern": "noise"}
+    "mossy_rock": {"blocks": {"stone": 50, "mossy_cobblestone": 25, "moss_block": 25}, "pattern": "noise"},
+    // Boulders in the bush (TERR-14): the schist mossy on the sides, a cap of moss on top.
+    "mossy_boulder": {"blocks": {"stone": 45, "mossy_cobblestone": 35, "andesite": 20}, "pattern": "noise"},
+    "moss_cap": {"blocks": {"moss_block": 65, "mossy_cobblestone": 35}, "pattern": "noise"}
   },
 
   // The side of a step: where a column stands higher than a neighbour, the blocks below its "under" layers
@@ -84,6 +87,42 @@
   // Under water, by the water layer: the floor of the sea, lakes and rivers; "stream" is the bed of the
   // streams (TERR-14), which the water layer calls land (optional: the river's floor when missing).
   "water": {"sea": "sea_floor", "lake": "lake_floor", "river": "riverbed", "stream": "stream_bed"},
+
+  // Boulders (TERR-14): 1:1 rocks placed after the trees. Each column takes the first rule that matches it, like
+  // "land", and none when no rule matches. A rule matches when the column's surface is in "surface" (names from
+  // "surfaces"; under water the floor's, e.g. "stream_bed", "riverbed") and its slope and height are within the
+  // limits it gives (as in "land"); with "below_cliff": true only where the ground rises 8 or more blocks within
+  // 4 blocks (the foot of a cliff or a gorge wall).
+  //   per_1000  how many of 1,000 matching columns hold the middle of a boulder (0 to 1000, decimals allowed);
+  //   sizes     size across in blocks (1 to 8) and its weight: {"1": 40, "2": 35} = 40 of 75 boulders 1 wide;
+  //   block     what the boulder is made of (a material);
+  //   top       the top block of each of its columns above water (optional: "block").
+  // A boulder is a rounded dome about half to four fifths as high as it is wide, on the lowest ground under it. One
+  // that doesn't fit in its chunk, stands on ground varying by more than 2 blocks, or would cut a tree is left out.
+  "boulders": [
+    // Rockfall at the foot of cliffs and gorge walls: mossy in the bush, bare above it.
+    {"below_cliff": true, "surface": ["forest_floor", "manuka_scrub", "subalpine_shrubland", "wetland", "stream_bed"],
+     "max_height": 1000, "max_slope": 46, "per_1000": 40, "sizes": {"1": 30, "2": 35, "3": 25, "4": 10},
+     "block": "mossy_boulder", "top": "moss_cap"},
+    {"below_cliff": true,
+     "surface": ["scree", "gravel_flats", "riverbed", "stream_bed", "landslide", "tall_tussock", "alpine_herbfield", "subalpine_shrubland"],
+     "max_slope": 46, "per_1000": 40, "sizes": {"1": 30, "2": 35, "3": 25, "4": 10}, "block": "schist"},
+    // Creek beds and gorge ledges: boulder-choked in the bush, mossy above the water.
+    {"surface": ["stream_bed"], "max_height": 1000, "per_1000": 30, "sizes": {"1": 40, "2": 35, "3": 20, "4": 5},
+     "block": "mossy_boulder", "top": "moss_cap"},
+    {"surface": ["stream_bed"], "per_1000": 25, "sizes": {"1": 40, "2": 35, "3": 20, "4": 5}, "block": "schist"},
+    // Moraine: valley-floor gravel up high (600 m and more), the biggest blocks.
+    {"surface": ["gravel_flats"], "min_height": 600, "per_1000": 10, "sizes": {"1": 25, "2": 30, "3": 25, "4": 15, "5": 5},
+     "block": "schist"},
+    // Braided riverbeds and outwash: cobbles (the surface mix) with a boulder here and there.
+    {"surface": ["gravel_flats", "riverbed"], "per_1000": 3, "sizes": {"1": 50, "2": 35, "3": 15}, "block": "schist"},
+    {"surface": ["scree", "landslide"], "max_slope": 46, "per_1000": 6, "sizes": {"1": 40, "2": 35, "3": 20, "4": 5},
+     "block": "schist"},
+    {"surface": ["alpine_herbfield", "tall_tussock"], "max_slope": 46, "per_1000": 1.5, "sizes": {"1": 40, "2": 40, "3": 20},
+     "block": "schist"},
+    {"surface": ["forest_floor"], "max_slope": 46, "per_1000": 1, "sizes": {"1": 30, "2": 40, "3": 25, "4": 5},
+     "block": "mossy_boulder", "top": "moss_cap"}
+  ],
 
   // Surfaces:
   //   "top"    the top block (a material);

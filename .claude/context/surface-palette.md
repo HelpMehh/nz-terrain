@@ -129,7 +129,11 @@ Notes:
   vegetated rocky slope, without turning 18 % of the tussock into bare rock.
 - **Rejected: light grey concrete powder as grey sand.** It looks right, but
   it turns into concrete when water touches it.
-- Boulders, cliff bands and streams are TERR-14, not this palette.
+- Boulders (TERR-14 step 4) are placed by `NzBoulders`, but their rules
+  live in this palette file's `"boulders"` list (by surface, slope,
+  height and "below a cliff"), so they are tuned the same way
+  (`tellus-internals.md` §12). Cliff bands and streams are TERR-14 code,
+  not this palette.
 
 ## NZ ground blocks
 

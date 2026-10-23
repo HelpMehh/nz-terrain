@@ -141,7 +141,7 @@ final class NzSurfaceMix {
    }
 
    /** The top 24 bits of a hash as a number in [0, 1). */
-   private static double unit(long hash) {
+   static double unit(long hash) {
       return (hash >>> 40) / (double) (1L << 24);
    }
 
