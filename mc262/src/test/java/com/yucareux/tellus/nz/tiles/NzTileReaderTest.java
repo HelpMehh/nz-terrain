@@ -57,7 +57,7 @@ class NzTileReaderTest {
             checkedLayers++;
          }
       }
-      assertEquals(11, checkedLayers);
+      assertEquals(12, checkedLayers);
    }
 
    @Test

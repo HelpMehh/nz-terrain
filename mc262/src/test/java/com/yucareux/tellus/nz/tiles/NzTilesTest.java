@@ -24,7 +24,7 @@ class NzTilesTest {
       NzTiles tiles = NzTiles.open(NzTileTestFiles.fixtureDir(), CACHE);
 
       assertTrue(tiles.problems().isEmpty(), tiles.problems().toString());
-      assertEquals(Map.of("nz-main", "2026-10-22"), tiles.dataVersions());
+      assertEquals(Map.of("nz-main", "2026-10-23"), tiles.dataVersions());
       // Block of pixel (192, 256) in level-0 tile (-157, 175); expected.json says height 29 (3.625 m).
       int x = -157 * 512 + 192;
       int z = 175 * 512 + 256;

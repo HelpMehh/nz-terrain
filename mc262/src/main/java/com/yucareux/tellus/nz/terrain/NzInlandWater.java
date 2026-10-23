@@ -232,8 +232,12 @@ final class NzInlandWater {
       return false;
    }
 
-   /** One layer over a window of pixels, across tiles; the layer's fill value where there is no tile. */
    private int[] readWindow(NzTileLayer layer, int level, int originX, int originZ, int size) {
+      return readWindow(this.tiles, layer, level, originX, originZ, size);
+   }
+
+   /** One layer over a window of pixels, across tiles; the layer's fill value where there is no tile. */
+   static int[] readWindow(NzTiles tiles, NzTileLayer layer, int level, int originX, int originZ, int size) {
       int[] values = new int[size * size];
       Arrays.fill(values, layer.fill());
       int firstTx = originX >> NzTileFormat.TILE_SHIFT;
@@ -242,7 +246,7 @@ final class NzInlandWater {
       int lastTz = (originZ + size - 1) >> NzTileFormat.TILE_SHIFT;
       for (int tz = firstTz; tz <= lastTz; tz++) {
          for (int tx = firstTx; tx <= lastTx; tx++) {
-            NzLayerData data = this.tiles.layer(layer, level, tx, tz);
+            NzLayerData data = tiles.layer(layer, level, tx, tz);
             if (data == null) {
                continue;
             }

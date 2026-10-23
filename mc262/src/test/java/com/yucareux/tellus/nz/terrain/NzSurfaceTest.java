@@ -138,8 +138,8 @@ class NzSurfaceTest {
       NzSurface river = this.chunk(144, 400, flatGrid(), new Recorder());
       assertEquals("riverbed", river.surfaceAt(5, 5, true, false).name());
       assertEquals("sea_floor", river.surfaceAt(5, 5, true, true).name());
-      // Water on land the water layer calls dry (it can only be a lake there).
-      assertEquals("lake_floor", this.chunk(144, 32, flatGrid(), new Recorder()).surfaceAt(5, 5, true, false).name());
+      // Water on land the water layer calls dry: a stream.
+      assertEquals("stream_bed", this.chunk(144, 32, flatGrid(), new Recorder()).surfaceAt(5, 5, true, false).name());
    }
 
    @Test

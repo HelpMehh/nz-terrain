@@ -105,6 +105,7 @@ glacier ice have their own face.
 | Salt marsh | 46 | mud 60, grass block 40 | mud |
 | Beach | 10 | gravel 70, andesite 15, sand 15 | gravel |
 | Riverbed (under water) | water = river | gravel 90, andesite 10 | gravel |
+| Stream bed (TERR-14, first guess) | stream water on land | gravel 60, cobblestone 25, mossy cobblestone 15 | gravel 1 |
 | Lake floor | water = lake | mud 50, clay 30, gravel 20 | clay |
 | Sea floor | water = sea | gravel 60, sand 40 | sand |
 | Rewilded (placeholder) | 1, 2, 5, 6, 30, 33, 40, 41, 51, 56, 64, 68, 71, 0 (no polygon) | as forest floor | |

@@ -4,6 +4,25 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.8 (TERR-14 step 2, 23 Oct 2026)
+
+- Streams: every creek and stream of the tiles' `streams` layer is wet,
+  at its own level, cut into its gully. Width is 1:1 from the size of the
+  catchment (most creeks 1 block, big gravel streams up to the width of
+  their gully floor, never wider), 1–3 blocks deep by size.
+- Stream beds never rise downstream: the levels come from the new tile
+  layer `stream_level` (needs tiles from the pipeline of 23 Oct 2026 or
+  later; older tiles have no streams in game).
+- Stream steps flow like river steps, and no new water sources form
+  around them. Where a stream runs diagonally, a corner block joins the
+  water. Low ground beside a stream is raised to a bank so the water
+  can't spill.
+- Stream beds have their own surface (`stream_bed`: gravel and cobbles,
+  mossy in places); the palette's `water.stream` key is optional and falls
+  back to the riverbed.
+- The sides of channels at chunk borders show the rock mix instead of
+  stone (rivers too).
+
 ## 0.8.3+nz.7 (TERR-14 step 1, 23 Oct 2026)
 
 - River and lake steps flow: the top block at the edge of each step pours

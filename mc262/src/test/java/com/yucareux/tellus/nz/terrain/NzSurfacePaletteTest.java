@@ -68,6 +68,7 @@ class NzSurfacePaletteTest {
       assertEquals("sea_floor", palette.sea().name());
       assertEquals("lake_floor", palette.lake().name());
       assertEquals("riverbed", palette.river().name());
+      assertEquals("stream_bed", palette.stream().name());
    }
 
    @Test
@@ -105,6 +106,14 @@ class NzSurfacePaletteTest {
       assertEquals("soil", palette.land(16, 29.99, 0.0).name());
       assertEquals("rock", palette.land(16, 30.0, 0.0).name());
       assertEquals("soil", palette.land(15, 80.0, 0.0).name());
+   }
+
+   @Test
+   void streamsTakeTheRiverFloorWhenTheFileNamesNone() {
+      NzSurfacePalette palette = NzSurfacePalette.parse(MINIMAL);
+      assertSame(palette.river(), palette.stream());
+      NzSurfacePalette named = NzSurfacePalette.parse(MINIMAL.replace("\"river\": \"rock\"}", "\"river\": \"rock\", \"stream\": \"soil\"}"));
+      assertEquals("soil", named.stream().name());
    }
 
    @Test

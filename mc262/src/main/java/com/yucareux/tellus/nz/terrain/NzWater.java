@@ -11,15 +11,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The water of an NZ world, straight from the NZ tiles' water layer (decided in TERR-10, {@code tellus-internals.md}
- * §11): sea at sea level over the tiles' sea floor, lakes and rivers from {@link NzInlandWater}.
+ * §11): sea at sea level over the tiles' sea floor, lakes and rivers from {@link NzInlandWater}, and streams on land
+ * from {@link NzStreams} (TERR-14), including the banks they raise.
  *
  * <p>Tellus's water resolver and its DH LOD water resolver each hand NZ worlds to this class in one hook, so none of
  * their own analysis (water bodies, lake surface guesses, river reaches, shore blending) runs for NZ. Both answer
  * every block the same way: the resolver's 64 × 64 regions are just this class's column, block by block, and DH
  * asks the same column at a coarser tile level.
  *
- * <p>Steps (TERR-14): the chunk generator asks {@link #isStepSource} for every water column it fills, and has the top
- * block of a step flow once the chunk is done, so the water pours over the step instead of standing as a wall. The
+ * <p>Steps (TERR-14): the chunk generator asks {@link #isStepSource} for every water column it fills (lakes, rivers
+ * and streams), and has the top block of a step flow once the chunk is done, so the water pours over the step instead of standing as a wall. The
  * NZ {@code FlowingFluidMixin} asks {@link #suppressesSourceConversion}, so that the flow can't make new sources at a
  * step's corners and fill the reach below.
  */
@@ -36,7 +37,7 @@ public final class NzWater {
 
    private final EarthGeneratorSettings settings;
    private final NzTerrainSampler sampler;
-   private volatile NzInlandWater inland;
+   private volatile NzStreams streams;
 
    private NzWater(EarthGeneratorSettings settings) {
       this.settings = settings;
@@ -62,23 +63,23 @@ public final class NzWater {
       NzSeaFloor floor = this.sampler.seaFloor();
       int level = NzTerrainSampler.levelFor(resolutionMetres);
       int terrain = NzTerrainSampler.sample(floor, this.settings, x, z, level).terrainHeight();
-      return column(this.inlandFor(floor.tiles()), x, z, level, terrain);
+      return column(this.streamsFor(floor.tiles()), x, z, level, terrain);
    }
 
-   /** Whether block (x, z) is a lake or river block with lower water on one of its four sides: a step that flows. */
+   /** Whether block (x, z) is a lake, river or stream block with lower water on one of its four sides: a step that flows. */
    public boolean isStepSource(int x, int z) {
-      return isStepSource(this.inlandFor(this.sampler.seaFloor().tiles()), x, z);
+      return isStepSource(this.streamsFor(this.sampler.seaFloor().tiles()), x, z);
    }
 
    /** Whether flowing water at block (x, z) may not become a source: near a step, see {@link #NO_NEW_SOURCE_RADIUS_BLOCKS}. */
    public boolean suppressesSourceConversion(int x, int z) {
-      return suppressesSourceConversion(this.inlandFor(this.sampler.seaFloor().tiles()), x, z);
+      return suppressesSourceConversion(this.streamsFor(this.sampler.seaFloor().tiles()), x, z);
    }
 
    /** The water resolver's region: {@code size} × {@code size} columns from block (minX, minZ), row by row. */
    public Region region(int minX, int minZ, int size) {
       NzSeaFloor floor = this.sampler.seaFloor();
-      return region(floor, this.inlandFor(floor.tiles()), this.settings, minX, minZ, size);
+      return region(floor, this.streamsFor(floor.tiles()), this.settings, minX, minZ, size);
    }
 
    /**
@@ -87,7 +88,7 @@ public final class NzWater {
     */
    public DhLodWaterResolver.AreaResult lodArea(int cellSize, int[] worldXs, int[] worldZs, int[] baseTerrainSurface) {
       NzTiles tiles = NzTiles.global();
-      NzInlandWater inland = this.inlandFor(tiles);
+      NzStreams streams = this.streamsFor(tiles);
       double worldScale = this.settings.worldScale();
       int level = NzTerrainSampler.levelFor(Math.max(worldScale, cellSize * worldScale));
       int points = worldXs.length;
@@ -98,7 +99,7 @@ public final class NzWater {
       for (int localZ = 0; localZ < points; localZ++) {
          for (int localX = 0; localX < points; localX++) {
             int index = localZ * points + localX;
-            WaterSurfaceResolver.WaterColumnData column = column(inland, worldXs[localX], worldZs[localZ], level, baseTerrainSurface[index]);
+            WaterSurfaceResolver.WaterColumnData column = column(streams, worldXs[localX], worldZs[localZ], level, baseTerrainSurface[index]);
             terrain[index] = column.terrainSurface();
             water[index] = column.waterSurface();
             hasWater[index] = column.hasWater();
@@ -108,17 +109,30 @@ public final class NzWater {
       return new DhLodWaterResolver.AreaResult(terrain, water, hasWater, ocean);
    }
 
-   /** Lakes and rivers of the current store; the store is replaced at every server start. */
-   private NzInlandWater inlandFor(NzTiles tiles) {
-      NzInlandWater water = this.inland;
-      if (water == null || water.tiles() != tiles) {
-         water = new NzInlandWater(tiles, this.settings);
-         this.inland = water;
+   /**
+    * The terrain Y of land block (x, z) given {@code terrain} from the tiles: a stream's bed, or a bank raised beside a
+    * stream, where the streams change it ({@link NzTerrainSampler} asks, at level 0).
+    */
+   static int streamGround(EarthGeneratorSettings settings, NzTiles tiles, int x, int z, int terrain) {
+      NzWater water = forSettings(settings);
+      if (water == null) {
+         return terrain;
+      }
+      int ground = water.streamsFor(tiles).groundY(x, z);
+      return ground == NzStreams.NONE ? terrain : ground;
+   }
+
+   /** Streams, and through them lakes and rivers, of the current store; the store is replaced at every server start. */
+   private NzStreams streamsFor(NzTiles tiles) {
+      NzStreams water = this.streams;
+      if (water == null || water.inland().tiles() != tiles) {
+         water = new NzStreams(new NzInlandWater(tiles, this.settings), this.settings);
+         this.streams = water;
       }
       return water;
    }
 
-   static Region region(NzSeaFloor floor, NzInlandWater inland, EarthGeneratorSettings settings, int minX, int minZ, int size) {
+   static Region region(NzSeaFloor floor, NzStreams streams, EarthGeneratorSettings settings, int minX, int minZ, int size) {
       int area = size * size;
       int[] terrain = new int[area];
       int[] water = new int[area];
@@ -130,7 +144,7 @@ public final class NzWater {
             int x = minX + dx;
             int z = minZ + dz;
             raw[index] = NzTerrainSampler.sample(floor, settings, x, z, 0).terrainHeight();
-            WaterSurfaceResolver.WaterColumnData column = column(inland, x, z, 0, raw[index]);
+            WaterSurfaceResolver.WaterColumnData column = column(streams, x, z, 0, raw[index]);
             terrain[index] = column.terrainSurface();
             water[index] = column.waterSurface();
             flags[index] = column.isOcean() ? FLAG_OCEAN : column.hasWater() ? FLAG_INLAND : FLAG_NONE;
@@ -141,10 +155,12 @@ public final class NzWater {
 
    /**
     * The column at block (x, z) from the finest water level from {@code minLevel} up, over the terrain Y
-    * {@code terrain}: sea and outside the data at sea level over that terrain, lakes and rivers from {@code inland},
+    * {@code terrain}: sea and outside the data at sea level over that terrain, lakes and rivers from
+    * {@link NzInlandWater}; on land at level 0 a stream or a bank raised beside one from {@code streams}; otherwise
     * land without water.
     */
-   static WaterSurfaceResolver.WaterColumnData column(NzInlandWater inland, int x, int z, int minLevel, int terrain) {
+   static WaterSurfaceResolver.WaterColumnData column(NzStreams streams, int x, int z, int minLevel, int terrain) {
+      NzInlandWater inland = streams.inland();
       NzTiles tiles = inland.tiles();
       int level = tiles.finestLevel(NzTileLayer.WATER, minLevel, x, z);
       int water = level < 0 ? NzTileLayer.WATER.fill() : tiles.sample(NzTileLayer.WATER, level, x, z);
@@ -157,19 +173,28 @@ public final class NzWater {
          if (surface != NzInlandWater.NONE) {
             return new WaterSurfaceResolver.WaterColumnData(true, false, inland.floorY(level, x >> level, z >> level), surface);
          }
+      } else if (level == 0 && water == NzTerrainSampler.WATER_LAND) {
+         int surface = streams.surfaceY(x, z);
+         if (surface != NzStreams.NONE) {
+            return new WaterSurfaceResolver.WaterColumnData(true, false, streams.groundY(x, z), surface);
+         }
+         int bank = streams.groundY(x, z);
+         if (bank > terrain) {
+            return new WaterSurfaceResolver.WaterColumnData(false, false, bank, bank);
+         }
       }
       return new WaterSurfaceResolver.WaterColumnData(false, false, terrain, terrain);
    }
 
-   static boolean isStepSource(NzInlandWater inland, int x, int z) {
-      int level = inland.tiles().finestLevel(NzTileLayer.WATER, 0, x, z);
-      return level >= 0 && inland.isStep(level, x >> level, z >> level);
+   static boolean isStepSource(NzStreams streams, int x, int z) {
+      int level = streams.inland().tiles().finestLevel(NzTileLayer.WATER, 0, x, z);
+      return level >= 0 && (streams.inland().isStep(level, x >> level, z >> level) || level == 0 && streams.isStep(x, z));
    }
 
-   static boolean suppressesSourceConversion(NzInlandWater inland, int x, int z) {
+   static boolean suppressesSourceConversion(NzStreams streams, int x, int z) {
       for (int dz = -NO_NEW_SOURCE_RADIUS_BLOCKS; dz <= NO_NEW_SOURCE_RADIUS_BLOCKS; dz++) {
          for (int dx = -NO_NEW_SOURCE_RADIUS_BLOCKS; dx <= NO_NEW_SOURCE_RADIUS_BLOCKS; dx++) {
-            if (isStepSource(inland, x + dx, z + dz)) {
+            if (isStepSource(streams, x + dx, z + dz)) {
                return true;
             }
          }

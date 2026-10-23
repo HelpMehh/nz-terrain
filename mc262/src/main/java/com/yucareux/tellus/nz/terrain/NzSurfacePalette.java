@@ -50,12 +50,14 @@ public final class NzSurfacePalette {
    private final Surface sea;
    private final Surface lake;
    private final Surface river;
+   private final Surface stream;
 
-   private NzSurfacePalette(List<Rule> land, Surface sea, Surface lake, Surface river) {
+   private NzSurfacePalette(List<Rule> land, Surface sea, Surface lake, Surface river, Surface stream) {
       this.land = List.copyOf(land);
       this.sea = sea;
       this.lake = lake;
       this.river = river;
+      this.stream = stream;
    }
 
    /** One kind of ground: its top block, the layers under it, its step sides, and what lies on top (null: nothing). */
@@ -104,7 +106,7 @@ public final class NzSurfacePalette {
       return this.land.getLast().surface();
    }
 
-   /** The floor of the sea, a lake or a river. */
+   /** The floor of the sea, a lake, a river or a stream (TERR-14; the river's when the file names none). */
    Surface sea() {
       return this.sea;
    }
@@ -115,6 +117,10 @@ public final class NzSurfacePalette {
 
    Surface river() {
       return this.river;
+   }
+
+   Surface stream() {
+      return this.stream;
    }
 
    /** The palette in use: the one read at the last server start, else the jar's. */
@@ -223,12 +229,14 @@ public final class NzSurfacePalette {
             throw error("land", "must end with a rule that matches every column (only a \"surface\")");
          }
          JsonObject water = object(required(root, "", "water"), "water");
-         keys(water, "water", "sea", "lake", "river");
+         keys(water, "water", "sea", "lake", "river", "stream");
+         Surface river = surfaceRef(required(water, "water", "river"), "water.river", surfaces);
          return new NzSurfacePalette(
             land,
             surfaceRef(required(water, "water", "sea"), "water.sea", surfaces),
             surfaceRef(required(water, "water", "lake"), "water.lake", surfaces),
-            surfaceRef(required(water, "water", "river"), "water.river", surfaces)
+            river,
+            water.has("stream") ? surfaceRef(water.get("stream"), "water.stream", surfaces) : river
          );
       }
 

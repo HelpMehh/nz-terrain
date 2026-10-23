@@ -734,7 +734,17 @@ ocean 2); no waterfall flags. Per column:
     8 m fill), the LiDAR wins. Always at least 1 block deep. The constants
     are at the top of `NzInlandWater`.
   - Steps (TERR-14 step 1): see below.
+- **Streams** (land in the water layer, level 0 only): `NzStreams`,
+  below.
 - **Land:** no water, terrain = the sampler's height.
+
+**Where a column's height comes from (found in TERR-14 step 2):** only
+*wet* columns take their terrain from the water region.
+`resolveColumnHeights` gives a dry column the height grid's value, and
+the grid comes from the sampler (`buildHeightGrid`, via the preload
+hook). So a change to dry land (a stream bank, a gorge wall) must come
+in through `NzTerrainSampler.sample`, not only `NzWater.column`; it then
+also reaches DH and everything else that asks for heights.
 
 The NZ preset sets **`shoreline_blend_cliff_limit: false`**. With it on
 (Tellus's default), `EarthChunkGenerator.applyShorelineBankRamp` cuts any
@@ -794,9 +804,34 @@ surface: a weir ("lip", TERR-10 desktop check). Now:
 Desktop check (23 Oct 2026): steps and waterfalls look good
 (`testing.md`).
 
+**Streams (TERR-14 step 2, `0.8.3+nz.8`).** `m262:nz/terrain/NzStreams`,
+per level-0 tile with a margin of 34 blocks, 64 tiles cached;
+`NzWater.column` asks it for land columns, `NzTerrainSampler.sample` for
+the ground of dry ones (above). Rules in its Javadoc; in short:
+
+- Level: the tile layer `stream_level` (pipeline, hub `interfaces.md`),
+  rounded to the nearest block like lakes. The pipeline makes it, not the
+  generator: telling downstream from class and height is wrong for 22 % of
+  stream steps, and carves through filled pits can be longer than a tile.
+- Width (option C, decided 23 Oct 2026): 1:1 from the size class
+  (`2 m × √km²`, at most 31), spreading from the centreline only over land
+  at most 1 block above the centreline's ground (the gully floor).
+  Measured on test area 1 before building it: 1:1 widths fit the gully
+  floor for 93 % of stream blocks, 1:3 for 99 %; the misfits are the
+  big streams (class 76+). Each block takes the nearest centreline's level.
+- Corner blocks join diagonal links; land lower than the water beside it
+  is raised to a bank; steps (lower water on a side) flow through
+  `NzWater.isStepSource`, and the sill rule makes the bed run on under a
+  step, as for rivers.
+- Constants (width factor, tolerance, depths) are at the top of
+  `NzStreams`; tune them after the desktop check.
+- Cost: 25–65 ms per region the first time (test area 1).
+- Trees: Tellus's tree pass keeps trees `river_lake_shoreline_blend`
+  (5) blocks from any water, streams included, so creeks run through bare
+  strips until TERR-13 replaces the tree pass (or the preset lowers it).
+
 **Open:** whether 1–3 blocks is deep enough for big rivers, and how lakes
-look up close (water in DH's LODs looked right, 23 Oct 2026). Streams narrower
-than a block (`streams` layer) are TERR-14 step 2.
+look up close (water in DH's LODs looked right, 23 Oct 2026).
 
 ## 12. Surfaces (TERR-11)
 
@@ -822,9 +857,13 @@ surface rules above run. The shell fill and `resolveMountainMassFillBlock`
   `terrestrial_height_scale / world_scale` (0.5 blocks per metre), i.e.
   `tan(game) = 1.5 × tan(real)`. "Underwater" and "ocean" come from the
   generator's water arrays, so they match the water actually placed.
+  Water on a column the water layer calls land is a stream: the palette's
+  `water.stream` floor (optional, falls back to `water.river`).
 - **Column:** top block, the `under` layers, then the `face` material down
   to one above the lowest of the 4 neighbours (from the generator's height
-  grid, after water floors), so step and cliff sides show the rock mix;
+  grid, after water floors; the ring just outside the chunk is refilled
+  from `NzWater.column`, since the generator copies water floors back only
+  for the chunk's own columns), so step and cliff sides show the rock mix;
   then the `cover` block on top on dry land. Never below the shell
   (`surface − underground_depth + 1`) or outside the chunk.
 - **Palette** (`m262:nz/terrain/NzSurfacePalette`, `NzSurfaceMix`): the

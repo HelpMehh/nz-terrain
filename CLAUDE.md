@@ -17,12 +17,13 @@ coordinates and tile format the generator reads are in
   offline (TERR-9; lat/lon by NZTM, `com.yucareux.tellus.nz.NzProjection`),
   with sea, lakes and rivers from the tiles' water layer (TERR-10,
   `com.yucareux.tellus.nz.terrain.NzWater`; steps flow, TERR-14 step 1),
+  streams from the `streams` layer (TERR-14 step 2, `NzStreams`),
   and NZ surface blocks from
   the palette file `nz-terrain/surface-palette.jsonc` (TERR-11,
   `com.yucareux.tellus.nz.terrain.NzSurface`; in-game tuning still open).
   Biomes and trees are still Tellus's. Next step: see `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.7`** (TERR-14 step 1).
+  **`0.8.3+nz.8`** (TERR-14 step 2).
 
 ## Naming and versions (decided in TERR-6)
 

@@ -365,8 +365,11 @@ Code: `0.8.3+nz.5`.
   and `-76104 93780 -75977 93907`), the biggest river's mouth
   (`-79758 88841 -79631 88968`), the Lake Mapourika shore
   (`-75832 90324 -75705 90451`) and the Lake Mueller shore
-  (`-79972 93933 -79845 94060`). Commands went in through a FIFO
-  (`tail -f fifo | ./gradlew … runServer262`).
+  (`-79972 93933 -79845 94060`). Commands went in through
+  `tail -f cmds.txt | ./gradlew … runServer262`, appending each command
+  to the plain file (`printf '…\n' >> cmds.txt`; fixed in TERR-14 step 2).
+  A FIFO is unreliable there: `tail` passes its lines on only when the
+  writer closes it, so a writer kept open sends nothing.
   - Saved chunks read with a small Python Anvil reader and compared with
     the tiles (pipeline `nz_pipeline.tiles.read_tile`), recomputing the
     expected surface (lakes: `63 + floor(m / 2 + 0.5)`; rivers: the
@@ -479,3 +482,40 @@ Code: `0.8.3+nz.7`.
   around) "look good". The steep reach comes out as one broad cascade:
   falling water down the rock face from each step edge into the pool
   below, nothing spilling onto the rock beside it.
+
+## Streams check (TERR-14 step 2, 23 Oct 2026)
+
+Code: `0.8.3+nz.8`, tiles with `stream_level` (pipeline of 23 Oct 2026,
+data `2026-10-23`).
+
+- **Build:** passes, 687 tests (600 upstream + 87 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New: `NzStreamsTest` (width and
+  depth by class, a creek at its level, a step that flows over a bed that
+  runs on, a raised bank, the sampler giving banks and beds, corner
+  blocks, a wide stream filling exactly its gully floor across a tile
+  border), the palette's optional `water.stream`, and the fixture's
+  `stream_level`.
+- **Headless server check (passed)**, set up as in TERR-10. Three
+  128 × 128 areas forceloaded: forest creeks 470 blocks from spawn
+  (`-76416 93568 -76289 93695`), dense forest creeks
+  (`-74752 92928 -74625 93055`) and a big stream (class 85+,
+  `-77696 92160 -77569 92287`); 90 s of ticking, `save-all flush`. The
+  expected columns came from a throwaway JUnit test calling
+  `NzWater.column` on the real tiles; saved chunks were read with a small
+  Python Anvil reader.
+  - All 1,221 stream centreline blocks are wet, with the surface exactly
+    `63 + floor(stream_level / 2 + 0.5)` (so beds never rise where the
+    layer doesn't); all 3,949 stream water columns hold water from the
+    floor to the surface.
+  - 28 banks raised, all solid and dry; no water on any dry column.
+  - 270 of 271 stream steps have flowing water over the lower block (the
+    other is at an area edge); water 2+ blocks above a stream's surface
+    only below taller steps (waterfalls).
+  - First run: the banks were missing (water spilled over 6 columns),
+    because dry columns take their height from the height grid, not the
+    water region (`tellus-internals.md` §11.2). Fixed in the sampler.
+  - A stream tile takes 25–65 ms the first time (once per region).
+- **Desktop client check:** open. A forest creek and the big stream near
+  spawn (the areas above): width, banks, flow at steps, the stream-bed
+  blocks, chunk borders. Expect bare strips along creeks (Tellus's tree
+  distance, `tellus-internals.md` §11.2).

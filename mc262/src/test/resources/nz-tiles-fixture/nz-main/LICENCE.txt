@@ -1,4 +1,4 @@
-Tile set nz-main, data version 2026-10-22
+Tile set nz-main, data version 2026-10-23
 
 Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 

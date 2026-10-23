@@ -39,6 +39,7 @@ class NzWaterTest {
 
    private NzSeaFloor floor;
    private NzInlandWater inland;
+   private NzStreams streams;
 
    /**
     * Tiles (0, 0) and (1, 0) at level 0; every other tile is missing, so it counts as sea. Land 100 m high, with:
@@ -91,6 +92,7 @@ class NzWaterTest {
       NzTiles tiles = NzTiles.open(this.temp, CACHE);
       this.floor = new NzSeaFloor(tiles);
       this.inland = new NzInlandWater(tiles, SETTINGS);
+      this.streams = new NzStreams(this.inland, SETTINGS);
    }
 
    @Test
@@ -177,32 +179,32 @@ class NzWaterTest {
       // Tile (-1, 0) is missing, so it is sea: the river (Y 83, 1 block deep at the bank) drops 20 blocks into it.
       // Only 1 block deeper, so the water falls over a rock ledge.
       assertEquals(81, this.column(0, 400).terrainSurface());
-      assertTrue(NzWater.isStepSource(this.inland, 0, 400));
+      assertTrue(NzWater.isStepSource(this.streams, 0, 400));
    }
 
    @Test
    void stepsFlowOnlyAtTheirEdge() {
       for (int z = 400; z < 430; z++) {
-         assertTrue(NzWater.isStepSource(this.inland, 253, z));
-         assertFalse(NzWater.isStepSource(this.inland, 252, z));
-         assertFalse(NzWater.isStepSource(this.inland, 254, z));
-         assertFalse(NzWater.isStepSource(this.inland, 200, z));
+         assertTrue(NzWater.isStepSource(this.streams, 253, z));
+         assertFalse(NzWater.isStepSource(this.streams, 252, z));
+         assertFalse(NzWater.isStepSource(this.streams, 254, z));
+         assertFalse(NzWater.isStepSource(this.streams, 200, z));
       }
-      assertFalse(NzWater.isStepSource(this.inland, 253, 399));
+      assertFalse(NzWater.isStepSource(this.streams, 253, 399));
       // A lake without lower water beside it has no step.
-      assertFalse(NzWater.isStepSource(this.inland, 100, 200));
+      assertFalse(NzWater.isStepSource(this.streams, 100, 200));
    }
 
    @Test
    void noNewSourcesNearAStep() {
-      assertTrue(NzWater.suppressesSourceConversion(this.inland, 253, 410));
-      assertTrue(NzWater.suppressesSourceConversion(this.inland, 255, 410));
-      assertTrue(NzWater.suppressesSourceConversion(this.inland, 251, 410));
-      assertTrue(NzWater.suppressesSourceConversion(this.inland, 253, 398));
-      assertFalse(NzWater.suppressesSourceConversion(this.inland, 256, 410));
-      assertFalse(NzWater.suppressesSourceConversion(this.inland, 250, 410));
-      assertFalse(NzWater.suppressesSourceConversion(this.inland, 253, 397));
-      assertFalse(NzWater.suppressesSourceConversion(this.inland, 200, 200));
+      assertTrue(NzWater.suppressesSourceConversion(this.streams, 253, 410));
+      assertTrue(NzWater.suppressesSourceConversion(this.streams, 255, 410));
+      assertTrue(NzWater.suppressesSourceConversion(this.streams, 251, 410));
+      assertTrue(NzWater.suppressesSourceConversion(this.streams, 253, 398));
+      assertFalse(NzWater.suppressesSourceConversion(this.streams, 256, 410));
+      assertFalse(NzWater.suppressesSourceConversion(this.streams, 250, 410));
+      assertFalse(NzWater.suppressesSourceConversion(this.streams, 253, 397));
+      assertFalse(NzWater.suppressesSourceConversion(this.streams, 200, 200));
    }
 
    @Test
@@ -232,7 +234,7 @@ class NzWaterTest {
    void regionIsTheColumnBlockByBlock() {
       int minX = 64;
       int minZ = 384;
-      NzWater.Region region = NzWater.region(this.floor, this.inland, SETTINGS, minX, minZ, 64);
+      NzWater.Region region = NzWater.region(this.floor, this.streams, SETTINGS, minX, minZ, 64);
       for (int dz = 0; dz < 64; dz++) {
          for (int dx = 0; dx < 64; dx++) {
             int index = dz * 64 + dx;
@@ -265,7 +267,7 @@ class NzWaterTest {
 
    private WaterSurfaceResolver.WaterColumnData column(int x, int z) {
       int terrain = NzTerrainSampler.sample(this.floor, SETTINGS, x, z, 0).terrainHeight();
-      return NzWater.column(this.inland, x, z, 0, terrain);
+      return NzWater.column(this.streams, x, z, 0, terrain);
    }
 
    private static int metres(double metres) {

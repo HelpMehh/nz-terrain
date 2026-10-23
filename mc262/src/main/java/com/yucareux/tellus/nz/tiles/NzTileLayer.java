@@ -16,6 +16,7 @@ public enum NzTileLayer {
    VEGETATION("vegetation", DataType.UINT8, 255),
    CANOPY("canopy", DataType.UINT8, 255),
    STREAMS("streams", DataType.UINT8, null),
+   STREAM_LEVEL("stream_level", DataType.INT16, -32768),
    ROCK("rock", DataType.UINT8, 255),
    COAST_DISTANCE("coast_distance", DataType.UINT16, null);
 

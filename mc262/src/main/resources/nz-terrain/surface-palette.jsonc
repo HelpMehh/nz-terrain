@@ -77,8 +77,9 @@
     {"surface": "forest_floor"}
   ],
 
-  // Under water, by the water layer: the floor of the sea, lakes and rivers.
-  "water": {"sea": "sea_floor", "lake": "lake_floor", "river": "riverbed"},
+  // Under water, by the water layer: the floor of the sea, lakes and rivers; "stream" is the bed of the
+  // streams (TERR-14), which the water layer calls land (optional: the river's floor when missing).
+  "water": {"sea": "sea_floor", "lake": "lake_floor", "river": "riverbed", "stream": "stream_bed"},
 
   // Surfaces:
   //   "top"    the top block (a material);
@@ -149,6 +150,11 @@
     "riverbed": {
       "top": {"blocks": {"gravel": 90, "andesite": 10}, "pattern": "noise"},
       "under": [{"block": "gravel", "depth": 2}]
+    },
+    // Creek beds: gravel and cobbles, mossy in the shade of the bush. A first guess, for the tuning box.
+    "stream_bed": {
+      "top": {"blocks": {"gravel": 60, "cobblestone": 25, "mossy_cobblestone": 15}, "pattern": "noise"},
+      "under": [{"block": "gravel", "depth": 1}]
     },
     "lake_floor": {
       "top": {"blocks": {"mud": 50, "clay": 30, "gravel": 20}, "pattern": "patches"},

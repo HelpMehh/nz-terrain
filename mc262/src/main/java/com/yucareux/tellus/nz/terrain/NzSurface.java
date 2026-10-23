@@ -1,6 +1,7 @@
 package com.yucareux.tellus.nz.terrain;
 
 import com.yucareux.tellus.nz.NzWorldSettings;
+import com.yucareux.tellus.nz.tiles.NzTileFormat;
 import com.yucareux.tellus.nz.tiles.NzTileLayer;
 import com.yucareux.tellus.nz.tiles.NzTiles;
 import com.yucareux.tellus.worldgen.EarthGeneratorSettings;
@@ -112,9 +113,28 @@ public final class NzSurface {
          return null;
       }
       NzSeaFloor floor = NzTerrainSampler.forSettings(settings).seaFloor();
+      int[] grid = withWaterAround(NzWater.forSettings(settings), heightGrid, gridSize, step, chunkMinX, chunkMinZ);
       return new NzSurface(
-         NzSurfacePalette.global(), settings, floor, chunkMinX, chunkMinZ, chunkMinY, chunkMaxY, heightGrid, gridSize, step, writer
+         NzSurfacePalette.global(), settings, floor, chunkMinX, chunkMinZ, chunkMinY, chunkMaxY, grid, gridSize, step, writer
       );
+   }
+
+   /**
+    * A copy of the height grid whose ring of columns just outside the chunk has the terrain under water: the generator
+    * fills that ring from the plain terrain and only copies the chunk's own columns (after water floors, stream beds
+    * and banks) back in, so a riverbed or stream across the chunk border would otherwise look uncarved, and the side
+    * facing it would show stone instead of the face mix.
+    */
+   static int[] withWaterAround(NzWater water, int[] heightGrid, int gridSize, int step, int chunkMinX, int chunkMinZ) {
+      int[] grid = heightGrid.clone();
+      for (int local = 0; local < CHUNK_SIDE; local++) {
+         for (int[] cell : new int[][] {{-1, local}, {CHUNK_SIDE, local}, {local, -1}, {local, CHUNK_SIDE}}) {
+            int x = chunkMinX + cell[0];
+            int z = chunkMinZ + cell[1];
+            grid[(cell[1] + step) * gridSize + cell[0] + step] = water.column(x, z, NzTileFormat.METRES_PER_BLOCK).terrainSurface();
+         }
+      }
+      return grid;
    }
 
    /**
@@ -148,14 +168,21 @@ public final class NzSurface {
       }
    }
 
-   /** Which surface a column gets: the water floor under water, else the first matching land rule. */
+   /**
+    * Which surface a column gets: the water floor under water, else the first matching land rule. Water on a column
+    * the water layer calls land is a stream ({@link NzStreams}).
+    */
    NzSurfacePalette.Surface surfaceAt(int localX, int localZ, boolean underwater, boolean ocean) {
       int index = localZ * CHUNK_SIDE + localX;
       if (underwater) {
          if (ocean) {
             return this.palette.sea();
          }
-         return this.water[index] == NzTerrainSampler.WATER_RIVER ? this.palette.river() : this.palette.lake();
+         return switch (this.water[index]) {
+            case NzTerrainSampler.WATER_RIVER -> this.palette.river();
+            case NzTerrainSampler.WATER_LAND -> this.palette.stream();
+            default -> this.palette.lake();
+         };
       }
       return this.palette.land(this.lcdb[index], this.slopeDegrees(localX, localZ), this.metres[(localZ + 1) * GRID + localX + 1]);
    }

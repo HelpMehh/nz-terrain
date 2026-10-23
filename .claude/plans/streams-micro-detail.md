@@ -9,15 +9,13 @@ this plan once its lessons are in the context files.
 
 ## What the code already gives us (found while writing the plan)
 
-- **Every column's height comes from the water regions, not only the wet
-  ones.** `EarthChunkGenerator.fillTerrainShellColumns` sets
-  `terrainSurfaces[index] = column.terrainSurface()` for every column, and
-  NZ regions are `NzWater.column` block by block (`tellus-internals.md`
-  §11.2). DH's LOD water goes through the same `NzWater.column`. So
-  streams and gorges can be carved **entirely in NZ code**, as a new
-  per-tile pass next to `NzInlandWater`, with **no new upstream hook**:
-  a stream column is inland water with its own surface and floor; a gorge
-  wall is a dry column with a lowered terrain.
+- **Wet columns take their height from the water regions, dry columns
+  from the sampler** (corrected in step 2: `resolveColumnHeights` gives a
+  dry column the height grid's value, `tellus-internals.md` §11.2). So
+  streams and gorges are carved **entirely in NZ code**, with **no new
+  upstream hook**: a stream column is water from `NzWater.column`; a bank
+  or a gorge wall is a dry column whose height `NzTerrainSampler.sample`
+  takes from the per-tile pass (`NzWater.streamGround`, `NzStreams`).
 - **The `streams` layer** is already declared (`NzTileLayer.STREAMS`,
   level 0 only) and filled by the pipeline (PIPE-14): 8-connected
   centrelines of the 3 m flow paths, value = catchment size class
@@ -77,6 +75,17 @@ streams (step 2) need on every slope.
   check); does flowing water at chunk edges spill?
 
 ## Step 2 — Streams from the stream layer
+
+**Done (23 Oct 2026, `0.8.3+nz.8`).** Decided: width (C), 1:1 capped at
+the gully floor. The bed's never-rising level comes from a new pipeline
+layer `stream_level` (decided: the generator can't tell downstream
+reliably, and carves can be longer than a tile; hub `interfaces.md`).
+Headless check passed (`testing.md`); the desktop check is open. Lessons
+for step 3: gorge walls are dry columns, so they go through
+`NzStreams`' ground and the sampler (first bullet above); `NzSurface`
+already refills the chunk's border ring from `NzWater.column`, so the
+border risk below is handled. Tellus keeps trees 5 blocks from any water,
+creeks included (`tellus-internals.md` §11.2).
 
 The biggest step. New class (e.g. `nz/terrain/NzStreams`), per tile with
 a margin and cached like `NzInlandWater`; `NzWater.column` asks it for

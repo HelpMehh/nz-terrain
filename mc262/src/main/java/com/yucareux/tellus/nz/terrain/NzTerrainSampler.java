@@ -23,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *    between pixel centres, so level 0 gives each block its own pixel. Sea pixels and pixels outside the data use
  *    the placeholder floor of {@link NzSeaFloor}. Elevation becomes Y through Tellus's own transform, with the NZ
  *    preset's scales: {@code Y = 63 + elevation / 2}, rounded away from sea level (decided in TERR-8).</li>
+ *    <li>Streams (TERR-14): at level 0, a stream's bed or a bank raised beside it ({@link NzStreams}) replaces the
+ *    land's height.</li>
  *    <li>Land mask: land wherever the water layer isn't sea or nodata. Lakes and rivers are land with water cover,
  *    as on Earth.</li>
  *    <li>Cover: ESA no-data on the sea (Tellus's ocean), water on lakes and rivers, else LCDB mapped by
@@ -110,6 +112,11 @@ public final class NzTerrainSampler {
       int cover = level < 0 ? NzCoverClasses.ESA_NO_DATA : coverClass(tiles, level, x, z);
       boolean sea = cover == NzCoverClasses.ESA_NO_DATA;
       int terrainHeight = blockY(settings, elevation, z);
+      if (level == 0 && !sea && cover != NzCoverClasses.ESA_WATER) {
+         // The chunk generator takes a dry column's height from here, not from the water regions, so the streams'
+         // raised banks (and their beds, for everything else that asks) must come in here.
+         terrainHeight = NzWater.streamGround(settings, tiles, x, z, terrainHeight);
+      }
       // Tellus marks samples whose height came from bathymetry; its LOD ocean floor then trusts the height instead of
       // asking the online source. Every NZ height is final, so all samples say so.
       boolean oceanElevationSelected = true;
