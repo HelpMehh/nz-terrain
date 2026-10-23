@@ -671,13 +671,12 @@ Code: `0.8.3+nz.12`, tiles as in TERR-14 step 2.
   TERR-11 (`surface-palette.md`, "To decide in game").
 - **`nz.13`:** build passes, 707 tests (the palette test checks the new
   looks). Palette only, so no new headless run: placement is unchanged.
-- **Second desktop look: open**, same spots, a new world. Spots:
+- **Second desktop check (passed, 24 Oct 2026, `0.8.3+nz.13`)**, a new
+  world: "everything looks good". The spots, for later rounds:
   - Waiho outwash (−76990, 91070): scattered 1–3-block grey boulders on
     gravel.
   - Moraine (−73540, 101950): the biggest boulders (up to 5), denser.
   - Forest creeks (−76350, 93630) and the forest gorge (−76942, 93848):
-    mossy boulders in creek beds and on ledges, moss caps above water.
-  - Big scrub gorge (−73609, 101434): bare rockfall at the wall feet.
-  - What to judge: density per place, sizes, the dome shape up close,
-    moss, and whether boulders in 1-wide creeks look right or block the
-    water oddly.
+    washed grey boulders with moss caps in creek beds and on ledges.
+  - Big scrub gorge (−73609, 101434): darker greywacke rockfall at the
+    wall feet.

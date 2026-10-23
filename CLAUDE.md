@@ -19,7 +19,7 @@ coordinates and tile format the generator reads are in
   `com.yucareux.tellus.nz.terrain.NzWater`; steps flow, TERR-14 step 1),
   streams from the `streams` layer (TERR-14 step 2, `NzStreams`) with
   slot gorges where the LiDAR shows a deep V (step 3), boulders
-  (step 4, `NzBoulders`; desktop check open),
+  (step 4, `NzBoulders`),
   and NZ surface blocks from
   the palette file `nz-terrain/surface-palette.jsonc` (TERR-11,
   `com.yucareux.tellus.nz.terrain.NzSurface`; in-game tuning still open).

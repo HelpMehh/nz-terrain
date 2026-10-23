@@ -177,17 +177,21 @@ get the `face` mix from `NzSurface` without new code.
 
 ## Step 4 — Boulders
 
-**Built (24 Oct 2026, `0.8.3+nz.12`, looks fixed in `nz.13`); second
-desktop look open** (spots in `testing.md`). Decided: (a), an NZ
+**Done (24 Oct 2026, `0.8.3+nz.12`, looks fixed in `nz.13`):** second
+desktop check passed (`testing.md`). Decided: (a), an NZ
 decoration pass (`NzBoulders`, one hook after `placeTrees`), rules in
 the surface palette's `"boulders"` list, boulders placed after the trees
 and only fully inside their chunk. Headless check passed. First desktop
 look: density, sizes and shape right; boulders blended into gorge walls
 and scree, so creek boulders are now washed grey with moss caps and
 alpine ones greywacke. Details: `tellus-internals.md` §12.
-Lessons for step 5: block tags are empty in unit tests, so check
+Lessons for step 5: detail made of the same block mix as its
+surroundings disappears in game (mossy boulders on mossy walls, schist
+on schist scree), so give new shapes on cliffs a material that
+contrasts a little; block tags are empty in unit tests, so check
 blocks by shape (collision, replaceable) rather than by tag; a
-full-area survey needs a bigger test heap (init script, `testing.md`).
+full-area survey needs a bigger test heap (init script, `testing.md`);
+a palette-only change needs no new headless run.
 
 1:1 rocks (1–4 blocks) on riverbeds and gravel flats, in stream beds,
 at the foot of cliffs and scree, on moraine; moss-covered in forest.
