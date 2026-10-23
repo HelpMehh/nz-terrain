@@ -472,6 +472,10 @@ Code: `0.8.3+nz.7`.
   - A mixin `@Shadow` with the wrong signature compiles, but the server
     then fails at start (`@Shadow method … was not located`): start the
     server after any mixin change.
-- **Not checked yet (desktop):** how the flowing steps and small
-  waterfalls look, at the river near spawn (around −76045, 93662) and in
-  the drops area.
+- **Desktop client check (passed, 23 Oct 2026)**, a new world in the
+  launcher instance (old chunks keep their old water): 1-block and
+  2-block steps on the river near spawn (−76044, 93675; −76034, 93639)
+  and the 10–12-block drops in the drops area (−79712, 96836 and
+  around) "look good". The steep reach comes out as one broad cascade:
+  falling water down the rock face from each step edge into the pool
+  below, nothing spilling onto the rock beside it.

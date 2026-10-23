@@ -791,9 +791,11 @@ surface: a weir ("lip", TERR-10 desktop check). Now:
 - **Only ticking chunks flow:** the step blocks of chunks at the edge of
   the loaded area stay still until their neighbours load (vanilla).
 
-**Open:** how steps and small waterfalls look in game (desktop check),
-whether 1–3 blocks is deep enough for big rivers, and how lakes look up
-close (water in DH's LODs looked right, 23 Oct 2026). Streams narrower
+Desktop check (23 Oct 2026): steps and waterfalls look good
+(`testing.md`).
+
+**Open:** whether 1–3 blocks is deep enough for big rivers, and how lakes
+look up close (water in DH's LODs looked right, 23 Oct 2026). Streams narrower
 than a block (`streams` layer) are TERR-14 step 2.
 
 ## 12. Surfaces (TERR-11)

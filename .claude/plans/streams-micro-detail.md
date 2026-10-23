@@ -44,9 +44,9 @@ this plan once its lessons are in the context files.
 
 **Done (23 Oct 2026, `0.8.3+nz.7`).** Decided: taller drops are small
 waterfalls now (sill at most 1 block deeper, so they keep a ledge). Wall
-by option (a). Headless check passed (`testing.md`); the desktop check
-is still to do. Lesson for step 2: vanilla makes sources in **air** at a
-step's corners, which Tellus's source gate misses; the NZ mixin covers
+by option (a). Headless and desktop checks passed (`testing.md`).
+Lesson for step 2: vanilla makes sources in **air** at a step's
+corners, which Tellus's source gate misses; the NZ mixin covers
 it, so new kinds of flowing water must count as steps, or as a zone of
 their own, in `NzWater.suppressesSourceConversion`.
 
