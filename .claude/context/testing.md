@@ -521,3 +521,42 @@ data `2026-10-23`).
   the stream-bed blocks are good. Tellus's 5-block tree gap along water
   shows only as a narrow open strip in places, not distracting (river
   beside forest, screenshot from the desktop).
+
+## Slot gorges check (TERR-14 step 3, 23 Oct 2026)
+
+Code: `0.8.3+nz.9`, tiles as in TERR-14 step 2.
+
+- **Build:** passes, 690 tests (600 upstream + 90 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New in `NzStreamsTest`: a deep V
+  becomes a slot (1-block ledges, walls at the rim, untouched beyond it,
+  the sampler and the column give the wall), walls rising from a run's
+  ends, a V of 3 blocks staying as it is.
+- **Survey of all of test area 1** (throwaway JUnit test over the 896
+  real tiles): 31,198 gorge centreline blocks (3.9 %, as measured on the
+  rasters beforehand), 95,299 wall columns raised 1–16 blocks (most 1–8),
+  none lowered. About 20 ms per tile for streams and gorges, the first
+  time.
+  - Scanning that many tiles in the 2 GB test JVM runs out of memory from
+    G1 heap fragmentation (TERR-18 note in `steps.md`). Pass
+    `JAVA_TOOL_OPTIONS=-XX:G1HeapRegionSize=4m` to the Gradle test run;
+    the worker picks it up. Give a survey test's `NzTiles.open` a small
+    cache (128 MB), not GBs.
+- **Headless server check (passed)**, set up as in TERR-10. Two
+  128 × 128 areas forceloaded: a 79-block gorge in broadleaf forest
+  (`-77005 93766 -76878 93893`, about 900 blocks west of spawn) and a
+  74-block gorge in forest (`-73232 89633 -73105 89760`); 90 s of
+  ticking, `save-all flush`. Expected columns from a throwaway JUnit test
+  calling `NzWater.column` on the real tiles; saved chunks read with a
+  small Python Anvil reader.
+  - All 751 wall columns solid at exactly the expected height; no water
+    on any dry column; all 322 stream columns wet down to their floor.
+  - 155 stream columns have water 1–3 blocks above their own surface, all
+    fed from a higher neighbour (steps and small falls in the steep
+    gorges).
+  - Of the 31,692 other dry columns, 3 are off: two bee nests (count them
+    as plants) and one lava pool at the surface (lava pools are on,
+    TERR-8).
+- **Desktop check: not done yet.** Look at the gorge at about
+  (−76941, 93830) in broadleaf forest: walls, ledges, how the ends open
+  out, whether the walls show the rock mix, and whether undercut walls
+  are needed (a 3D carve).

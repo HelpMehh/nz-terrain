@@ -834,6 +834,34 @@ the ground of dry ones (above). Rules in its Javadoc; in short:
   a narrow open strip in places (desktop check); TERR-13 replaces the
   tree pass anyway.
 
+**Slot gorges (TERR-14 step 3, `0.8.3+nz.9`).** In the same per-tile pass
+of `NzStreams` (`gorgeWalls`), so no new hook: walls are dry columns and
+reach the chunk generator through `NzWater.streamGround` and the sampler,
+like banks. Rules and constants are in its Javadoc; in short:
+
+- **Where (decided 23 Oct 2026: option (a), from the LiDAR's shape):** a
+  centreline block whose lower side, across the stream, is 3+ blocks
+  higher 3 blocks out and 8+ blocks higher 6 blocks out (the deepest of
+  four axes), in an 8-connected run of 5+ such blocks. Test area 1:
+  31,198 of 808,749 stream blocks (3.9 %); 878 runs of 10+ blocks, 274 of
+  20+, the longest 109. Mostly small creeks (classes 1–50) on steep
+  reaches (0.3 % of flat reaches, 8.7 % above 40 % real gradient), in
+  forest, scrub, tussock and alpine land; none in pasture. Big streams
+  almost never qualify: 3 blocks out is still their own water.
+- **Shape (decided: fill up to the rim):** land within 6 blocks of a
+  gorge centreline, nearer to it than to any other centreline, is raised
+  to the rim (that lower side 6 blocks out, at most 16 above the stream's
+  ground). Columns touching stream water (8 neighbours) stay as 1-block
+  ledges. Walls rise 2 blocks per block from a run's ends (next to a
+  non-gorge centreline), so a gorge opens out instead of ending in a
+  cross wall; a run that ends in a river keeps its full walls. A column
+  lower than its centreline's ground (beside a waterfall) is raised by at
+  most 16. Nothing is lowered, so the stream and its bed don't change.
+- Vertical walls at most: undercut walls would need a 3D carve after the
+  fill. Not done; decide after the desktop check.
+- Cost: about 20 ms per tile for streams and gorges together, the first
+  time (test area 1, 896 tiles).
+
 **Open:** whether 1–3 blocks is deep enough for big rivers, and how lakes
 look up close (water in DH's LODs looked right, 23 Oct 2026).
 

@@ -32,6 +32,16 @@ import java.util.Optional;
  *    {@link #DEEPEST_FROM_CLASS}; 1 block deeper with lower water within {@link NzInlandWater#SILL_RADIUS_BLOCKS}, as
  *    in rivers, so the bed runs on under a step. Never above the ground that was there.</li>
  *    <li>Banks: land beside stream water and lower than its surface is raised to it, so the water can't spill.</li>
+ *    <li>Slot gorges (TERR-14 step 3, decided 23 Oct 2026): where the LiDAR already shows a deep, steep V along a
+ *    stream (option (a)), the 3 m data has smoothed a slot into it. There the V's sides are filled up to its rim, so
+ *    the stream runs between vertical walls with a 1-block ledge on each side. A centreline block is in a gorge when
+ *    the lower side is at least {@link #GORGE_NEAR_DEPTH_BLOCKS} higher {@link #GORGE_NEAR_RADIUS_BLOCKS} blocks
+ *    out and at least {@link #GORGE_DEPTH_BLOCKS} higher {@link #GORGE_RADIUS_BLOCKS} out, across the stream, in a
+ *    run of at least {@link #GORGE_MIN_RUN_BLOCKS}. The rim is that lower side's height
+ *    {@link #GORGE_RADIUS_BLOCKS} out, at most {@link #GORGE_MAX_WALL_BLOCKS} above the stream's ground, and rises
+ *    by {@link #GORGE_TAPER_BLOCKS} per block from the ends of a run. Land within {@link #GORGE_RADIUS_BLOCKS} of a
+ *    gorge's centreline (nearer to it than to any other) is raised to the rim, by at most
+ *    {@link #GORGE_MAX_WALL_BLOCKS}; nothing is lowered. A gorge is level-0 detail like the streams.</li>
  *    <li>Steps: stream water with lower water (stream, lake, river or sea) on one of its four sides flows, as river
  *    steps do ({@link NzWater#isStepSource}).</li>
  * </ul>
@@ -47,6 +57,15 @@ final class NzStreams {
    /** Size classes from which the inside of a stream is 2 (1,000 ha) and 3 (10,000 ha) blocks deep. */
    static final int DEEPER_FROM_CLASS = 76;
    static final int DEEPEST_FROM_CLASS = 101;
+   /** A gorge's V, measured across the stream: this deep this far out, and deeper further out (the rim). */
+   static final int GORGE_NEAR_RADIUS_BLOCKS = 3;
+   static final int GORGE_NEAR_DEPTH_BLOCKS = 3;
+   static final int GORGE_RADIUS_BLOCKS = 6;
+   static final int GORGE_DEPTH_BLOCKS = 8;
+   static final int GORGE_MAX_WALL_BLOCKS = 16;
+   /** Shorter runs of gorge blocks are left as they are; longer ones rise this many blocks per block from each end. */
+   static final int GORGE_MIN_RUN_BLOCKS = 5;
+   static final int GORGE_TAPER_BLOCKS = 2;
    private static final int MAX_RADIUS_BLOCKS = MAX_WIDTH_BLOCKS / 2;
    /**
     * A tile pixel can be reached from centrelines up to {@link #MAX_RADIUS_BLOCKS} away, over paths inside their
@@ -235,6 +254,8 @@ final class NzStreams {
          }
       }
 
+      int[] wall = gorgeWalls(streams, level, water, ground, surface, size);
+
       short[] tileSurface = new short[NzTileFormat.TILE_AREA];
       short[] tileGround = new short[NzTileFormat.TILE_AREA];
       BitSet tileStep = new BitSet(NzTileFormat.TILE_AREA);
@@ -247,10 +268,11 @@ final class NzStreams {
             tileSurface[out] = (short) NONE;
             tileGround[out] = (short) NONE;
             if (y == NONE) {
-               // Land: a bank where stream water beside it stands higher.
+               // Land: a bank where stream water beside it stands higher, or a gorge wall.
                int bank = Math.max(Math.max(surface[i - 1], surface[i + 1]), Math.max(surface[i - size], surface[i + size]));
-               if (water[i] == NzTerrainSampler.WATER_LAND && ground[i] != DRY && bank > ground[i]) {
-                  tileGround[out] = (short) bank;
+               int raised = Math.max(bank, wall[i]);
+               if (water[i] == NzTerrainSampler.WATER_LAND && ground[i] != DRY && raised > ground[i]) {
+                  tileGround[out] = (short) Math.min(raised, Short.MAX_VALUE);
                }
                continue;
             }
@@ -277,6 +299,160 @@ final class NzStreams {
          }
       }
       return Optional.of(new Tile(tileSurface, tileGround, tileStep));
+   }
+
+   /**
+    * The raised top of each window pixel in a slot gorge's wall, {@link #NONE} elsewhere (rules in the class Javadoc).
+    * Only centrelines at least {@link #GORGE_RADIUS_BLOCKS} inside the window are measured; the margin is wide enough
+    * that every run, end and centreline that can reach a tile pixel lies inside it.
+    */
+   private static int[] gorgeWalls(int[] streams, int[] level, int[] water, int[] ground, int[] surface, int size) {
+      int area = size * size;
+      int r = GORGE_RADIUS_BLOCKS;
+      // Per centreline pixel: its wall height if its V is deep enough, 0 if not, -1 for no centreline.
+      int[] height = new int[area];
+      Arrays.fill(height, -1);
+      for (int pz = r; pz < size - r; pz++) {
+         for (int px = r; px < size - r; px++) {
+            int i = pz * size + px;
+            if (streams[i] == 0 || NzTileLayer.STREAM_LEVEL.isNodata(level[i]) || surface[i] == NONE || ground[i] == DRY) {
+               continue;
+            }
+            int far = vDepth(water, ground, surface, size, i, r);
+            boolean deep = vDepth(water, ground, surface, size, i, GORGE_NEAR_RADIUS_BLOCKS) >= GORGE_NEAR_DEPTH_BLOCKS && far >= GORGE_DEPTH_BLOCKS;
+            height[i] = deep ? Math.min(far, GORGE_MAX_WALL_BLOCKS) : 0;
+         }
+      }
+
+      // Runs: 8-connected gorge pixels. Short ones are dropped; the rest rise from their ends, i.e. from gorge pixels
+      // next to a centreline that isn't one, by the distance along the run (a run that ends in water keeps its walls).
+      int[] along = new int[area];
+      Arrays.fill(along, Integer.MAX_VALUE);
+      int[] run = new int[area];
+      int[] queue = new int[area];
+      boolean[] seen = new boolean[area];
+      for (int start = 0; start < area; start++) {
+         if (height[start] <= 0 || seen[start]) {
+            continue;
+         }
+         int tail = 0;
+         queue[tail++] = start;
+         seen[start] = true;
+         for (int head = 0; head < tail; head++) {
+            int p = queue[head];
+            for (int q : neighbours(p, size)) {
+               if (height[q] > 0 && !seen[q]) {
+                  seen[q] = true;
+                  queue[tail++] = q;
+               }
+            }
+         }
+         if (tail < GORGE_MIN_RUN_BLOCKS) {
+            for (int k = 0; k < tail; k++) {
+               height[queue[k]] = 0;
+            }
+            continue;
+         }
+         System.arraycopy(queue, 0, run, 0, tail);
+         int ends = 0;
+         for (int k = 0; k < tail; k++) {
+            int p = run[k];
+            for (int q : neighbours(p, size)) {
+               if (height[q] == 0) {
+                  along[p] = 0;
+                  queue[ends++] = p;
+                  break;
+               }
+            }
+         }
+         for (int head = 0; head < ends; head++) {
+            int p = queue[head];
+            for (int q : neighbours(p, size)) {
+               if (height[q] > 0 && along[q] == Integer.MAX_VALUE) {
+                  along[q] = along[p] + 1;
+                  queue[ends++] = q;
+               }
+            }
+         }
+         for (int k = 0; k < tail; k++) {
+            int p = run[k];
+            if (along[p] != Integer.MAX_VALUE) {
+               height[p] = Math.min(height[p], GORGE_TAPER_BLOCKS * (along[p] + 1));
+            }
+         }
+      }
+
+      // Land takes the rim of its nearest centreline, if that one is in a gorge; ledges beside stream water stay.
+      int[] wall = new int[area];
+      Arrays.fill(wall, NONE);
+      int[] distance = new int[area];
+      Arrays.fill(distance, Integer.MAX_VALUE);
+      for (int c = 0; c < area; c++) {
+         if (height[c] < 0) {
+            continue;
+         }
+         int cx = c % size;
+         int cz = c / size;
+         int rim = height[c] > 0 ? ground[c] + height[c] : NONE;
+         for (int dz = -r; dz <= r; dz++) {
+            for (int dx = -r; dx <= r; dx++) {
+               int d2 = dx * dx + dz * dz;
+               int q = (cz + dz) * size + cx + dx;
+               if (d2 > r * r || d2 > distance[q] || d2 == distance[q] && rim >= wall[q]) {
+                  continue;
+               }
+               distance[q] = d2;
+               wall[q] = rim;
+            }
+         }
+      }
+      for (int pz = 1; pz < size - 1; pz++) {
+         for (int px = 1; px < size - 1; px++) {
+            int i = pz * size + px;
+            if (wall[i] == NONE) {
+               continue;
+            }
+            if (water[i] != NzTerrainSampler.WATER_LAND || surface[i] != NONE || ground[i] == DRY) {
+               wall[i] = NONE;
+               continue;
+            }
+            // A column below its centreline's ground (beside a waterfall) is raised by at most a wall's height.
+            wall[i] = Math.min(wall[i], ground[i] + GORGE_MAX_WALL_BLOCKS);
+            for (int q : neighbours(i, size)) {
+               if (surface[q] != NONE) {
+                  wall[i] = NONE;
+                  break;
+               }
+            }
+         }
+      }
+      return wall;
+   }
+
+   /**
+    * How far the land rises {@code r} blocks out on both sides of centreline pixel {@code c}: the lower side, along the
+    * axis (of four) where that is highest; {@link Integer#MIN_VALUE} where no axis has land without water on both sides.
+    */
+   private static int vDepth(int[] water, int[] ground, int[] surface, int size, int c, int r) {
+      int k = (int) Math.round(r / Math.sqrt(2.0));
+      int best = Integer.MIN_VALUE;
+      for (int offset : new int[] {r, r * size, k * size + k, k * size - k}) {
+         int a = c + offset;
+         int b = c - offset;
+         if (isDryLand(water, ground, surface, a) && isDryLand(water, ground, surface, b)) {
+            best = Math.max(best, Math.min(ground[a], ground[b]) - ground[c]);
+         }
+      }
+      return best;
+   }
+
+   private static boolean isDryLand(int[] water, int[] ground, int[] surface, int i) {
+      return water[i] == NzTerrainSampler.WATER_LAND && ground[i] != DRY && surface[i] == NONE;
+   }
+
+   /** The 8 neighbours of window pixel {@code i}, which must not be on the window's edge. */
+   private static int[] neighbours(int i, int size) {
+      return new int[] {i - size - 1, i - size, i - size + 1, i - 1, i + 1, i + size - 1, i + size, i + size + 1};
    }
 
    /** Window pixel {@code q} becomes water of the centreline {@code d2} (squared blocks) away, if that one is nearer. */

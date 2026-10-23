@@ -347,6 +347,13 @@ them when they come up.
 
 - **Do:** run with the full tiles. Measure memory, generation speed and the
   tile cache; decide on pre-generation.
+- **Known (TERR-14 step 3):** `NzStreams` and `NzInlandWater` allocate a
+  dozen `int[]` windows of about 1.35 MB per tile computed. In G1 those
+  are *humongous* objects whenever the heap region is 2 MB or less (heaps
+  under 8 GB), and they fragment the heap: a 2 GB test JVM ran out of
+  memory scanning all of test area 1 with only ~500 MB live, and passed
+  with `-XX:G1HeapRegionSize=4m`. Check it in game; reusing the windows
+  per thread would fix it.
 - **Needs:** PIPE-11.
 
 ### [ ] TERR-20 — Deep caverns

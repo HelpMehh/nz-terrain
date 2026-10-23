@@ -4,6 +4,16 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.9 (TERR-14 step 3, 23 Oct 2026)
+
+- Slot gorges: where the elevation data already shows a deep, steep V
+  along a creek, the V becomes a slot. Its sides are filled up to the
+  rim, so the creek runs between vertical rock walls (up to 16 blocks
+  high) with a 1-block ledge on each side, and flat ground on top. Walls
+  rise gradually from the ends of a gorge. Nothing is dug out: the
+  creek and its bed stay where they were. About 4 % of creek blocks in
+  test area 1, mostly steep small creeks in bush, scrub and tussock.
+
 ## 0.8.3+nz.8 (TERR-14 step 2, 23 Oct 2026)
 
 - Streams: every creek and stream of the tiles' `streams` layer is wet,

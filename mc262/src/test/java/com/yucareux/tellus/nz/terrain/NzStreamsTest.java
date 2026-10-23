@@ -47,7 +47,9 @@ class NzStreamsTest {
     *    (150, 51);</li>
     *    <li>a diagonal creek (class 30) at 90 m from (300, 100) to (320, 120);</li>
     *    <li>a big stream (class 90, 12 blocks wide) along row 300 from x 400 to 700, across the tile border, at 60 m
-    *    (Y 93) in a gully whose floor is 7 blocks wide (rows 297–303, 61 m: Y 94).</li>
+    *    (Y 93) in a gully whose floor is 7 blocks wide (rows 297–303, 61 m: Y 94);</li>
+    *    <li>a creek (class 20) along row 400 from x 780 to 1000 at 60 m (Y 93), in a shallow valley (0.5 m per block)
+    *    except for a deep V (4 m per block: 2 blocks per block in game) from x 800 to 900 and from x 950 to 952.</li>
     * </ul>
     */
    @BeforeEach
@@ -81,6 +83,13 @@ class NzStreamsTest {
                   set(height, px, pz, metres(61.0));
                }
                stream(streams, level, height, px, 300, 90, 60.0);
+            }
+            if (x >= 780 && x <= 1000) {
+               double rise = x >= 800 && x <= 900 || x >= 950 && x <= 952 ? 4.0 : 0.5;
+               for (int pz = 380; pz <= 420; pz++) {
+                  set(height, px, pz, metres(Math.min(100.0, 60.0 + rise * Math.abs(pz - 400))));
+               }
+               stream(streams, level, height, px, 400, 20, 60.0);
             }
          }
          if (tx == 0) {
@@ -194,6 +203,47 @@ class NzStreamsTest {
             assertEquals(91, this.streams.groundY(x, 300));
          }
       }
+   }
+
+   @Test
+   void aDeepVBecomesASlotWithVerticalWalls() {
+      // Middle of the gorge: water at Y 93, the LiDAR's V 6 blocks out is 12 blocks higher (Y 105): the rim.
+      assertEquals(93, this.streams.surfaceY(850, 400));
+      assertEquals(92, this.streams.groundY(850, 400));
+      // A 1-block ledge on each side stays as it was (Y 95).
+      assertEquals(NONE, this.streams.groundY(850, 401));
+      assertEquals(NONE, this.streams.groundY(850, 399));
+      // From 2 blocks out the V is filled up to the rim; beyond the rim it is untouched.
+      for (int d = 2; d <= 5; d++) {
+         assertEquals(105, this.streams.groundY(850, 400 + d), "south " + d);
+         assertEquals(105, this.streams.groundY(850, 400 - d), "north " + d);
+      }
+      assertEquals(NONE, this.streams.groundY(850, 406));
+      assertEquals(NONE, this.streams.groundY(850, 407));
+      // The sampler gives the wall to the chunk generator, and the column is dry.
+      assertEquals(105, NzTerrainSampler.sample(this.floor, SETTINGS, 850, 402, 0).terrainHeight());
+      WaterSurfaceResolver.WaterColumnData wall = this.column(850, 402);
+      assertFalse(wall.hasWater());
+      assertEquals(105, wall.terrainSurface());
+   }
+
+   @Test
+   void aGorgeRisesFromItsEnds() {
+      // The run starts at x 800 next to the shallow valley: walls of 2, 4, 6, … blocks over the stream's ground (Y 93).
+      assertEquals(NONE, this.streams.groundY(800, 402));
+      assertEquals(99, this.streams.groundY(802, 402));
+      assertEquals(101, this.streams.groundY(803, 402));
+      assertEquals(105, this.streams.groundY(806, 402));
+      assertEquals(101, this.streams.groundY(897, 402));
+      // Beside the stream outside the gorge, nearer to a centreline that isn't one: untouched.
+      assertEquals(NONE, this.streams.groundY(797, 402));
+      assertEquals(NONE, this.streams.groundY(903, 402));
+   }
+
+   @Test
+   void aShortVIsNoGorge() {
+      assertEquals(NONE, this.streams.groundY(951, 402));
+      assertEquals(97, NzTerrainSampler.sample(this.floor, SETTINGS, 951, 402, 0).terrainHeight());
    }
 
    private WaterSurfaceResolver.WaterColumnData column(int x, int z) {
