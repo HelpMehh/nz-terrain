@@ -815,7 +815,10 @@ the ground of dry ones (above). Rules in its Javadoc; in short:
   stream steps, and carves through filled pits can be longer than a tile.
 - Width (option C, decided 23 Oct 2026): 1:1 from the size class
   (`2 m × √km²`, at most 31), spreading from the centreline only over land
-  at most 1 block above the centreline's ground (the gully floor).
+  at most 1 block above the centreline's ground (the gully floor). A
+  stream spreads evenly to both sides, so widths are odd: 2 m shows as
+  1 block, 4 m as 3. Accepted at the desktop check; even widths would need
+  a stream to lean to one side.
   Measured on test area 1 before building it: 1:1 widths fit the gully
   floor for 93 % of stream blocks, 1:3 for 99 %; the misfits are the
   big streams (class 76+). Each block takes the nearest centreline's level.
@@ -827,8 +830,9 @@ the ground of dry ones (above). Rules in its Javadoc; in short:
   `NzStreams`; tune them after the desktop check.
 - Cost: 25–65 ms per region the first time (test area 1).
 - Trees: Tellus's tree pass keeps trees `river_lake_shoreline_blend`
-  (5) blocks from any water, streams included, so creeks run through bare
-  strips until TERR-13 replaces the tree pass (or the preset lowers it).
+  (5) blocks from any water, streams included. In game it shows only as
+  a narrow open strip in places (desktop check); TERR-13 replaces the
+  tree pass anyway.
 
 **Open:** whether 1–3 blocks is deep enough for big rivers, and how lakes
 look up close (water in DH's LODs looked right, 23 Oct 2026).

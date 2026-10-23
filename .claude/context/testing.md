@@ -515,7 +515,9 @@ data `2026-10-23`).
     because dry columns take their height from the height grid, not the
     water region (`tellus-internals.md` §11.2). Fixed in the sampler.
   - A stream tile takes 25–65 ms the first time (once per region).
-- **Desktop client check:** open. A forest creek and the big stream near
-  spawn (the areas above): width, banks, flow at steps, the stream-bed
-  blocks, chunk borders. Expect bare strips along creeks (Tellus's tree
-  distance, `tellus-internals.md` §11.2).
+- **Desktop client check (passed, 23 Oct 2026)**, a new world in the
+  launcher profile with the re-exported tiles: the forest creeks and the
+  big stream near spawn "look great"; creeks are mostly 1 block wide;
+  the stream-bed blocks are good. Tellus's 5-block tree gap along water
+  shows only as a narrow open strip in places, not distracting (river
+  beside forest, screenshot from the desktop).

@@ -80,7 +80,7 @@ streams (step 2) need on every slope.
 the gully floor. The bed's never-rising level comes from a new pipeline
 layer `stream_level` (decided: the generator can't tell downstream
 reliably, and carves can be longer than a tile; hub `interfaces.md`).
-Headless check passed (`testing.md`); the desktop check is open. Lessons
+Headless and desktop checks passed (`testing.md`). Lessons
 for step 3: gorge walls are dry columns, so they go through
 `NzStreams`' ground and the sampler (first bullet above); `NzSurface`
 already refills the chunk's border ring from `NzWater.column`, so the
