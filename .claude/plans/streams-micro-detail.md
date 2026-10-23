@@ -133,8 +133,8 @@ land columns.
 **Built (23 Oct 2026, `0.8.3+nz.9`), fixed after the first desktop look
 (`nz.10`: noise on ledges and rims, gravel ledges, the palette's
 `bare_step`) and the second (`nz.11`, 24 Oct: wall height by size class,
-bars on the inside of bends, no pillars, smoother rims); third desktop
-check open** (`testing.md`). Decided: (a), gorges only where the LiDAR
+bars on the inside of bends, no pillars, smoother rims). **Done:** third
+desktop check passed (24 Oct 2026, `testing.md`). Decided: (a), gorges only where the LiDAR
 shows a deep V (3.9 % of stream blocks in test area 1); the V's sides
 are **filled up to the rim**, never cut down; small creeks keep a low
 cut and their wooded gully, big streams get full slots; **no undercut
@@ -146,6 +146,13 @@ a rule measured on the rasters in Python first (pipeline venv,
 `processed/test-area-1`) matched the generator's count closely, so do
 that before choosing thresholds; full-area surveys in the test JVM need
 `-XX:G1HeapRegionSize=4m` (`testing.md`).
+More lessons from three desktop rounds: the surface rule follows the
+LiDAR slope, so anything that changes heights (walls, boulders, ledges)
+must also set its own surface or it inherits soil; per-column noise makes
+lone pillars where a width changes, so take widths from the owning
+centreline; small creeks and big streams need different treatment (size
+class), and real photos of the area settled questions faster than
+guessing.
 
 Narrow, deep, steep-walled cuts where a stream incises rock: real slots
 are 1–5 m wide, so the 3 m LiDAR smooths them into a V. Carved in the same

@@ -193,6 +193,12 @@ come with the `rock` tile layer (PIPE-15, below).
     box were dirt, mostly the forest's 3 dirt layers: a candidate for
     thinner soil.
   - The snowy rock's snow cover (60 % snow layers in patches).
+  - The alpine `rock` surface is plain grey stone with almost no colour
+    variation: whole valleys and the big scrub gorge (TERR-14 step 3,
+    around −73609, 101434) read as one grey staircase. Give it more
+    variety (andesite, tuff, cobbles, a little moss low down).
+  - The `bare_step` value (3, TERR-14 step 3): it bares every step of 3+
+    blocks, cliffs included; looked right on gorge walls.
 - **Final choices:** not tuned yet.
 
 ## Open questions

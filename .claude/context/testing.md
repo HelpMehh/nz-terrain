@@ -602,6 +602,15 @@ Code: `0.8.3+nz.9`, tiles as in TERR-14 step 2.
   - "Can't keep up … 55 s behind" while four areas generated at once.
   - The test scratchpad doesn't survive a restart: the expected columns
     were regenerated from the same code the next day.
-- **Third desktop check: open.** The same five gorges: small creeks as
-  wooded gullies with a low rock cut; gravel bars on the inside of bends;
-  no pillars; smoother wall tops; the big scrub gorge's full walls.
+- **Third desktop check (passed, 24 Oct 2026, `0.8.3+nz.11`):** "things
+  look good". Small creeks read as wooded gullies with a narrow strip of
+  mossy rock at the water; no pillars; gravel bars at bends; trees
+  leaning over the rims. Left as they are: the big scrub gorge
+  (−73609, 101434) still shows many narrow vertical faces from above and
+  is all bare grey stone (the alpine `rock` mix, TERR-11 tuning); inside
+  small slots the walls stay tall where the LiDAR V is steeper than 63°
+  (rock by the palette; flora, TERR-13, will soften it); creek beds have
+  no boulders yet (step 4).
+- **How these desktop checks worked best:** a list of named spots with
+  `/tp` coordinates and what to look for, screenshots with F3 on (the
+  coordinates show in them), and the same spots in every round.
