@@ -41,6 +41,8 @@ public final class NzSurfacePalette {
    public static final String OVERRIDE_FILE = "nz-terrain-surface.jsonc";
    /** The file layout this reader knows ({@code "format"}). */
    static final int FORMAT = 1;
+   /** {@code "bare_step"} when the file gives none. */
+   static final int DEFAULT_BARE_STEP = 3;
    private static final Logger LOGGER = LoggerFactory.getLogger("tellus/nz");
    private static final BlockState AIR = Blocks.AIR.defaultBlockState();
    private static volatile NzSurfacePalette global;
@@ -51,13 +53,15 @@ public final class NzSurfacePalette {
    private final Surface lake;
    private final Surface river;
    private final Surface stream;
+   private final int bareStep;
 
-   private NzSurfacePalette(List<Rule> land, Surface sea, Surface lake, Surface river, Surface stream) {
+   private NzSurfacePalette(List<Rule> land, Surface sea, Surface lake, Surface river, Surface stream, int bareStep) {
       this.land = List.copyOf(land);
       this.sea = sea;
       this.lake = lake;
       this.river = river;
       this.stream = stream;
+      this.bareStep = bareStep;
    }
 
    /** One kind of ground: its top block, the layers under it, its step sides, and what lies on top (null: nothing). */
@@ -121,6 +125,11 @@ public final class NzSurfacePalette {
 
    Surface stream() {
       return this.stream;
+   }
+
+   /** A column standing this many blocks or more above a neighbour shows no "under" layers on its side. */
+   int bareStep() {
+      return this.bareStep;
    }
 
    /** The palette in use: the one read at the last server start, else the jar's. */
@@ -202,7 +211,7 @@ public final class NzSurfacePalette {
       private final Map<String, NzSurfaceMix> mixes = new HashMap<>();
 
       NzSurfacePalette palette(JsonObject root) {
-         keys(root, "", "format", "mixes", "face", "land", "water", "surfaces");
+         keys(root, "", "format", "mixes", "face", "bare_step", "land", "water", "surfaces");
          int format = integer(required(root, "", "format"), "format");
          if (format != FORMAT) {
             throw error("format", "is " + format + ", this version of the mod reads format " + FORMAT);
@@ -215,6 +224,10 @@ public final class NzSurfacePalette {
             }
          }
          NzSurfaceMix face = this.material(required(root, "", "face"), "face");
+         int bareStep = root.has("bare_step") ? integer(root.get("bare_step"), "bare_step") : DEFAULT_BARE_STEP;
+         if (bareStep < 1) {
+            throw error("bare_step", "must be at least 1");
+         }
          Map<String, Surface> surfaces = new HashMap<>();
          JsonObject surfaceObjects = object(required(root, "", "surfaces"), "surfaces");
          for (Map.Entry<String, JsonElement> entry : surfaceObjects.entrySet()) {
@@ -236,7 +249,8 @@ public final class NzSurfacePalette {
             surfaceRef(required(water, "water", "sea"), "water.sea", surfaces),
             surfaceRef(required(water, "water", "lake"), "water.lake", surfaces),
             river,
-            water.has("stream") ? surfaceRef(water.get("stream"), "water.stream", surfaces) : river
+            water.has("stream") ? surfaceRef(water.get("stream"), "water.stream", surfaces) : river,
+            bareStep
          );
       }
 

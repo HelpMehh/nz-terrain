@@ -556,7 +556,27 @@ Code: `0.8.3+nz.9`, tiles as in TERR-14 step 2.
   - Of the 31,692 other dry columns, 3 are off: two bee nests (count them
     as plants) and one lava pool at the surface (lava pools are on,
     TERR-8).
-- **Desktop check: not done yet.** Look at the gorge at about
-  (−76941, 93830) in broadleaf forest: walls, ledges, how the ends open
-  out, whether the walls show the rock mix, and whether undercut walls
-  are needed (a 3D carve).
+- **First desktop look (`0.8.3+nz.9`, 23 Oct 2026):** the gorges look
+  alright and the walls show the rock mix, but some spots looked
+  unnatural: a long slot of constant width between two parallel flat
+  walls, and dirt bands, dirt stairs and 1 × 1 dirt pillars on the walls
+  and ledges (`tellus-internals.md` §11.2). Fixed in `0.8.3+nz.10`.
+- **Follow-up (`0.8.3+nz.10`):** build passes, 694 tests (600 upstream +
+  94 NZ). New: ledges and walls against the noise along a whole test
+  gorge (all three ledge widths occur), the rim noise's range, the
+  palette's `bare_step` (default, value, mistake), a tall step showing
+  only its top above the face, gorge ledges getting the stream bed. The
+  row-50 test creek now sits in a shallow channel: in its old 10-block
+  trench it counted as a gorge.
+  - Headless, same two areas, a new world: all 785 wall and 309 ledge
+    columns at exactly the expected height; ledge tops gravel 186,
+    cobblestone 76, mossy cobblestone 47 (the stream-bed mix); no water
+    on dry land; stream columns as before. Of 2,939 tall steps (3+
+    blocks), none has soil under its top (23 show gravel: vanilla gravel
+    blobs in the stone). 3 columns elsewhere lack their top 1–2 blocks
+    (a cave or feature of that world's seed; each new test world has a
+    random seed, so features differ between runs).
+- **Second desktop check: open.** The gorge at about (−76941, 93830):
+  ledges, wall tops, no dirt on the walls; whether undercut walls are
+  still wanted (a 3D carve). Note `bare_step` changes every cliff edge,
+  not only gorges.

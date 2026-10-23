@@ -32,6 +32,10 @@
   // shows, the ground is plain stone. A surface can set its own "face".
   "face": "schist",
 
+  // A column standing this many blocks or more above a neighbour (a cliff edge, a gorge wall) shows only its top
+  // block above the face: its "under" layers are left out, so no band of soil hangs on the rock. Default 3.
+  "bare_step": 3,
+
   // Land columns: the first rule that matches wins. A rule matches when the column's LCDB class is in
   // "lcdb" (any class when "lcdb" is missing) and its slope and height are within the limits it gives:
   //   min_slope, max_slope    game degrees: the slope as seen in game, 1.5x steeper than the real one

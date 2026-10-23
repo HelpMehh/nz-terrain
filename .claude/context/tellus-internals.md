@@ -851,12 +851,24 @@ like banks. Rules and constants are in its Javadoc; in short:
 - **Shape (decided: fill up to the rim):** land within 6 blocks of a
   gorge centreline, nearer to it than to any other centreline, is raised
   to the rim (that lower side 6 blocks out, at most 16 above the stream's
-  ground). Columns touching stream water (8 neighbours) stay as 1-block
-  ledges. Walls rise 2 blocks per block from a run's ends (next to a
-  non-gorge centreline), so a gorge opens out instead of ending in a
-  cross wall; a run that ends in a river keeps its full walls. A column
-  lower than its centreline's ground (beside a waterfall) is raised by at
-  most 16. Nothing is lowered, so the stream and its bed don't change.
+  ground), ±2 blocks of smooth noise (`rimJitter`, lattice 3 blocks).
+  Walls rise 2 blocks per block from a run's ends (next to a non-gorge
+  centreline), so a gorge opens out instead of ending in a cross wall; a
+  run that ends in a river keeps its full walls. A column lower than its
+  centreline's ground (beside a waterfall) is raised by at most 16.
+- **Ledges:** land within `ledgeWidth` blocks (Chebyshev) of the stream's
+  water is a ledge instead of wall: 0, 1 or 2 blocks by smooth noise
+  (lattice 6 blocks; about a third each in the test valley), so in
+  places the water runs wall to wall. A ledge is at most 1 block above
+  the highest stream water within its width: the only place a gorge
+  lowers land. `NzStreams.isGorgeLedge` → `NzSurface` gives it the
+  stream-bed surface. The stream and its bed never change.
+- **First desktop look (23 Oct 2026, `0.8.3+nz.9`):** right from a
+  distance, but up close the 3-wide slot with parallel flat walls looked
+  cut by a machine, and soil showed on the walls as dirt bands and 1 × 1
+  dirt pillars: the surface rule follows the LiDAR slope (under 63° on a
+  V's sides, so `forest_floor`), not the raised heights. Fixed by the
+  noise above and the palette's `bare_step` (§12).
 - Vertical walls at most: undercut walls would need a 3D carve after the
   fill. Not done; decide after the desktop check.
 - Cost: about 20 ms per tile for streams and gorges together, the first
@@ -892,7 +904,11 @@ surface rules above run. The shell fill and `resolveMountainMassFillBlock`
   Water on a column the water layer calls land is a stream: the palette's
   `water.stream` floor (optional, falls back to `water.river`).
 - **Column:** top block, the `under` layers, then the `face` material down
-  to one above the lowest of the 4 neighbours (from the generator's height
+  to one above the lowest of the 4 neighbours. On a step of `bare_step`
+  (palette, default 3) blocks or more the `under` layers are left out, so
+  the face starts under the top block: the surface rule follows the LiDAR
+  slope, which a gorge wall or a rounded cliff edge doesn't (TERR-14
+  step 3). The neighbours come from the generator's height
   grid, after water floors; the ring just outside the chunk is refilled
   from `NzWater.column`, since the generator copies water floors back only
   for the chunk's own columns), so step and cliff sides show the rock mix;

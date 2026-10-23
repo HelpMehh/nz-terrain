@@ -34,14 +34,17 @@ import java.util.Optional;
  *    <li>Banks: land beside stream water and lower than its surface is raised to it, so the water can't spill.</li>
  *    <li>Slot gorges (TERR-14 step 3, decided 23 Oct 2026): where the LiDAR already shows a deep, steep V along a
  *    stream (option (a)), the 3 m data has smoothed a slot into it. There the V's sides are filled up to its rim, so
- *    the stream runs between vertical walls with a 1-block ledge on each side. A centreline block is in a gorge when
+ *    the stream runs between vertical walls. A centreline block is in a gorge when
  *    the lower side is at least {@link #GORGE_NEAR_DEPTH_BLOCKS} higher {@link #GORGE_NEAR_RADIUS_BLOCKS} blocks
  *    out and at least {@link #GORGE_DEPTH_BLOCKS} higher {@link #GORGE_RADIUS_BLOCKS} out, across the stream, in a
  *    run of at least {@link #GORGE_MIN_RUN_BLOCKS}. The rim is that lower side's height
  *    {@link #GORGE_RADIUS_BLOCKS} out, at most {@link #GORGE_MAX_WALL_BLOCKS} above the stream's ground, and rises
  *    by {@link #GORGE_TAPER_BLOCKS} per block from the ends of a run. Land within {@link #GORGE_RADIUS_BLOCKS} of a
  *    gorge's centreline (nearer to it than to any other) is raised to the rim, by at most
- *    {@link #GORGE_MAX_WALL_BLOCKS}; nothing is lowered. A gorge is level-0 detail like the streams.</li>
+ *    {@link #GORGE_MAX_WALL_BLOCKS}, give or take {@link #rimJitter} so the walls aren't flat planes. Except the
+ *    ledges: land within {@link #ledgeWidth} blocks (0–2 by noise along the gorge) of the stream's water is a gravel
+ *    ledge at most 1 block above that water ({@link #isGorgeLedge}: {@code NzSurface} gives it the stream bed), so
+ *    in places the water runs from wall to wall. A gorge is level-0 detail like the streams.</li>
  *    <li>Steps: stream water with lower water (stream, lake, river or sea) on one of its four sides flows, as river
  *    steps do ({@link NzWater#isStepSource}).</li>
  * </ul>
@@ -66,6 +69,12 @@ final class NzStreams {
    /** Shorter runs of gorge blocks are left as they are; longer ones rise this many blocks per block from each end. */
    static final int GORGE_MIN_RUN_BLOCKS = 5;
    static final int GORGE_TAPER_BLOCKS = 2;
+   /** The noise that varies ledges and rims: lattice points this many blocks apart, and the rim's range (±). */
+   static final int LEDGE_NOISE_PERIOD_BLOCKS = 6;
+   static final int RIM_NOISE_PERIOD_BLOCKS = 3;
+   static final int RIM_JITTER_BLOCKS = 2;
+   private static final long LEDGE_SALT = 0x6C65646765L;
+   private static final long RIM_SALT = 0x72696DL;
    private static final int MAX_RADIUS_BLOCKS = MAX_WIDTH_BLOCKS / 2;
    /**
     * A tile pixel can be reached from centrelines up to {@link #MAX_RADIUS_BLOCKS} away, over paths inside their
@@ -102,6 +111,24 @@ final class NzStreams {
    int groundY(int x, int z) {
       Tile tile = this.tile(x, z);
       return tile == null ? NONE : tile.ground[index(x, z)];
+   }
+
+   /** Whether land block (x, z) is a ledge between a gorge's water and its wall. */
+   boolean isGorgeLedge(int x, int z) {
+      Tile tile = this.tile(x, z);
+      return tile != null && tile.ledge.get(index(x, z));
+   }
+
+   /** Width in blocks of the ledges at block (x, z) of a gorge: 0, 1 or 2, varying smoothly along it. */
+   static int ledgeWidth(int x, int z) {
+      double noise = NzSurfaceMix.smoothNoise(LEDGE_SALT, x, z, LEDGE_NOISE_PERIOD_BLOCKS);
+      return noise < -0.15 ? 0 : noise < 0.3 ? 1 : 2;
+   }
+
+   /** How far a gorge wall's top at block (x, z) lies above (or below) the rim: ±{@link #RIM_JITTER_BLOCKS}. */
+   static int rimJitter(int x, int z) {
+      double noise = NzSurfaceMix.smoothNoise(RIM_SALT, x, z, RIM_NOISE_PERIOD_BLOCKS);
+      return (int) Math.clamp(Math.round(noise * (RIM_JITTER_BLOCKS + 0.5)), -RIM_JITTER_BLOCKS, RIM_JITTER_BLOCKS);
    }
 
    /** Whether the stream block (x, z) has lower water on one of its four sides. */
@@ -254,11 +281,14 @@ final class NzStreams {
          }
       }
 
-      int[] wall = gorgeWalls(streams, level, water, ground, surface, size);
+      int[] wall = new int[area];
+      int[] ledge = new int[area];
+      gorges(streams, level, water, ground, surface, size, originX, originZ, wall, ledge);
 
       short[] tileSurface = new short[NzTileFormat.TILE_AREA];
       short[] tileGround = new short[NzTileFormat.TILE_AREA];
       BitSet tileStep = new BitSet(NzTileFormat.TILE_AREA);
+      BitSet tileLedge = new BitSet(NzTileFormat.TILE_AREA);
       int sill = NzInlandWater.SILL_RADIUS_BLOCKS;
       for (int row = 0; row < NzTileFormat.TILE_PIXELS; row++) {
          for (int column = 0; column < NzTileFormat.TILE_PIXELS; column++) {
@@ -270,8 +300,16 @@ final class NzStreams {
             if (y == NONE) {
                // Land: a bank where stream water beside it stands higher, or a gorge wall.
                int bank = Math.max(Math.max(surface[i - 1], surface[i + 1]), Math.max(surface[i - size], surface[i + size]));
+               if (water[i] != NzTerrainSampler.WATER_LAND || ground[i] == DRY) {
+                  continue;
+               }
+               if (ledge[i] != NONE) {
+                  tileGround[out] = (short) Math.max(bank, ledge[i]);
+                  tileLedge.set(out);
+                  continue;
+               }
                int raised = Math.max(bank, wall[i]);
-               if (water[i] == NzTerrainSampler.WATER_LAND && ground[i] != DRY && raised > ground[i]) {
+               if (raised > ground[i]) {
                   tileGround[out] = (short) Math.min(raised, Short.MAX_VALUE);
                }
                continue;
@@ -298,15 +336,18 @@ final class NzStreams {
             tileGround[out] = (short) Math.clamp(Math.min(y - deep, ground[i]), Short.MIN_VALUE + 1, Short.MAX_VALUE);
          }
       }
-      return Optional.of(new Tile(tileSurface, tileGround, tileStep));
+      return Optional.of(new Tile(tileSurface, tileGround, tileStep, tileLedge));
    }
 
    /**
-    * The raised top of each window pixel in a slot gorge's wall, {@link #NONE} elsewhere (rules in the class Javadoc).
-    * Only centrelines at least {@link #GORGE_RADIUS_BLOCKS} inside the window are measured; the margin is wide enough
-    * that every run, end and centreline that can reach a tile pixel lies inside it.
+    * Fills {@code wall} with the raised top of each window pixel in a slot gorge's wall and {@code ledge} with the top
+    * of each ledge, {@link #NONE} elsewhere (rules in the class Javadoc). Only centrelines at least
+    * {@link #GORGE_RADIUS_BLOCKS} inside the window are measured; the margin is wide enough that every run, end and
+    * centreline that can reach a tile pixel lies inside it.
     */
-   private static int[] gorgeWalls(int[] streams, int[] level, int[] water, int[] ground, int[] surface, int size) {
+   private static void gorges(
+      int[] streams, int[] level, int[] water, int[] ground, int[] surface, int size, int originX, int originZ, int[] wall, int[] ledge
+   ) {
       int area = size * size;
       int r = GORGE_RADIUS_BLOCKS;
       // Per centreline pixel: its wall height if its V is deep enough, 0 if not, -1 for no centreline.
@@ -382,9 +423,9 @@ final class NzStreams {
          }
       }
 
-      // Land takes the rim of its nearest centreline, if that one is in a gorge; ledges beside stream water stay.
-      int[] wall = new int[area];
+      // Land takes the rim of its nearest centreline, if that one is in a gorge; near the water it is a ledge.
       Arrays.fill(wall, NONE);
+      Arrays.fill(ledge, NONE);
       int[] distance = new int[area];
       Arrays.fill(distance, Integer.MAX_VALUE);
       for (int c = 0; c < area; c++) {
@@ -406,8 +447,8 @@ final class NzStreams {
             }
          }
       }
-      for (int pz = 1; pz < size - 1; pz++) {
-         for (int px = 1; px < size - 1; px++) {
+      for (int pz = 2; pz < size - 2; pz++) {
+         for (int px = 2; px < size - 2; px++) {
             int i = pz * size + px;
             if (wall[i] == NONE) {
                continue;
@@ -416,17 +457,24 @@ final class NzStreams {
                wall[i] = NONE;
                continue;
             }
-            // A column below its centreline's ground (beside a waterfall) is raised by at most a wall's height.
-            wall[i] = Math.min(wall[i], ground[i] + GORGE_MAX_WALL_BLOCKS);
-            for (int q : neighbours(i, size)) {
-               if (surface[q] != NONE) {
-                  wall[i] = NONE;
-                  break;
+            int x = originX + px;
+            int z = originZ + pz;
+            int width = ledgeWidth(x, z);
+            int near = NONE;
+            for (int dz = -width; dz <= width; dz++) {
+               for (int dx = -width; dx <= width; dx++) {
+                  near = Math.max(near, surface[i + dz * size + dx]);
                }
             }
+            if (near != NONE) {
+               ledge[i] = Math.min(ground[i], near + 1);
+               wall[i] = NONE;
+               continue;
+            }
+            // A column below its centreline's ground (beside a waterfall) is raised by at most a wall's height.
+            wall[i] = Math.min(wall[i] + rimJitter(x, z), ground[i] + GORGE_MAX_WALL_BLOCKS);
          }
       }
-      return wall;
    }
 
    /**
@@ -469,7 +517,7 @@ final class NzStreams {
       return surface[i] != NONE ? surface[i] : other[i];
    }
 
-   private record Tile(short[] surface, short[] ground, BitSet step) {
+   private record Tile(short[] surface, short[] ground, BitSet step, BitSet ledge) {
    }
 
    private record Key(int tx, int tz) {

@@ -130,7 +130,9 @@ land columns.
 
 ## Step 3 — Slot gorges along streams
 
-**Built (23 Oct 2026, `0.8.3+nz.9`); desktop check open** (`testing.md`).
+**Built (23 Oct 2026, `0.8.3+nz.9`), then fixed after the first desktop
+look (`0.8.3+nz.10`: ledges and rims vary by noise, gravel ledges, the
+palette's `bare_step`); second desktop check open** (`testing.md`).
 Decided: (a), gorges only where the LiDAR shows a deep V (3.9 % of stream
 blocks in test area 1), and the V's sides are **filled up to the rim**
 (vertical walls, 1-block ledges, flat top), never cut down; undercut

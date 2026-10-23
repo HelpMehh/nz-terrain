@@ -70,7 +70,10 @@ Measured on all of test area 1 (LCDB v6 classes, 3 m heights and slopes).
 the vertical sides of steps, so it matters on steep ground. Below the
 subsurface layers, the visible side of a step shows the palette's `face`
 material (the rock mix, `schist`), not plain stone; mossy rock and
-glacier ice have their own face.
+glacier ice have their own face. On a step 3 or more blocks tall
+(`"bare_step"` in the file) the subsurface layers are left out, so only
+the top block is soil above the face (TERR-14 step 3: dirt bands on
+gorge walls).
 
 ### Rules, in order (later wins)
 

@@ -4,6 +4,17 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.10 (TERR-14 step 3 follow-up, 23 Oct 2026)
+
+- Gorges look less man-made: the ledges beside the creek vary from none
+  (water from wall to wall) to 2 blocks, are gravel and cobbles like the
+  creek bed, and sit at most 1 block above the water; the wall tops vary
+  by up to 2 blocks, so the walls are no longer two flat planes.
+- On any step 3 or more blocks tall (gorge walls, cliff edges), only the
+  top block is soil and the rock face starts right under it: no more
+  bands and pillars of dirt on rock walls. The height is the palette's
+  new optional `"bare_step"` (default 3).
+
 ## 0.8.3+nz.9 (TERR-14 step 3, 23 Oct 2026)
 
 - Slot gorges: where the elevation data already shows a deep, steep V

@@ -117,6 +117,14 @@ class NzSurfacePaletteTest {
    }
 
    @Test
+   void bareStepHasADefault() {
+      assertEquals(NzSurfacePalette.DEFAULT_BARE_STEP, NzSurfacePalette.parse(MINIMAL).bareStep());
+      assertEquals(3, NzSurfacePalette.bundled().bareStep());
+      assertEquals(5, NzSurfacePalette.parse(MINIMAL.replace("\"face\": \"stone\",", "\"face\": \"stone\", \"bare_step\": 5,")).bareStep());
+      assertError("bare_step must be at least 1", MINIMAL.replace("\"face\": \"stone\",", "\"face\": \"stone\", \"bare_step\": 0,"));
+   }
+
+   @Test
    void mistakesNameTheirPlaceInTheFile() {
       assertError("land[0].max_slop is not a known key", MINIMAL.replace("\"min_slope\"", "\"max_slop\""));
       assertError("surfaces.rock.top \"stoen\" is neither a mix nor a block", MINIMAL.replace("{\"top\": \"stone\"}", "{\"top\": \"stoen\"}"));

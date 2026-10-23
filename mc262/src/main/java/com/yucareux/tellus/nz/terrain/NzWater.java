@@ -71,6 +71,11 @@ public final class NzWater {
       return isStepSource(this.streamsFor(this.sampler.seaFloor().tiles()), x, z);
    }
 
+   /** Whether land block (x, z) is a ledge in a slot gorge, between the stream and the wall: it gets the stream bed. */
+   public boolean isGorgeLedge(int x, int z) {
+      return this.streamsFor(this.sampler.seaFloor().tiles()).isGorgeLedge(x, z);
+   }
+
    /** Whether flowing water at block (x, z) may not become a source: near a step, see {@link #NO_NEW_SOURCE_RADIUS_BLOCKS}. */
    public boolean suppressesSourceConversion(int x, int z) {
       return suppressesSourceConversion(this.streamsFor(this.sampler.seaFloor().tiles()), x, z);

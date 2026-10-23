@@ -106,12 +106,17 @@ class NzSurfaceTest {
    }
 
    @Test
-   void columnHasTopLayersAndAFaceDownToTheLowestNeighbour() {
+   void columnHasTopLayersAndAFaceDownToTheLowestNeighbour() throws Exception {
       int[] grid = flatGrid();
-      // The column east of local (5, 5) stands 8 blocks lower.
+      // The column east of local (5, 5) stands 8 blocks lower; with "bare_step" above that, the soil layers show.
       grid[(5 + STEP) * GRID + 6 + STEP] = FLAT_Y - 8;
       Recorder recorder = new Recorder();
-      this.chunk(144, 32, grid, recorder).apply(5, 5, FLAT_Y, false, false);
+      String text;
+      try (var in = NzSurfacePalette.class.getResourceAsStream(NzSurfacePalette.RESOURCE)) {
+         text = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+      }
+      NzSurfacePalette tall = NzSurfacePalette.parse(text.replace("\"bare_step\": 3", "\"bare_step\": 9"));
+      new NzSurface(tall, SETTINGS, this.floor, 144, 32, -272, 2032, grid, GRID, STEP, recorder).apply(5, 5, FLAT_Y, false, false);
 
       NzSurfacePalette.Surface forest = this.palette.land(69, 0.0, 100.0);
       Map<Integer, BlockState> column = recorder.column(5, 5);
@@ -124,6 +129,37 @@ class NzSurfaceTest {
       for (int y = FLAT_Y - 7; y < FLAT_Y - 3; y++) {
          assertTrue(contains(forest.face(), column.get(y)), y + ": " + column.get(y));
       }
+   }
+
+   @Test
+   void onATallStepOnlyTheTopIsSoil() {
+      NzSurfacePalette.Surface forest = this.palette.land(69, 0.0, 100.0);
+      int[] grid = flatGrid();
+      // East of local (5, 5): 3 blocks lower ("bare_step"), the face starts right under the top block.
+      grid[(5 + STEP) * GRID + 6 + STEP] = FLAT_Y - 3;
+      // East of local (9, 5): 2 blocks lower, the soil layers stay.
+      grid[(5 + STEP) * GRID + 10 + STEP] = FLAT_Y - 2;
+      Recorder recorder = new Recorder();
+      NzSurface surface = this.chunk(144, 32, grid, recorder);
+      surface.apply(5, 5, FLAT_Y, false, false);
+      surface.apply(9, 5, FLAT_Y, false, false);
+      Map<Integer, BlockState> bare = recorder.column(5, 5);
+      assertTrue(contains(forest.top(), bare.get(FLAT_Y)), bare.get(FLAT_Y).toString());
+      assertEquals(3, bare.size());
+      for (int y = FLAT_Y - 2; y < FLAT_Y; y++) {
+         assertTrue(contains(forest.face(), bare.get(y)), y + ": " + bare.get(y));
+      }
+      Map<Integer, BlockState> soil = recorder.column(9, 5);
+      assertEquals(Blocks.DIRT.defaultBlockState(), soil.get(FLAT_Y - 1));
+      assertEquals(Blocks.DIRT.defaultBlockState(), soil.get(FLAT_Y - 2));
+   }
+
+   @Test
+   void gorgeLedgesGetTheStreamBed() {
+      NzSurface surface = this.chunk(144, 32, flatGrid(), new Recorder());
+      surface.markGorgeLedges((x, z) -> x == 149 && z == 37);
+      assertEquals("stream_bed", surface.surfaceAt(5, 5, false, false).name());
+      assertEquals("forest_floor", surface.surfaceAt(6, 5, false, false).name());
    }
 
    @Test

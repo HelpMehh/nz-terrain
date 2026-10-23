@@ -5,6 +5,8 @@ import com.yucareux.tellus.nz.tiles.NzTileFormat;
 import com.yucareux.tellus.nz.tiles.NzTileLayer;
 import com.yucareux.tellus.nz.tiles.NzTiles;
 import com.yucareux.tellus.worldgen.EarthGeneratorSettings;
+import java.util.List;
+import java.util.function.BiPredicate;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
@@ -43,6 +45,8 @@ public final class NzSurface {
    private final double[] metres;
    private final int[] lcdb;
    private final int[] water;
+   /** Dry columns that are ledges in a slot gorge ({@link NzStreams}): they get the stream bed. */
+   private final boolean[] gorgeLedge = new boolean[CHUNK_SIDE * CHUNK_SIDE];
    /** Game blocks per metre of height: the slope of a ramp rising {@code m} metres over one block is {@code m × this}. */
    private final double blocksPerMetre;
 
@@ -113,10 +117,22 @@ public final class NzSurface {
          return null;
       }
       NzSeaFloor floor = NzTerrainSampler.forSettings(settings).seaFloor();
-      int[] grid = withWaterAround(NzWater.forSettings(settings), heightGrid, gridSize, step, chunkMinX, chunkMinZ);
-      return new NzSurface(
+      NzWater water = NzWater.forSettings(settings);
+      int[] grid = withWaterAround(water, heightGrid, gridSize, step, chunkMinX, chunkMinZ);
+      NzSurface surface = new NzSurface(
          NzSurfacePalette.global(), settings, floor, chunkMinX, chunkMinZ, chunkMinY, chunkMaxY, grid, gridSize, step, writer
       );
+      surface.markGorgeLedges(water::isGorgeLedge);
+      return surface;
+   }
+
+   /** Marks the chunk's columns for which {@code isLedge} (block x, z) says gorge ledge. */
+   void markGorgeLedges(BiPredicate<Integer, Integer> isLedge) {
+      for (int localZ = 0; localZ < CHUNK_SIDE; localZ++) {
+         for (int localX = 0; localX < CHUNK_SIDE; localX++) {
+            this.gorgeLedge[localZ * CHUNK_SIDE + localX] = isLedge.test(this.chunkMinX + localX, this.chunkMinZ + localZ);
+         }
+      }
    }
 
    /**
@@ -151,12 +167,14 @@ public final class NzSurface {
       int bottom = Math.max(this.chunkMinY, surface - this.undergroundDepth + 1);
       int y = surface;
       this.set(localX, localZ, y--, kind.top().pick(x, surface, z));
-      for (NzSurfacePalette.Layer layer : kind.under()) {
+      int lowestNeighbour = this.lowestNeighbour(localX, localZ);
+      // On a tall step only the top block is soil: the face starts right under it.
+      boolean bare = surface - lowestNeighbour >= this.palette.bareStep();
+      for (NzSurfacePalette.Layer layer : bare ? List.<NzSurfacePalette.Layer>of() : kind.under()) {
          for (int depth = layer.depth(x, z); depth > 0 && y >= bottom; depth--, y--) {
             this.set(localX, localZ, y, layer.block().pick(x, y, z));
          }
       }
-      int lowestNeighbour = this.lowestNeighbour(localX, localZ);
       for (; y > lowestNeighbour && y >= bottom; y--) {
          this.set(localX, localZ, y, kind.face().pick(x, y, z));
       }
@@ -170,10 +188,13 @@ public final class NzSurface {
 
    /**
     * Which surface a column gets: the water floor under water, else the first matching land rule. Water on a column
-    * the water layer calls land is a stream ({@link NzStreams}).
+    * the water layer calls land is a stream ({@link NzStreams}); a gorge's ledges get the stream bed too.
     */
    NzSurfacePalette.Surface surfaceAt(int localX, int localZ, boolean underwater, boolean ocean) {
       int index = localZ * CHUNK_SIDE + localX;
+      if (!underwater && this.gorgeLedge[index]) {
+         return this.palette.stream();
+      }
       if (underwater) {
          if (ocean) {
             return this.palette.sea();

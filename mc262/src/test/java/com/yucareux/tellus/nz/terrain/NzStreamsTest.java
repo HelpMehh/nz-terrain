@@ -43,8 +43,8 @@ class NzStreamsTest {
     * Tiles (0, 0) and (1, 0) at level 0, land 100 m high (Y 113), with:
     * <ul>
     *    <li>a creek (class 40, 1 block wide) along row 50 from x 10 to 200, 80 m high (Y 103) west of x 100 and 78 m
-    *    (Y 102) east of it, into a river at x 201–210 (rows 45–55, 77 m: Y 102), with a hollow at 70 m beside it at
-    *    (150, 51);</li>
+    *    (Y 102) east of it, in a shallow channel (rows 40–60 at 84 m: Y 105, too shallow for a gorge), into a river at
+    *    x 201–210 (rows 45–55, 77 m: Y 102), with a hollow at 70 m beside it at (150, 51);</li>
     *    <li>a diagonal creek (class 30) at 90 m from (300, 100) to (320, 120);</li>
     *    <li>a big stream (class 90, 12 blocks wide) along row 300 from x 400 to 700, across the tile border, at 60 m
     *    (Y 93) in a gully whose floor is 7 blocks wide (rows 297–303, 61 m: Y 94);</li>
@@ -65,6 +65,9 @@ class NzStreamsTest {
          for (int x = tx * 512; x < (tx + 1) * 512; x++) {
             int px = x - tx * 512;
             if (x >= 10 && x <= 200) {
+               for (int pz = 40; pz <= 60; pz++) {
+                  set(height, px, pz, metres(84.0));
+               }
                double creek = x < 100 ? 80.0 : 78.0;
                stream(streams, level, height, px, 50, 40, creek);
             }
@@ -161,7 +164,7 @@ class NzStreamsTest {
       // The chunk generator takes a dry column's height from the sampler, not from the water column.
       assertEquals(102, NzTerrainSampler.sample(this.floor, SETTINGS, 150, 51, 0).terrainHeight());
       assertEquals(102, NzTerrainSampler.sample(this.floor, SETTINGS, 50, 50, 0).terrainHeight());
-      assertEquals(113, NzTerrainSampler.sample(this.floor, SETTINGS, 50, 49, 0).terrainHeight());
+      assertEquals(105, NzTerrainSampler.sample(this.floor, SETTINGS, 50, 49, 0).terrainHeight());
    }
 
    @Test
@@ -173,7 +176,7 @@ class NzStreamsTest {
       assertEquals(102, creek.terrainSurface());
       WaterSurfaceResolver.WaterColumnData land = this.column(50, 49);
       assertFalse(land.hasWater());
-      assertEquals(113, land.terrainSurface());
+      assertEquals(105, land.terrainSurface());
    }
 
    @Test
@@ -210,33 +213,54 @@ class NzStreamsTest {
       // Middle of the gorge: water at Y 93, the LiDAR's V 6 blocks out is 12 blocks higher (Y 105): the rim.
       assertEquals(93, this.streams.surfaceY(850, 400));
       assertEquals(92, this.streams.groundY(850, 400));
-      // A 1-block ledge on each side stays as it was (Y 95).
-      assertEquals(NONE, this.streams.groundY(850, 401));
-      assertEquals(NONE, this.streams.groundY(850, 399));
-      // From 2 blocks out the V is filled up to the rim; beyond the rim it is untouched.
-      for (int d = 2; d <= 5; d++) {
-         assertEquals(105, this.streams.groundY(850, 400 + d), "south " + d);
-         assertEquals(105, this.streams.groundY(850, 400 - d), "north " + d);
+      int[] widths = new int[3];
+      for (int x = 810; x <= 890; x++) {
+         for (int d = 1; d <= 7; d++) {
+            for (int z : new int[] {400 - d, 400 + d}) {
+               widths[NzStreams.ledgeWidth(x, z)]++;
+               this.assertBeside(x, z, d, 105);
+            }
+         }
       }
-      assertEquals(NONE, this.streams.groundY(850, 406));
-      assertEquals(NONE, this.streams.groundY(850, 407));
-      // The sampler gives the wall to the chunk generator, and the column is dry.
-      assertEquals(105, NzTerrainSampler.sample(this.floor, SETTINGS, 850, 402, 0).terrainHeight());
-      WaterSurfaceResolver.WaterColumnData wall = this.column(850, 402);
-      assertFalse(wall.hasWater());
-      assertEquals(105, wall.terrainSurface());
+      // The ledges vary along the gorge: none, 1 and 2 blocks all occur.
+      assertTrue(widths[0] > 0 && widths[1] > 0 && widths[2] > 0, java.util.Arrays.toString(widths));
+      // The sampler gives the wall or ledge to the chunk generator, and the column is dry.
+      for (int z = 401; z <= 405; z++) {
+         int ground = this.streams.groundY(850, z);
+         int expected = ground == NONE ? 93 + 2 * (z - 400) : ground;
+         assertEquals(expected, NzTerrainSampler.sample(this.floor, SETTINGS, 850, z, 0).terrainHeight());
+         WaterSurfaceResolver.WaterColumnData column = this.column(850, z);
+         assertFalse(column.hasWater());
+         assertEquals(expected, column.terrainSurface());
+      }
+   }
+
+   @Test
+   void rimsVaryWithinTheirRange() {
+      int[] seen = new int[2 * NzStreams.RIM_JITTER_BLOCKS + 1];
+      for (int x = 0; x < 200; x++) {
+         for (int z = 0; z < 200; z++) {
+            seen[NzStreams.rimJitter(x, z) + NzStreams.RIM_JITTER_BLOCKS]++;
+         }
+      }
+      for (int count : seen) {
+         assertTrue(count > 0, java.util.Arrays.toString(seen));
+      }
    }
 
    @Test
    void aGorgeRisesFromItsEnds() {
-      // The run starts at x 800 next to the shallow valley: walls of 2, 4, 6, … blocks over the stream's ground (Y 93).
-      assertEquals(NONE, this.streams.groundY(800, 402));
-      assertEquals(99, this.streams.groundY(802, 402));
-      assertEquals(101, this.streams.groundY(803, 402));
-      assertEquals(105, this.streams.groundY(806, 402));
-      assertEquals(101, this.streams.groundY(897, 402));
+      // The run starts at x 800 next to the shallow valley and ends at x 900: walls of 2, 4, 6, … blocks over the
+      // stream's ground (Y 93), up to the rim 12 above it.
+      for (int x = 800; x <= 900; x++) {
+         int along = Math.min(x - 800, 900 - x);
+         for (int d = 1; d <= 5; d++) {
+            this.assertBeside(x, 400 + d, d, 93 + Math.min(12, 2 * (along + 1)));
+         }
+      }
       // Beside the stream outside the gorge, nearer to a centreline that isn't one: untouched.
       assertEquals(NONE, this.streams.groundY(797, 402));
+      assertFalse(this.streams.isGorgeLedge(797, 401));
       assertEquals(NONE, this.streams.groundY(903, 402));
    }
 
@@ -244,6 +268,24 @@ class NzStreamsTest {
    void aShortVIsNoGorge() {
       assertEquals(NONE, this.streams.groundY(951, 402));
       assertEquals(97, NzTerrainSampler.sample(this.floor, SETTINGS, 951, 402, 0).terrainHeight());
+   }
+
+   /**
+    * Block (x, z), {@code d} blocks beside the gorge's water (Y 93) in the test V (LiDAR Y 93 + 2d), whose wall would
+    * reach {@code rim}: a ledge within the ledge width (at most 1 above the water), else the rim give or take the
+    * jitter where that is above the LiDAR, else untouched.
+    */
+   private void assertBeside(int x, int z, int d, int rim) {
+      String at = x + ", " + z;
+      int lidar = 93 + 2 * d;
+      if (d <= NzStreams.ledgeWidth(x, z)) {
+         assertTrue(this.streams.isGorgeLedge(x, z), at);
+         assertEquals(Math.min(lidar, 94), this.streams.groundY(x, z), at);
+         return;
+      }
+      assertFalse(this.streams.isGorgeLedge(x, z), at);
+      int wall = d * d > NzStreams.GORGE_RADIUS_BLOCKS * NzStreams.GORGE_RADIUS_BLOCKS ? NONE : rim + NzStreams.rimJitter(x, z);
+      assertEquals(wall > lidar ? wall : NONE, this.streams.groundY(x, z), at);
    }
 
    private WaterSurfaceResolver.WaterColumnData column(int x, int z) {
