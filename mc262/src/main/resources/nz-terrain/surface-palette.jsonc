@@ -1,0 +1,162 @@
+// NZ surface palette: which blocks make up the ground in New Zealand worlds (TERR-11).
+// The rules and numbers come from .claude/context/surface-palette.md; the block mixes are being tuned in game.
+//
+// Read at every world start. To tune without rebuilding the mod, copy this file to
+// <game folder>/config/nz-terrain-surface.jsonc and edit that copy: it wins over this one while it exists.
+// Then open a new world (or fly to chunks not generated yet). Copy the result back here when done and delete
+// the copy in config/.
+//
+// Comments (// and /* */) are allowed. Unknown keys are errors, so typos don't go unnoticed: a broken file is
+// reported in the log and in chat, and the world uses the palette built into the mod instead.
+{
+  "format": 1,
+
+  // Materials. Wherever a material goes, write one of:
+  //   - a block ID: "stone", "minecraft:stone", later "aotearoa:…" (MODS-17);
+  //   - the name of a mix from this list;
+  //   - a mix in place: {"blocks": {…}, "pattern": …}.
+  // A mix picks one of its blocks by weight (the numbers are shares, they need not add up to 100), by pattern:
+  //   "noise"   each block on its own: salt and pepper;
+  //   "patches" one block per patch, patches about "size" blocks across (default 4);
+  //   "bands"   one block per horizontal band "size" blocks thick (default 3), gently wavy, like strata.
+  "mixes": {
+    // Schist near the Alpine Fault: lighter, a little green from the tuff.
+    "schist": {"blocks": {"stone": 60, "andesite": 25, "tuff": 15}, "pattern": "noise"},
+    // Greywacke of the main divide: darker. Not used yet; to compare with schist in the tuning box.
+    "greywacke": {"blocks": {"stone": 50, "andesite": 30, "cobbled_deepslate": 20}, "pattern": "noise"},
+    "mossy_rock": {"blocks": {"stone": 50, "mossy_cobblestone": 25, "moss_block": 25}, "pattern": "noise"}
+  },
+
+  // The side of a step: where a column stands higher than a neighbour, the blocks below its "under" layers
+  // that show on the side are this material, down to the neighbour's top. Below that, and wherever nothing
+  // shows, the ground is plain stone. A surface can set its own "face".
+  "face": "schist",
+
+  // Land columns: the first rule that matches wins. A rule matches when the column's LCDB class is in
+  // "lcdb" (any class when "lcdb" is missing) and its slope and height are within the limits it gives:
+  //   min_slope, max_slope    game degrees: the slope as seen in game, 1.5x steeper than the real one
+  //                           (tan(game) = 1.5 x tan(real)). 45 = 1-block steps, 63 = 2-block, 72 = 3-block.
+  //   min_height, max_height  real metres above sea level (Y = 63 + metres / 2).
+  // A "min" limit includes its value, a "max" limit excludes it.
+  "land": [
+    // Permanent snow and ice (14): too steep to hold snow, rock with a dusting of it; below the glacier
+    // line (about where snow survives the summer here) bare glacier ice, above it snow.
+    {"lcdb": [14], "min_slope": 56, "surface": "snowy_rock"},
+    {"lcdb": [14], "max_height": 1800, "surface": "glacier_ice"},
+    {"lcdb": [14], "surface": "snow"},
+    // Gravel or rock (16): flats (riverbeds, outwash, moraine), scree up to the angle of repose, then rock.
+    {"lcdb": [16], "max_slope": 22, "surface": "gravel_flats"},
+    {"lcdb": [16], "max_slope": 46, "surface": "scree"},
+    {"lcdb": [16], "surface": "rock"},
+    // LCDB lake, river (20, 21) or estuary (22) where the water layer says dry land: gravel beside rivers
+    // and lakes, mud flats in estuaries.
+    {"lcdb": [20, 21], "surface": "gravel_flats"},
+    {"lcdb": [22], "surface": "salt_marsh"},
+    {"lcdb": [10], "surface": "beach"},
+    {"lcdb": [12], "surface": "landslide"},
+    // Every class from here on is vegetated. Too steep for soil (2-block steps): a rock face, mossy below
+    // the treeline.
+    {"min_slope": 63, "max_height": 1000, "surface": "mossy_rock"},
+    {"min_slope": 63, "surface": "rock"},
+    {"lcdb": [15], "surface": "alpine_herbfield"},
+    // Tall tussock (43), depleted tussock grassland (44).
+    {"lcdb": [43, 44], "surface": "tall_tussock"},
+    {"lcdb": [55], "surface": "subalpine_shrubland"},
+    // Indigenous forest (69), broadleaved indigenous hardwoods (54).
+    {"lcdb": [69, 54], "surface": "forest_floor"},
+    // Fernland (50), manuka/kanuka (52), matagouri or grey scrub (58).
+    {"lcdb": [50, 52, 58], "surface": "manuka_scrub"},
+    // Freshwater herbs (45), flaxland (47), peat shrubland (80, Chathams).
+    {"lcdb": [45, 47, 80], "surface": "wetland"},
+    // Saline herbs (46), mangroves (70).
+    {"lcdb": [46, 70], "surface": "salt_marsh"},
+    // Dune shrubland (81, Chathams).
+    {"lcdb": [81], "surface": "beach"},
+    // Rewilded: human cover (1, 2, 5, 6, 30, 33, 40, 41, 51, 56, 64, 68, 71), no LCDB polygon (0) and any
+    // other class. A placeholder until the vegetation layer (PIPE-8) says what grows there.
+    {"surface": "forest_floor"}
+  ],
+
+  // Under water, by the water layer: the floor of the sea, lakes and rivers.
+  "water": {"sea": "sea_floor", "lake": "lake_floor", "river": "riverbed"},
+
+  // Surfaces:
+  //   "top"    the top block (a material);
+  //   "under"  the layers below it, top down: [{"block": material, "depth": blocks}], depth a number or
+  //            [min, max] (it then varies from column to column); stone follows below them;
+  //   "face"   see above (default: the top-level "face");
+  //   "cover"  a block placed on top of the surface on dry land, e.g. a snow layer; "air" = none.
+  "surfaces": {
+    "rock": {"top": "schist"},
+    "snowy_rock": {
+      "top": "schist",
+      "cover": {"blocks": {"snow": 60, "air": 40}, "pattern": "patches", "size": 3}
+    },
+    "mossy_rock": {"top": "mossy_rock", "face": "mossy_rock"},
+    "scree": {
+      "top": {"blocks": {"gravel": 60, "andesite": 20, "stone": 10, "cobblestone": 10}, "pattern": "noise"},
+      "under": [{"block": "gravel", "depth": 2}]
+    },
+    "gravel_flats": {
+      "top": {"blocks": {"gravel": 85, "andesite": 10, "stone": 5}, "pattern": "noise"},
+      "under": [{"block": "gravel", "depth": 3}]
+    },
+    "landslide": {
+      "top": {"blocks": {"coarse_dirt": 40, "gravel": 40, "stone": 20}, "pattern": "patches", "size": 3}
+    },
+    "snow": {
+      "top": "snow_block",
+      "under": [{"block": "snow_block", "depth": 3}, {"block": "packed_ice", "depth": 4}]
+    },
+    "glacier_ice": {
+      "top": {"blocks": {"packed_ice": 80, "blue_ice": 10, "gravel": 10}, "pattern": "noise"},
+      "under": [{"block": "packed_ice", "depth": 6}],
+      "face": {"blocks": {"packed_ice": 90, "blue_ice": 10}, "pattern": "noise"}
+    },
+    "alpine_herbfield": {
+      "top": {"blocks": {"grass_block": 60, "stone": 15, "moss_block": 15, "coarse_dirt": 10}, "pattern": "patches", "size": 2},
+      "under": [{"block": "dirt", "depth": 1}]
+    },
+    "tall_tussock": {
+      "top": {"blocks": {"grass_block": 80, "coarse_dirt": 20}, "pattern": "patches"},
+      "under": [{"block": "dirt", "depth": [1, 2]}]
+    },
+    "subalpine_shrubland": {
+      "top": {"blocks": {"grass_block": 60, "podzol": 25, "coarse_dirt": 15}, "pattern": "patches"},
+      "under": [{"block": "dirt", "depth": 2}]
+    },
+    "forest_floor": {
+      "top": {"blocks": {"podzol": 45, "coarse_dirt": 20, "moss_block": 15, "rooted_dirt": 10, "grass_block": 10}, "pattern": "patches"},
+      "under": [{"block": "dirt", "depth": 3}]
+    },
+    "manuka_scrub": {
+      "top": {"blocks": {"grass_block": 60, "podzol": 20, "coarse_dirt": 20}, "pattern": "patches"},
+      "under": [{"block": "dirt", "depth": 3}]
+    },
+    "wetland": {
+      "top": {"blocks": {"grass_block": 50, "mud": 30, "moss_block": 20}, "pattern": "patches"},
+      "under": [{"block": "mud", "depth": 2}, {"block": "dirt", "depth": 2}]
+    },
+    "salt_marsh": {
+      "top": {"blocks": {"mud": 60, "grass_block": 40}, "pattern": "patches"},
+      "under": [{"block": "mud", "depth": 3}]
+    },
+    // Grey West Coast beach until MODS-17's grey sand: gravel with a little sand.
+    "beach": {
+      "top": {"blocks": {"gravel": 70, "andesite": 15, "sand": 15}, "pattern": "noise"},
+      "under": [{"block": "gravel", "depth": 3}]
+    },
+    "riverbed": {
+      "top": {"blocks": {"gravel": 90, "andesite": 10}, "pattern": "noise"},
+      "under": [{"block": "gravel", "depth": 2}]
+    },
+    "lake_floor": {
+      "top": {"blocks": {"mud": 50, "clay": 30, "gravel": 20}, "pattern": "patches"},
+      "under": [{"block": "clay", "depth": 2}]
+    },
+    "sea_floor": {
+      "top": {"blocks": {"gravel": 60, "sand": 40}, "pattern": "patches"},
+      "under": [{"block": "sand", "depth": 3}]
+    }
+  }
+}

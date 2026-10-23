@@ -2,14 +2,18 @@
 
 Which blocks make up the ground: rock, scree, riverbeds, snow and ice, and the
 soil under each kind of vegetation. TERR-3 worked out the rules; TERR-11
-turns them into surface rules and tunes the blocks in game.
+built them into the generator and tunes the blocks in game.
 
-**Status (TERR-3, 22 Oct 2026):** the rules and thresholds come from the
-test-area data (below) and are meant to last. The block mixes are a first
-guess, not yet seen in game. A WorldPainter prototype was planned but
-dropped: painting by hand was very slow, it can't show modded blocks or
-biome colours, and every change means repainting. Tuning happens in the
-generator instead (TERR-11).
+**Status (TERR-11, 23 Oct 2026):** the rules and thresholds come from the
+test-area data (below) and are meant to last. The generator uses them
+since `0.8.3+nz.6`, from the palette file
+`mc262/src/main/resources/nz-terrain/surface-palette.jsonc`: **that file
+is the source of truth** for rules, thresholds, blocks, mixes and depths;
+the tables below are the reasoning behind its first version. The block
+mixes are still the first guess: seen in saved chunks (`testing.md`), not
+yet in game. (A WorldPainter prototype was planned in TERR-3 but dropped:
+painting by hand was very slow, it can't show modded blocks or biome
+colours, and every change means repainting.)
 
 ## Slopes: real vs in game
 
@@ -63,7 +67,10 @@ Measured on all of test area 1 (LCDB v6 classes, 3 m heights and slopes).
 ## Proposed palette
 
 "Mix" percentages are the share of top blocks. Subsurface is what shows on
-the vertical sides of steps, so it matters on steep ground.
+the vertical sides of steps, so it matters on steep ground. Below the
+subsurface layers, the visible side of a step shows the palette's `face`
+material (the rock mix, `schist`), not plain stone; mossy rock and
+glacier ice have their own face.
 
 ### Rules, in order (later wins)
 
@@ -100,7 +107,14 @@ the vertical sides of steps, so it matters on steep ground.
 | Riverbed (under water) | water = river | gravel 90, andesite 10 | gravel |
 | Lake floor | water = lake | mud 50, clay 30, gravel 20 | clay |
 | Sea floor | water = sea | gravel 60, sand 40 | sand |
-| Rewilded (placeholder) | 1, 2, 5, 6, 40, 41, 51, 64, 68, 71 | as forest floor | |
+| Rewilded (placeholder) | 1, 2, 5, 6, 30, 33, 40, 41, 51, 56, 64, 68, 71, 0 (no polygon) | as forest floor | |
+
+Classes not in test area 1 got a surface in TERR-11 by judgement, not from
+data (check them with test area 2, TERR-16): depleted grassland 44 →
+tussock; fernland 50 and matagouri/grey scrub 58 → mānuka scrub; flaxland
+47 and peat shrubland 80 → wetland; mangrove 70 → salt marsh; dune
+shrubland 81 → beach; LCDB lake/river 20, 21 on dry land → gravel flats,
+estuary 22 → salt marsh.
 
 Notes:
 
@@ -118,7 +132,9 @@ Notes:
 Vanilla can't show some NZ ground well. Custom blocks for these come from
 the `aotearoa` mod in `nz-mods` (MODS-17), which this generator requires
 (hub `interfaces.md`), so there are no permanent fallbacks. The vanilla
-mixes below are placeholders until MODS-17 lands.
+mixes below are placeholders until MODS-17 lands; then its block IDs
+(`aotearoa:…`) go into the palette file, and `nz-terrain` adds the
+`aotearoa` dependency.
 
 | Custom block (candidate) | Where | Vanilla placeholder |
 |---|---|---|
@@ -130,10 +146,10 @@ mixes below are placeholders until MODS-17 lands.
 The list is a starting point; MODS-17 decides the set. More rock types
 come with the `rock` tile layer (PIPE-15, below).
 
-## For the generator (TERR-11)
+## Tuning in game (TERR-11)
 
-- LCDB edges are coarse at 3 m. Use the class as a base and let slope
-  refine it, as in rules 2–4. Aspect could later move snow lower on shady
+- LCDB edges are coarse at 3 m. The class is the base and slope refines
+  it, as in rules 2–4. Aspect could later move snow lower on shady
   south faces and higher on north faces; LCDB already holds most of that.
 - **Tuning box:** x −76,800 to −75,776, z 94,208 to 95,232 (1,024 × 1,024,
   four regions, Y 179–995). It has every surface type except snow above
@@ -141,18 +157,39 @@ come with the `rock` tile layer (PIPE-15, below).
   scree, bluffs and the Franz Josef glacier tongue. Teleport targets:
   Sentinel Rock `-76155 300 94405`, glacier terminus `-75971 350 95066`.
   For snow, go up the glacier to the névé around x −74,384, z 96,496
-  (Y≈1,140).
-- **To tune in game:**
-  - Rock colour: the mix above (lighter, a little green from tuff, like
-    the schist near the Alpine Fault) vs stone 50, andesite 30, cobbled
-    deepslate 20 (darker, like greywacke at the main divide).
+  (Y≈1,140). The NZ preset spawns at Sentinel Rock, inside the box.
+- **How to tune** (works in the dev client and in a launcher instance):
+  1. Copy `surface-palette.jsonc` from the repo to
+     `<game folder>/config/nz-terrain-surface.jsonc`. While that file
+     exists it wins over the mod's own; the log and chat say so at every
+     world start.
+  2. Edit it (its comments explain the format), then create a new New
+     Zealand world, or fly to chunks not generated yet. The palette is
+     read at every world start, so no restart of the game is needed;
+     chunks already generated keep their old blocks.
+  3. A mistake (unknown key, block or surface) shows in chat and the log,
+     and the world uses the mod's own palette instead.
+  4. When happy, copy the file back over the repo's
+     `surface-palette.jsonc`, delete the config copy, and record the
+     choices below.
+- **To decide in game:**
+  - Rock colour: the schist mix (lighter, a little green from tuff, like
+    the schist near the Alpine Fault) vs the greywacke mix (stone 50,
+    andesite 30, cobbled deepslate 20; darker, like the main divide). Both
+    are in the file's `mixes`.
   - Steep vegetation cut-off: 63° game (2-block steps) vs 56°.
   - Snow vs glacier ice: 1,800 m vs a lower line.
   - Beach: gravel vs gravel and sand.
-  - Noise (salt-and-pepper) vs patches for each mix: patches likely suit
-    soils, noise suits rock and scree.
-  - Rock in horizontal bands like strata, for cliffs (also TERR-14).
-  - How deep the soil goes on steep ground (the Subsurface column).
+  - Noise vs patches for each mix (the file starts with patches for
+    soils, noise for rock and scree), and patch sizes.
+  - Rock in horizontal bands like strata on cliffs (`"pattern": "bands"`
+    on the face mix; also TERR-14).
+  - How deep the soil goes on steep ground (`under` depths). In the
+    TERR-11 check, about 30 % of the sky-facing step sides in the tuning
+    box were dirt, mostly the forest's 3 dirt layers: a candidate for
+    thinner soil.
+  - The snowy rock's snow cover (60 % snow layers in patches).
+- **Final choices:** not tuned yet.
 
 ## Open questions
 

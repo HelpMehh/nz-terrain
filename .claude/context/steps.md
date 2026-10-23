@@ -234,8 +234,11 @@ them when they come up.
     floors by distance to land, LiDAR or `bed` where deeper/measured.
   - Checked: every lake, river and sea column in five test areas wet at
     exactly the expected surface (`testing.md`).
-- **Not done:** the desktop check with DH (`testing.md`): river steps,
-  lakes, DH water. No waterfall handling for multi-block drops; `bed` is
+- **Desktop check (23 Oct 2026):** rivers look much better, but every
+  step still has a lip (a water wall on a sill; `testing.md`), to fix in
+  TERR-14. Water in DH's LODs looks right.
+- **Not done:** the desktop check of lakes up close. No waterfall
+  handling for multi-block drops; `bed` is
   only read at the same tile level (coarse-only bathymetry and the sea's
   `bed`: PIPE-10).
 - **Needs:** TERR-8.
@@ -255,6 +258,22 @@ them when they come up.
   - Tune the palette in game in the tuning box in `surface-palette.md`,
     and record the final choices there.
 - **Needs:** TERR-3. MODS-17 for the NZ blocks; placeholders until then.
+- **Built (23 Oct 2026), version `0.8.3+nz.6`:**
+  - `com.yucareux.tellus.nz.terrain.NzSurface`: one hook in
+    `fillTellusSurface` hands every NZ column to it instead of Tellus's
+    surface palette and snow (`tellus-internals.md` §12). Slope by Horn
+    on the height tiles, in game degrees; step sides show a `face` mix.
+  - The palette is the data file
+    `mc262/src/main/resources/nz-terrain/surface-palette.jsonc`
+    (`NzSurfacePalette`, `NzSurfaceMix`: weighted mixes as noise, patches
+    or bands). A copy in `config/nz-terrain-surface.jsonc` wins, read at
+    every world start, for tuning without a rebuild.
+  - Vanilla placeholders: MODS-17 isn't done, so no `aotearoa`
+    dependency yet.
+  - Checked headless: 98.9 % of 200,192 columns in the tuning box have a
+    top from the right mix, at the right shares (`testing.md`).
+- **Still to do:** tune in game in the tuning box and record the final
+  choices (`surface-palette.md`, "Tuning in game"). Tick the step then.
 
 ### [ ] TERR-12 — NZ biomes
 
@@ -274,7 +293,10 @@ them when they come up.
 
 - **Do:** place flora by vegetation class and canopy height, using the
   placed-feature IDs from hub `interfaces.md` (from the `aotearoa` mod,
-  which this generator requires).
+  which this generator requires). Tellus's tree pass turns the ground to
+  grass wherever it tries a tree, even on rock faces where the tree then
+  fails (TERR-11, `tellus-internals.md` §12): the NZ placement should
+  leave the surface blocks alone.
 - **Needs:** MODS-9, HUB-3.
 
 ### [ ] TERR-14 — Streams and micro-detail
@@ -283,7 +305,9 @@ them when they come up.
   - streams from the stream layer;
   - slot gorges along them;
   - boulders;
-  - cliff rock bands.
+  - cliff rock bands;
+  - river steps without lips: the bed runs on under a step and the step
+    flows (TERR-10 desktop check, `tellus-internals.md` §11.2).
 
 ### [ ] TERR-15 — DH fast LOD from our tiles
 
@@ -291,7 +315,10 @@ them when they come up.
   vegetation. Heights and cover already reach DH through the generator
   hooks (`tellus-internals.md` §9); this step is about speed (read the
   tiles' coarse level for each LOD detail, hub `interfaces.md`) and the
-  vegetation colour.
+  vegetation colour. The LOD surface blocks are still Tellus's
+  (`resolveLodSurface`, `resolveUltraFastLodSurface`): give them the NZ
+  palette's top blocks (`NzSurfacePalette.land` and the water floors,
+  with slope from the LOD's tile level; `tellus-internals.md` §12).
 
 ### [ ] TERR-16 — Test area 2 in game
 

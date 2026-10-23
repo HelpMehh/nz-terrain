@@ -379,8 +379,63 @@ Code: `0.8.3+nz.5`.
     ticked); the rest is flowing water spreading over low ground.
   - "Can't keep up … 43 s behind" once while the ~400 chunks generated.
     Speed isn't measured yet (TERR-18).
-- **Not checked yet (desktop, with DH):** how the river steps near spawn
-  look (around −76045, 93662; the TERR-8 desktop check saw sand rows
-  there), lakes and the river mouth up close and from DH, and that DH
-  water matches the loaded chunks at the boundary.
+- **Desktop client check of the river (23 Oct 2026)**, `0.8.3+nz.5`, the
+  river near spawn (around −76045, 93662): much better than Tellus's
+  reaches (TERR-8 check above): whole channels wet, level across, gravel
+  bars dry. Still a **lip at every step**: the upper reach ends in a
+  1-block wall of still water, standing on a 1-block sill whose top is
+  level with the lower reach's surface, so each step looks like a small
+  weir. The sill is the floor: `NzInlandWater` puts it `depth` below each
+  column's own surface, so it steps down with the water. (The sill showed
+  as a row of sand then: Tellus's riverbed; since TERR-11 it is the
+  riverbed mix.) Fix ideas: `tellus-internals.md` §11.2.
+- **DH water (desktop, 23 Oct 2026):** water in DH's distant LODs looks
+  right (reported as "looks great").
+- **Not checked yet (desktop):** lakes and the river mouth up close.
 
+## Surface check (TERR-11, 23 Oct 2026)
+
+Code: `0.8.3+nz.6`.
+
+- **Build:** passes, 674 tests (600 upstream + 74 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New: the jar's palette against
+  the rules in `surface-palette.md`, file mistakes named by place, the
+  `config/` tuning copy and a broken one, mix shares for every pattern,
+  game-degree slope on a ramp, a column's top, layers and face, water
+  floors, chunk bounds.
+- **Headless server check (passed)** with the test-area-1 tiles, set up
+  as in TERR-8 (`tiles_dir`, a new `level-name`, `level-type=tellus\:nz`).
+  Five 128 × 128 areas forceloaded through a FIFO: Sentinel Rock
+  (`-76220 94340 -76093 94467`), the glacier terminus
+  (`-76035 95000 -75908 95127`), the névé (`-74448 96432 -74321 96559`),
+  `-76400 94700 -76273 94827` and the tuning box's north-west corner
+  (`-76800 94208 -76673 94335`). Spawn as before (−76040, 212, 93845).
+  - Saved chunks read with a small Python Anvil reader; each column's
+    surface recomputed independently from the tiles (pipeline
+    `nz_pipeline.tiles.read_tile`, Horn slope × 1.5, the palette file's
+    rules) and compared with its top block, skipping plants, leaves, logs
+    and snow layers. **197,914 of 200,192 columns (98.9 %) have a top
+    from their surface's mix**, and the shares match the weights (rock:
+    stone 59 %, andesite 24 %, tuff 15 %; forest floor: podzol 43 %,
+    coarse dirt 20 %, moss 14 %, grass 11 %, rooted dirt 10 %). The
+    first `under` layer was right in all but 21 columns. Snowy rock had a
+    snow layer on 56 % (60 % asked, in patches).
+  - The 2,278 others: dirt under vanilla tree trunks (976, forest),
+    grass where Tellus's tree pass tried a tree on a rock or mossy-rock
+    face (410), ores and gravel blobs from ore features at the surface
+    (about 800). `tellus-internals.md` §12.
+  - Sky-facing step sides (blocks between a column's top and its lowest
+    neighbour's): stone 36 %, dirt 31 %, mossy cobblestone 12 %, moss
+    12 %, andesite 6 %, tuff 3 %: the rock faces show the schist and
+    mossy mixes, not plain stone.
+  - The areas held no lake or sea floor and only 21 riverbed columns
+    (most of the Waiho bed is dry LCDB gravel, i.e. gravel flats);
+    water floors are covered by the unit tests only.
+  - Tuning copy: a copy with an unknown block (`tuf`) logged
+    `can't use config/nz-terrain-surface.jsonc, using the mod's own
+    surface palette: mixes.schist.blocks.tuf "tuf" is neither a mix nor a
+    block the game knows`; a valid copy logged `surface palette from
+    config/nz-terrain-surface.jsonc (a tuning copy; …)`.
+- **Not checked yet (desktop):** how it all looks, and the tuning itself
+  (`surface-palette.md`, "Tuning in game"). DH far away still shows
+  Tellus's colours (TERR-15).

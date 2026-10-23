@@ -16,11 +16,12 @@ coordinates and tile format the generator reads are in
   heights `com.yucareux.tellus.nz.terrain`), solid down to Y −272, fully
   offline (TERR-9; lat/lon by NZTM, `com.yucareux.tellus.nz.NzProjection`),
   with sea, lakes and rivers from the tiles' water layer (TERR-10,
-  `com.yucareux.tellus.nz.terrain.NzWater`). Biomes, surfaces and trees are
-  still Tellus's. Next step: see
-  `steps.md`.
+  `com.yucareux.tellus.nz.terrain.NzWater`), and NZ surface blocks from
+  the palette file `nz-terrain/surface-palette.jsonc` (TERR-11,
+  `com.yucareux.tellus.nz.terrain.NzSurface`; in-game tuning still open).
+  Biomes and trees are still Tellus's. Next step: see `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.5`** (TERR-10).
+  **`0.8.3+nz.6`** (TERR-11).
 
 ## Naming and versions (decided in TERR-6)
 
@@ -96,7 +97,7 @@ Without a display (e.g. a sandbox), the client can't open a window. Use
 |---|---|
 | `.claude/context/steps.md` | Starting a step ("Do step TERR-n"), or picking the next one. |
 | `.claude/context/tellus-layout.md` | Before reading or changing any Java code: how the source layers combine, where things live. |
-| `.claude/context/tellus-internals.md` | Changing coordinates, heights, world height, the underground, world settings, data sources, water, DH or online features: how Tellus does it, file:line pointers, the NZ hooks (§6). |
+| `.claude/context/tellus-internals.md` | Changing coordinates, heights, world height, the underground, world settings, data sources, water, surfaces, DH or online features: how Tellus does it, file:line pointers, the NZ hooks (§6). |
 | `.claude/context/upstream.md` | Merging upstream Tellus, or editing an upstream file (the list of NZ edits). |
 | `.claude/context/testing.md` | Running or recording tests, including the scale test. |
-| `.claude/context/surface-palette.md` | Choosing surface blocks: rock, scree, riverbeds, snow and ice, soils (TERR-3, TERR-11). |
+| `.claude/context/surface-palette.md` | Choosing or tuning surface blocks: rock, scree, riverbeds, snow and ice, soils; the palette file and how to tune it in game (TERR-3, TERR-11). |

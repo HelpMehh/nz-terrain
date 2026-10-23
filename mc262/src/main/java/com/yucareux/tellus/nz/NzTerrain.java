@@ -2,6 +2,7 @@ package com.yucareux.tellus.nz;
 
 import com.yucareux.tellus.Tellus;
 import com.yucareux.tellus.compat.TellusMinecraftCompat;
+import com.yucareux.tellus.nz.terrain.NzSurfacePalette;
 import com.yucareux.tellus.nz.tiles.NzTiles;
 import com.yucareux.tellus.nz.tiles.NzTilesConfig;
 import com.yucareux.tellus.platform.TellusPlatform;
@@ -22,7 +23,10 @@ import net.minecraft.world.level.levelgen.presets.WorldPreset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** NZ start-up: the config file, the tile store, and the tile checks when an NZ world is created or starts. */
+/**
+ * NZ start-up: the config file, the tile store and the surface palette, and the tile checks when an NZ world is
+ * created or starts.
+ */
 public final class NzTerrain {
    public static final Logger LOGGER = LoggerFactory.getLogger("tellus/nz");
    /** The "New Zealand" world type. */
@@ -43,12 +47,13 @@ public final class NzTerrain {
    }
 
    /**
-    * Rereads the tiles. A dedicated server with an NZ world and no tiles refuses to start: it would fill the world with
-    * flat ocean. Single player never gets here without tiles for a new world (the create screen refuses it), and an
+    * Rereads the tiles and the surface palette. A dedicated server with an NZ world and no tiles refuses to start: it
+    * would fill the world with flat ocean. Single player never gets here without tiles for a new world (the create screen refuses it), and an
     * existing one only warns, because throwing here would crash the whole client.
     */
    private static void reloadTiles(MinecraftServer server) {
       NzTiles tiles = NzTiles.reloadGlobal();
+      NzSurfacePalette.reloadGlobal(TellusPlatform.configDir());
       if (server.isDedicatedServer() && tiles.isEmpty() && nzSettings(server).isPresent()) {
          throw new IllegalStateException(noTilesMessage(tiles) + " The server doesn't start an NZ world without them."
             + refusedSets(tiles));
@@ -83,10 +88,13 @@ public final class NzTerrain {
          warnings = List.of();
          return;
       }
-      List<String> lines = tileWarnings(nz.get(), NzTiles.global());
+      List<String> lines = new ArrayList<>(tileWarnings(nz.get(), NzTiles.global()));
+      // Logged already when the palette was read; shown in chat with the rest.
+      List<String> paletteLines = NzSurfacePalette.globalWarnings();
       for (String line : lines) {
          LOGGER.warn(line);
       }
+      lines.addAll(paletteLines);
       warnings = List.copyOf(lines);
    }
 

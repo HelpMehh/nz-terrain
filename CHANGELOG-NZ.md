@@ -4,6 +4,22 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.6 (TERR-11, 23 Oct 2026)
+
+- New Zealand worlds get their own ground: rock, scree, gravel flats and
+  riverbeds, snow and glacier ice, and a soil per kind of vegetation, from
+  the land-cover class, the slope (in game degrees) and the height in the
+  tiles. Steep vegetated ground becomes a rock face, mossy below the
+  treeline. Sea, lake and river floors have their own blocks.
+- The sides of steps and cliffs show the rock mix instead of plain stone.
+- Blocks come in weighted mixes, spread as noise, patches or bands.
+  Everything (rules, thresholds, blocks, mixes, soil depths) is in one data
+  file, `nz-terrain/surface-palette.jsonc` in the jar. For tuning, a copy in
+  `config/nz-terrain-surface.jsonc` wins over it; it is read at every world
+  start, and a broken copy is reported in the log and chat.
+- Tellus's own surfaces, beaches and snow no longer run in NZ worlds. The
+  blocks are vanilla placeholders until the `aotearoa` ground blocks.
+
 ## 0.8.3+nz.5 (TERR-10, 23 Oct 2026)
 
 - New Zealand worlds take their water straight from the tiles' water

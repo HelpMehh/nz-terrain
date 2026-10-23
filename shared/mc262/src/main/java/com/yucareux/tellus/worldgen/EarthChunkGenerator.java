@@ -1296,6 +1296,14 @@ public final class EarthChunkGenerator extends ChunkGenerator {
             }
          }
          endFullChunkProfiling(EarthChunkGenerator.FullChunkPhase.FILL_BLOCKS_SOLID_SECTIONS, solidSectionsStartNs);
+         // NZ: NZ worlds take their surface blocks from the NZ surface palette instead of Tellus's surfaces and snow
+         com.yucareux.tellus.nz.terrain.NzSurface nzSurface = com.yucareux.tellus.nz.terrain.NzSurface.forChunk(
+            this.settings, chunkMinX, chunkMinZ, chunkMinY, chunkMaxY, heightGrid, gridSize, step,
+            sectionWriter != null ? sectionWriter::setBlock : (localX, localZ, y, state) -> {
+               cursor.set(chunkMinX + localX, y, chunkMinZ + localZ);
+               setChunkBlockStateDiscardingBlockEntity(chunk, cursor, state);
+            }
+         );
 
          for (int localZ = 0; localZ < CHUNK_SIDE; localZ++) {
             int worldZ = chunkMinZ + localZ;
@@ -1479,7 +1487,9 @@ public final class EarthChunkGenerator extends ChunkGenerator {
                waterColumnFillNs += elapsedFullChunkProfilingSince(subPhaseStartNs);
 
                subPhaseStartNs = beginFullChunkProfiling();
-               if (thinShellTerrain) {
+               if (nzSurface != null) {
+                  nzSurface.apply(localX, localZ, surface, underwater, oceanFlags[index]); // NZ: NZ surface palette
+               } else if (thinShellTerrain) {
                   if (sectionWriter != null) {
                      this.applyThinShellSurface(
                         sectionWriter,
@@ -1556,7 +1566,7 @@ public final class EarthChunkGenerator extends ChunkGenerator {
                }
                surfaceApplyNs += elapsedFullChunkProfilingSince(subPhaseStartNs);
 
-               if (surfaceSnow) {
+               if (surfaceSnow && nzSurface == null) { // NZ: the NZ palette has its own snow
                   subPhaseStartNs = beginFullChunkProfiling();
                   if (sectionWriter != null) {
                      this.applySnowCover(

@@ -375,7 +375,8 @@ matters).
      nodata;
    - cover: ESA no-data (0) on the sea, which Tellus treats as ocean, water
      (80) on lakes and rivers, else LCDB mapped by `NzCoverClasses`
-     (stopgap until TERR-11/12);
+     (stopgap: since TERR-11 it no longer picks surfaces, §12, but it still
+     drives Tellus's biomes and trees until TERR-12/13);
    - `oceanElevationSelected` true everywhere, so DH's LOD ocean floor
      trusts the sample instead of asking OpenWaters.
 
@@ -398,6 +399,8 @@ matters).
    in TERR-9 (§1, §10).
 7. **Water (TERR-10):** both water resolvers hand NZ worlds to `NzWater`
    (§11.2).
+8. **Surfaces (TERR-11):** `fillTellusSurface` hands every column to
+   `NzSurface` instead of Tellus's surface palette and snow (§12).
 
 ## 7. Data sources: fetch, cache, sample
 
@@ -543,12 +546,12 @@ searching for the `…_SOURCE.` fields (`:166`–`:175`):
 | Data | Generator methods (line) | NZ replacement |
 |---|---|---|
 | Height | `sampleSurfaceHeight` / `…LocalOnly` / `…MemoryOnly` (`:5253`–`:5294`); `useOceanZoom*` (`:5314`–`:5350`); `resolveLodMapterhornLandOverride`, `resolveLodOceanTerrainSurface`, `fallbackLodOceanTerrainSurface` (`:10153`–`:10180`) | **done (TERR-8)**: preload view (§6.3) |
-| DEM slope | `sampleDemSlopeDegrees` (`:6051`) | slope tile |
+| DEM slope | `sampleDemSlopeDegrees` (`:6051`) | NZ surfaces compute their own slope from the height tiles (TERR-11, §12); Tellus's snow, its only user here, doesn't run in NZ worlds |
 | Cover class | `sampleCoverClassFor{Base,Exact}Terrain`, `…ForTerrainShell`, `sampleVisualCoverClassFor…` (`:5361`–`:5406`); `sampleCoverClass`, `sampleVisualCoverClass` (`:10073`–`:10103`); `resolveDryOsmTerrainCoverClass` (`:10228`) | stopgap LCDB → ESA in the preload view (TERR-8); vegetation class (TERR-11/12) |
 | Land mask | `isKnownOceanLandMask` (`:10026`) | **done (TERR-8)**: water tile, preload view |
 | Köppen | `sampleKoppenCode` (`:3895`) | NZ biome/climate (TERR-12) |
 | Canopy, ecoregion | `placeTrees`, `applyPreparedTreePlacement` (`:4816`, `:4952`) | `custom_trees` off (TERR-9); canopy + vegetation class (TERR-13) |
-| Sand | `hasOvertureSandAt` (`:6047`) | off for NZ (TERR-9); surface palette (TERR-11) |
+| Sand | `hasOvertureSandAt` (`:6047`) | off for NZ (TERR-9); **done (TERR-11)**: NZ surface palette (§12) |
 | Water | `waterResolver.*` (§11) | **done (TERR-10)**: `NzWater`, hooks in both water resolvers (§11) |
 
 Outside the generator: `WaterSurfaceResolver.sampleSurface` (`:3344`,
@@ -563,8 +566,8 @@ itself instead of each call (§6.3). Every height path goes through the
 `sampleSurfaceHeight` family, and so does DH (§9), so that covers chunks
 and LODs together. Exceptions: the resolver's ocean floor (§11) and the
 DEM slope (`sampleDemSlopeDegrees`, LocalOnly, so it reads only what is
-already cached and otherwise has no value; TERR-11 computes slope from the
-height tile).
+already cached and otherwise has no value; NZ surfaces compute slope from
+the height tile, §12).
 
 ## 9. Distant Horizons
 
@@ -751,8 +754,77 @@ Tellus's trees 5 blocks back from water (`placeTrees`; TERR-13).
 - Flowing water spills a little over low ground at the edges of loaded
   areas (vanilla fluid ticks).
 
-**Open:** how steps look in game (a 1-block wall of water, or flowing
-water once something updates it), whether multi-block drops in steep
-rivers need waterfall handling, whether 1–3 blocks is deep enough for big
-rivers, and how lakes look from DH (desktop check). Streams narrower than
-a block (`streams` layer) are TERR-14.
+**River steps in game (desktop, 23 Oct 2026):** each step is a 1-block
+wall of still water on a 1-block sill, the sill's top level with the
+lower reach's surface: it reads as a weir ("lip"). Nothing makes the wall
+flow, because the NZ regions carry no waterfall flags. Two parts to a fix
+(TERR-14):
+
+- **Sill:** take a step's floor from the lower reach (e.g. a river
+  column's floor at most `depth` below the lowest river surface within a
+  few blocks), so the bed runs on under the step instead of stepping
+  with the water.
+- **Wall:** let the step flow. Tellus already has the mechanism:
+  `EarthChunkGenerator.isWaterfallSourceColumn` marks a water column for
+  post-processing when `WaterSurfaceResolver.resolveWaterfallInfo` of a
+  neighbour says it drops, and vanilla then turns the top block into
+  flowing water. Feeding NZ step edges into that (or marking them from
+  `NzWater` directly) would give a short riffle instead of a wall.
+
+**Open:** whether multi-block drops in steep rivers need waterfall
+handling, whether 1–3 blocks is deep enough for big rivers, and how lakes
+look up close (desktop check; water in DH's LODs looked right, 23 Oct
+2026). Streams narrower than a block (`streams` layer) are TERR-14.
+
+## 12. Surfaces (TERR-11)
+
+How Tellus does it: per column, `fillTellusSurface` fills the shell with
+stone, then `applyThinShellSurface` picks a `SurfacePalette` (top,
+underwater top, filler, depth) from the biome, the ESA cover class and the
+height grid's slope/convexity (`selectFullChunkSurfacePalette`: mountain
+rules, ocean beaches, Overture sand, DEM deepslate slopes, badlands),
+turns some tops into ore (`ThinShellSurfaceOre`), and then
+`applySnowCover` puts snow on snowy biomes and persistent-snow cover.
+
+**NZ worlds:** one hook in `fillTellusSurface` (the per-column loop):
+`m262:nz/terrain/NzSurface.forChunk` before the loop (null in other
+worlds) and `apply(localX, localZ, surface, underwater, ocean)` in place
+of the surface calls; the snow pass is skipped. None of the Tellus
+surface rules above run. The shell fill and `resolveMountainMassFillBlock`
+(it only ever returns stone) are untouched.
+
+- **Inputs**, from the tiles at level 0: LCDB class (nodata → 0), water
+  class, height in metres, and the slope by Horn's 3 × 3 method on those
+  heights (`NzTerrainSampler.pixelElevation`, so sea pixels use the
+  placeholder sea floor), in **game** degrees: rise per block ×
+  `terrestrial_height_scale / world_scale` (0.5 blocks per metre), i.e.
+  `tan(game) = 1.5 × tan(real)`. "Underwater" and "ocean" come from the
+  generator's water arrays, so they match the water actually placed.
+- **Column:** top block, the `under` layers, then the `face` material down
+  to one above the lowest of the 4 neighbours (from the generator's height
+  grid, after water floors), so step and cliff sides show the rock mix;
+  then the `cover` block on top on dry land. Never below the shell
+  (`surface − underground_depth + 1`) or outside the chunk.
+- **Palette** (`m262:nz/terrain/NzSurfacePalette`, `NzSurfaceMix`): the
+  file `mc262/src/main/resources/nz-terrain/surface-palette.jsonc` (its
+  comments are the format's documentation). Read at `SERVER_STARTING`
+  (`NzTerrain.reloadTiles`); `config/nz-terrain-surface.jsonc` wins while it
+  exists. Gson's lenient parser allows the comments; the reader itself
+  rejects unknown keys, blocks and surfaces, and a land list without a
+  catch-all last rule. A broken tuning copy falls back to the jar's
+  palette with a warning in the log and chat; a broken jar palette fails
+  the tests. Mix picks hash the block position with a salt per place in
+  the file, so they don't depend on the world seed or generation order.
+- **Not covered:** `getBaseColumn` still answers stone (only used for
+  heights and structures). DH's fast LOD still colours distant terrain
+  with Tellus's palette (`resolveLodSurface`, `resolveUltraFastLodSurface`):
+  TERR-15. The dormant refinement rebuild path (§4) has no surface hook.
+- **Later stages that change NZ tops** (TERR-11 check, `testing.md`):
+  - Tellus's tree pass (`placeTrees`, on ESA tree cover) sets the ground
+    to grass wherever it tries a tree on a non-dirt block, even when the
+    tree then fails: grass blocks on mossy-rock and rock faces in
+    forest. Vanilla trees turn the block under their trunk to dirt.
+    TERR-13 replaces the tree pass.
+  - Ore features (and `ore_gravel`) replace stone, andesite and tuff, so a
+    few ore and gravel blocks show at the surface of rock (about 0.1 % of
+    columns).
