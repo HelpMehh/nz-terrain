@@ -189,7 +189,13 @@ come with the `rock` tile layer (PIPE-15, below).
   - Snow vs glacier ice: 1,800 m vs a lower line.
   - Beach: gravel vs gravel and sand.
   - Noise vs patches for each mix (the file starts with patches for
-    soils, noise for rock and scree), and patch sizes.
+    soils, noise for rock and scree), and patch sizes. Seen from above
+    at about 1,000 m (TERR-14 step 4 desktop look, around −73598,
+    101725): the shrubland and tussock soils read as hard-edged brown and
+    green diamonds (podzol and coarse dirt patches in grass). Candidates:
+    fewer brown blocks, other sizes, or ragged patch edges (a change to
+    `NzSurfaceMix`'s patches). Flora (TERR-13) and the tussock tint
+    (MODS-19) will cover much of it.
   - Rock in horizontal bands like strata on cliffs (`"pattern": "bands"`
     on the face mix; also TERR-14).
   - How deep the soil goes on steep ground (`under` depths). In the

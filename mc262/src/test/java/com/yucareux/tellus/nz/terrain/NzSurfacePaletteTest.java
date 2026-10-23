@@ -167,9 +167,17 @@ class NzSurfacePaletteTest {
       // Moraine up high, riverbeds down low; creeks mossy in the bush, bare above it.
       assertEquals(0.01, palette.boulders("gravel_flats", 5.0, 700.0, false).chance(), 1.0e-12);
       assertEquals(0.003, palette.boulders("gravel_flats", 5.0, 50.0, false).chance(), 1.0e-12);
-      assertSame(palette.boulders("stream_bed", 10.0, 500.0, false).top(), rockfall.top());
+      // Bush creeks: washed grey schist (the rock mix) with the moss cap, below cliffs too.
+      NzSurfacePalette.BoulderRule bushCreek = palette.boulders("stream_bed", 10.0, 500.0, false);
+      assertSame(palette.land(16, 50.0, 100.0).top(), bushCreek.block());
+      assertSame(rockfall.top(), bushCreek.top());
+      assertSame(bushCreek.block(), palette.boulders("stream_bed", 10.0, 500.0, true).block());
+      // Above the bush: the darker, weathered greywacke, no cap; moraine and riverbeds keep the schist.
       NzSurfacePalette.BoulderRule alpineCreek = palette.boulders("stream_bed", 10.0, 1200.0, false);
       assertSame(alpineCreek.block(), alpineCreek.top());
+      assertTrue(blocks(alpineCreek.block()).contains(Blocks.COBBLED_DEEPSLATE));
+      assertSame(alpineCreek.block(), palette.boulders("scree", 30.0, 1500.0, true).block());
+      assertSame(bushCreek.block(), palette.boulders("gravel_flats", 5.0, 700.0, false).block());
    }
 
    @Test

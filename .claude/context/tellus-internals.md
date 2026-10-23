@@ -976,8 +976,13 @@ short:
   `stream_bed`, `riverbed`), game slope, height, and `below_cliff`
   (ground rising 8+ blocks within 4, a square: about 63°, which includes
   the foot of a gorge wall). Each gives a chance per column, weighted
-  sizes, a body material and a top for columns above water (moss in the
-  bush). The column's surface comes from `NzSurface.columns`, the same
+  sizes, a body material and a top for columns above water.
+- **Looks (decided 24 Oct 2026, after the first desktop look,
+  `nz.13`):** mossy on the forest floor; in bush creeks and gorges plain
+  schist with a moss cap (washed below flood level, and mossy boulders
+  vanished against the mossy gorge walls); above the bush the darker
+  greywacke mix (weathered and lichen-grown, and schist boulders blended
+  into schist scree); riverbeds and moraine schist (looked right). The column's surface comes from `NzSurface.columns`, the same
   pick as the fill, gorge ledges included; the ground and water from
   `NzWater.column`.
 - **Shape:** a dome with a flattish top, as wide as the size (stretched

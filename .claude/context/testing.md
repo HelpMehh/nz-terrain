@@ -658,7 +658,20 @@ Code: `0.8.3+nz.12`, tiles as in TERR-14 step 2.
   - Saved worlds keep their regions under
     `<world>/dimensions/minecraft/overworld/region` in 26.2, not
     `<world>/region`.
-- **Desktop check: open.** Spots, new world:
+- **First desktop look (`0.8.3+nz.12`, 24 Oct 2026):** Waiho outwash and
+  moraine boulders look good; density, sizes and shape look good
+  everywhere. Found in the forest creeks, but hardly any to see in the
+  forest gorge, and in the big scrub gorge only on a close look: mossy
+  boulders against mossy walls and schist ones against schist scree
+  blend in. The forest gorge area also holds few (about 11, mostly 1
+  wide: steep gorge columns fail the 46° limit, wide ones don't fit
+  between the walls). Fixed in the palette in `nz.13`: washed grey creek
+  boulders with moss caps, greywacke above the bush
+  (`tellus-internals.md` §12). The patchy ground seen at the moraine is
+  TERR-11 (`surface-palette.md`, "To decide in game").
+- **`nz.13`:** build passes, 707 tests (the palette test checks the new
+  looks). Palette only, so no new headless run: placement is unchanged.
+- **Second desktop look: open**, same spots, a new world. Spots:
   - Waiho outwash (−76990, 91070): scattered 1–3-block grey boulders on
     gravel.
   - Moraine (−73540, 101950): the biggest boulders (up to 5), denser.

@@ -4,6 +4,14 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.13 (TERR-14 step 4 follow-up, 24 Oct 2026)
+
+- Boulders stand out more: in bush creeks and gorges they are washed grey
+  rock with a moss cap above the water (they vanished against the mossy
+  gorge walls), and above the bush they are the darker, weathered
+  greywacke mix (they blended into the scree and rock faces). Forest
+  floor boulders stay mossy; riverbed and moraine boulders are unchanged.
+
 ## 0.8.3+nz.12 (TERR-14 step 4, 24 Oct 2026)
 
 - Boulders: 1:1 rocks of 1 to 5 blocks, placed after the trees. They lie
