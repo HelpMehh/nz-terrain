@@ -16,12 +16,13 @@ coordinates and tile format the generator reads are in
   heights `com.yucareux.tellus.nz.terrain`), solid down to Y −272, fully
   offline (TERR-9; lat/lon by NZTM, `com.yucareux.tellus.nz.NzProjection`),
   with sea, lakes and rivers from the tiles' water layer (TERR-10,
-  `com.yucareux.tellus.nz.terrain.NzWater`), and NZ surface blocks from
+  `com.yucareux.tellus.nz.terrain.NzWater`; steps flow, TERR-14 step 1),
+  and NZ surface blocks from
   the palette file `nz-terrain/surface-palette.jsonc` (TERR-11,
   `com.yucareux.tellus.nz.terrain.NzSurface`; in-game tuning still open).
   Biomes and trees are still Tellus's. Next step: see `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.6`** (TERR-11).
+  **`0.8.3+nz.7`** (TERR-14 step 1).
 
 ## Naming and versions (decided in TERR-6)
 
@@ -65,8 +66,9 @@ upstream and we changed.
    Don't reformat or tidy upstream code. In upstream Java files, call NZ
    classes by their full name (`com.yucareux.tellus.nz.…`) instead of
    adding imports: import blocks conflict easily in merges.
-   NZ mixins go in NZ's own mixin config (`nz-terrain.client.mixins.json`,
-   package `com.yucareux.tellus.nz.mixin.client`), not Tellus's.
+   NZ mixins go in NZ's own mixin configs, not Tellus's:
+   `nz-terrain.mixins.json` (package `com.yucareux.tellus.nz.mixin`) and
+   `nz-terrain.client.mixins.json` (`com.yucareux.tellus.nz.mixin.client`).
 3. **Never edit** the other version modules (`mc1201*`, `mc1211*`, `mc12111*`,
    `mc262-neoforge`) or the shared layers only they use (`shared/mc1201`,
    `shared/mc1211`, `shared/mc12111`, `shared/pre-26`, `shared/neoforge`).

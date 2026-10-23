@@ -398,7 +398,9 @@ matters).
 6. **Lat/lon users** (section 1): redirected or switched off for NZ worlds
    in TERR-9 (§1, §10).
 7. **Water (TERR-10):** both water resolvers hand NZ worlds to `NzWater`
-   (§11.2).
+   (§11.2). Steps (TERR-14): `EarthChunkGenerator.isWaterfallSourceColumn`
+   asks `NzWater.isStepSource`; the NZ mixin `nz/mixin/FlowingFluidMixin`
+   stops new sources near steps (§11.2).
 8. **Surfaces (TERR-11):** `fillTellusSurface` hands every column to
    `NzSurface` instead of Tellus's surface palette and snow (§12).
 
@@ -722,8 +724,8 @@ ocean 2); no waterfall flags. Per column:
     channel is level across and blocks over a bank or bar take the river
     level. In test area 1, 1.9 % of river blocks sit 2+ blocks above the
     river within 2 blocks, 0.3 % 4+ (measured on `water.tif`/`height.tif`),
-    so nothing heavier was needed. Downstream, rivers step down one block
-    at a time: plain 1-block steps of source water, no waterfall handling.
+    so nothing heavier was needed. Downstream, rivers step down, mostly
+    one block at a time (steps below).
   - Floor: `bed` where measured, at the same tile level. Otherwise
     invented from the exact distance to the nearest *land* pixel (sea and
     lakes don't count, so mouths and inlets don't shallow): rivers 1 block
@@ -731,6 +733,7 @@ ocean 2); no waterfall flags. Per column:
     Where the LiDAR under a lake is lower (a lake that isn't flattened,
     8 m fill), the LiDAR wins. Always at least 1 block deep. The constants
     are at the top of `NzInlandWater`.
+  - Steps (TERR-14 step 1): see below.
 - **Land:** no water, terrain = the sampler's height.
 
 The NZ preset sets **`shoreline_blend_cliff_limit: false`**. With it on
@@ -754,27 +757,44 @@ Tellus's trees 5 blocks back from water (`placeTrees`; TERR-13).
 - Flowing water spills a little over low ground at the edges of loaded
   areas (vanilla fluid ticks).
 
-**River steps in game (desktop, 23 Oct 2026):** each step is a 1-block
-wall of still water on a 1-block sill, the sill's top level with the
-lower reach's surface: it reads as a weir ("lip"). Nothing makes the wall
-flow, because the NZ regions carry no waterfall flags. Two parts to a fix
-(TERR-14):
+**Steps (TERR-14 step 1, `0.8.3+nz.7`).** Before, each step was a 1-block
+wall of still water on a 1-block sill level with the lower reach's
+surface: a weir ("lip", TERR-10 desktop check). Now:
 
-- **Sill:** take a step's floor from the lower reach (e.g. a river
-  column's floor at most `depth` below the lowest river surface within a
-  few blocks), so the bed runs on under the step instead of stepping
-  with the water.
-- **Wall:** let the step flow. Tellus already has the mechanism:
-  `EarthChunkGenerator.isWaterfallSourceColumn` marks a water column for
-  post-processing when `WaterSurfaceResolver.resolveWaterfallInfo` of a
-  neighbour says it drops, and vanilla then turns the top block into
-  flowing water. Feeding NZ step edges into that (or marking them from
-  `NzWater` directly) would give a short riffle instead of a wall.
+- **Sill:** `NzInlandWater` makes a lake or river pixel with lower water
+  (lake, river or sea) within `SILL_RADIUS_BLOCKS` (2) 1 block deeper,
+  before the LiDAR/`bed` floors. Under a 1-block step the bed runs on
+  level. **Decided (23 Oct 2026): taller drops are waterfalls**, so the
+  sill is only ever 1 block deeper and a drop of k blocks keeps a k−1
+  rock ledge for the water to fall over. Test area 1: 97.7 % of step
+  edges drop 1 block, 1.6 % 2, 0.7 % 3–12 (`water-surface.tif`).
+- **Flow:** a lake or river pixel with lower water on one of its four
+  sides is a *step* (a `BitSet` per cached tile). The hook in
+  `EarthChunkGenerator.isWaterfallSourceColumn` asks
+  `NzWater.isStepSource` and marks the top block for post-processing
+  (Tellus's waterfall mechanism; NZ regions have no waterfall flags).
+  When the chunk turns full, `LevelChunk.postProcessGeneration` ticks
+  that block: it spreads one block of flowing water over the lower reach
+  (flowing water on top of water doesn't spread further), or falls down
+  a taller drop to the water below.
+- **No new sources:** at a step's inside corners the air above the lower
+  reach has two source neighbours over source water, so vanilla's
+  `getNewLiquid` returns a source; one makes the next, and the reach
+  below fills up to the level above (seen headless: 2,571 blocks).
+  Tellus's `WaterSourceConversionMixin` doesn't help: it only blocks
+  flowing water turning into a source, and `getSpread` also asks
+  `getNewLiquid` for **air** blocks. The NZ mixin
+  `nz/mixin/FlowingFluidMixin` (config `nz-terrain.mixins.json`) returns
+  plain flowing water instead whenever a source would appear within
+  `NzWater.NO_NEW_SOURCE_RADIUS_BLOCKS` (2) of a step; 1 already covers
+  every block beside one. Infinite sources still work everywhere else.
+- **Only ticking chunks flow:** the step blocks of chunks at the edge of
+  the loaded area stay still until their neighbours load (vanilla).
 
-**Open:** whether multi-block drops in steep rivers need waterfall
-handling, whether 1–3 blocks is deep enough for big rivers, and how lakes
-look up close (desktop check; water in DH's LODs looked right, 23 Oct
-2026). Streams narrower than a block (`streams` layer) are TERR-14.
+**Open:** how steps and small waterfalls look in game (desktop check),
+whether 1–3 blocks is deep enough for big rivers, and how lakes look up
+close (water in DH's LODs looked right, 23 Oct 2026). Streams narrower
+than a block (`streams` layer) are TERR-14 step 2.
 
 ## 12. Surfaces (TERR-11)
 

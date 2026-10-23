@@ -4,6 +4,18 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.7 (TERR-14 step 1, 23 Oct 2026)
+
+- River and lake steps flow: the top block at the edge of each step pours
+  over onto the water below, instead of standing as a wall of still water.
+  Drops of 2 blocks or more become small waterfalls.
+- The bed runs on under a step: water within 2 blocks of lower water is
+  1 block deeper, so a 1-block step no longer stands on a sill (the weir
+  look). Taller drops keep a rock ledge for the water to fall over.
+- No new water sources form around a step, so the flow can't fill the
+  reach below up to the level above. Elsewhere, infinite water sources
+  work as usual.
+
 ## 0.8.3+nz.6 (TERR-11, 23 Oct 2026)
 
 - New Zealand worlds get their own ground: rock, scree, gravel flats and

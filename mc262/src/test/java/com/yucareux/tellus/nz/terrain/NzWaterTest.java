@@ -160,6 +160,52 @@ class NzWaterTest {
    }
 
    @Test
+   void bedRunsOnUnderAStep() {
+      // The step: Y 83 up to x 253, Y 82 from x 254. Blocks within 2 of the lower reach are 1 block deeper.
+      for (int z : new int[] {400, 414}) {
+         int lower = this.column(254, z).terrainSurface();
+         assertEquals(lower, this.column(253, z).terrainSurface());
+         assertEquals(lower, this.column(252, z).terrainSurface());
+         assertEquals(lower + 1, this.column(251, z).terrainSurface());
+      }
+      assertEquals(81, this.column(253, 400).terrainSurface());
+      assertEquals(79, this.column(253, 414).terrainSurface());
+   }
+
+   @Test
+   void tallDropKeepsALedge() {
+      // Tile (-1, 0) is missing, so it is sea: the river (Y 83, 1 block deep at the bank) drops 20 blocks into it.
+      // Only 1 block deeper, so the water falls over a rock ledge.
+      assertEquals(81, this.column(0, 400).terrainSurface());
+      assertTrue(NzWater.isStepSource(this.inland, 0, 400));
+   }
+
+   @Test
+   void stepsFlowOnlyAtTheirEdge() {
+      for (int z = 400; z < 430; z++) {
+         assertTrue(NzWater.isStepSource(this.inland, 253, z));
+         assertFalse(NzWater.isStepSource(this.inland, 252, z));
+         assertFalse(NzWater.isStepSource(this.inland, 254, z));
+         assertFalse(NzWater.isStepSource(this.inland, 200, z));
+      }
+      assertFalse(NzWater.isStepSource(this.inland, 253, 399));
+      // A lake without lower water beside it has no step.
+      assertFalse(NzWater.isStepSource(this.inland, 100, 200));
+   }
+
+   @Test
+   void noNewSourcesNearAStep() {
+      assertTrue(NzWater.suppressesSourceConversion(this.inland, 253, 410));
+      assertTrue(NzWater.suppressesSourceConversion(this.inland, 255, 410));
+      assertTrue(NzWater.suppressesSourceConversion(this.inland, 251, 410));
+      assertTrue(NzWater.suppressesSourceConversion(this.inland, 253, 398));
+      assertFalse(NzWater.suppressesSourceConversion(this.inland, 256, 410));
+      assertFalse(NzWater.suppressesSourceConversion(this.inland, 250, 410));
+      assertFalse(NzWater.suppressesSourceConversion(this.inland, 253, 397));
+      assertFalse(NzWater.suppressesSourceConversion(this.inland, 200, 200));
+   }
+
+   @Test
    void floorsMatchAcrossTileBorders() {
       for (int z = 400; z < 430; z++) {
          WaterSurfaceResolver.WaterColumnData west = this.column(511, z);

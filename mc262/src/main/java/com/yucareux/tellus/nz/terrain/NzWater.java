@@ -17,13 +17,22 @@ import java.util.concurrent.ConcurrentHashMap;
  * their own analysis (water bodies, lake surface guesses, river reaches, shore blending) runs for NZ. Both answer
  * every block the same way: the resolver's 64 × 64 regions are just this class's column, block by block, and DH
  * asks the same column at a coarser tile level.
+ *
+ * <p>Steps (TERR-14): the chunk generator asks {@link #isStepSource} for every water column it fills, and has the top
+ * block of a step flow once the chunk is done, so the water pours over the step instead of standing as a wall. The
+ * NZ {@code FlowingFluidMixin} asks {@link #suppressesSourceConversion}, so that the flow can't make new sources at a
+ * step's corners and fill the reach below.
  */
 public final class NzWater {
    /** Water flags as {@code WaterSurfaceResolver} stores them (its private {@code WATER_NONE}, … constants). */
    static final byte FLAG_NONE = 0;
    static final byte FLAG_INLAND = 1;
    static final byte FLAG_OCEAN = 2;
+   /** No new water sources within this many blocks (a square) of a step; 1 covers every block beside one. */
+   static final int NO_NEW_SOURCE_RADIUS_BLOCKS = 2;
    private static final Map<EarthGeneratorSettings, NzWater> WATERS = new ConcurrentHashMap<>();
+   /** The last one handed out: the chunk generator asks for every water column, and hashing the settings is slow. */
+   private static volatile NzWater last;
 
    private final EarthGeneratorSettings settings;
    private final NzTerrainSampler sampler;
@@ -36,7 +45,16 @@ public final class NzWater {
 
    /** The water of an NZ world's settings, or null for any other world. */
    public static NzWater forSettings(EarthGeneratorSettings settings) {
-      return NzWorldSettings.isNzWorld(settings) ? WATERS.computeIfAbsent(settings, NzWater::new) : null;
+      NzWater water = last;
+      if (water != null && water.settings == settings) {
+         return water;
+      }
+      if (!NzWorldSettings.isNzWorld(settings)) {
+         return null;
+      }
+      water = WATERS.computeIfAbsent(settings, NzWater::new);
+      last = water;
+      return water;
    }
 
    /** The water column at block (x, z), for data of about {@code resolutionMetres} per sample (any when not finite). */
@@ -45,6 +63,16 @@ public final class NzWater {
       int level = NzTerrainSampler.levelFor(resolutionMetres);
       int terrain = NzTerrainSampler.sample(floor, this.settings, x, z, level).terrainHeight();
       return column(this.inlandFor(floor.tiles()), x, z, level, terrain);
+   }
+
+   /** Whether block (x, z) is a lake or river block with lower water on one of its four sides: a step that flows. */
+   public boolean isStepSource(int x, int z) {
+      return isStepSource(this.inlandFor(this.sampler.seaFloor().tiles()), x, z);
+   }
+
+   /** Whether flowing water at block (x, z) may not become a source: near a step, see {@link #NO_NEW_SOURCE_RADIUS_BLOCKS}. */
+   public boolean suppressesSourceConversion(int x, int z) {
+      return suppressesSourceConversion(this.inlandFor(this.sampler.seaFloor().tiles()), x, z);
    }
 
    /** The water resolver's region: {@code size} × {@code size} columns from block (minX, minZ), row by row. */
@@ -131,6 +159,22 @@ public final class NzWater {
          }
       }
       return new WaterSurfaceResolver.WaterColumnData(false, false, terrain, terrain);
+   }
+
+   static boolean isStepSource(NzInlandWater inland, int x, int z) {
+      int level = inland.tiles().finestLevel(NzTileLayer.WATER, 0, x, z);
+      return level >= 0 && inland.isStep(level, x >> level, z >> level);
+   }
+
+   static boolean suppressesSourceConversion(NzInlandWater inland, int x, int z) {
+      for (int dz = -NO_NEW_SOURCE_RADIUS_BLOCKS; dz <= NO_NEW_SOURCE_RADIUS_BLOCKS; dz++) {
+         for (int dx = -NO_NEW_SOURCE_RADIUS_BLOCKS; dx <= NO_NEW_SOURCE_RADIUS_BLOCKS; dx++) {
+            if (isStepSource(inland, x + dx, z + dz)) {
+               return true;
+            }
+         }
+      }
+      return false;
    }
 
    /** Per-column arrays of one region, in the water resolver's form; {@code flags} as {@link #FLAG_NONE} …. */

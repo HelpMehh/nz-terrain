@@ -235,10 +235,10 @@ them when they come up.
   - Checked: every lake, river and sea column in five test areas wet at
     exactly the expected surface (`testing.md`).
 - **Desktop check (23 Oct 2026):** rivers look much better, but every
-  step still has a lip (a water wall on a sill; `testing.md`), to fix in
-  TERR-14. Water in DH's LODs looks right.
-- **Not done:** the desktop check of lakes up close. No waterfall
-  handling for multi-block drops; `bed` is
+  step still has a lip (a water wall on a sill; `testing.md`); fixed in
+  TERR-14 step 1 (`0.8.3+nz.7`): steps flow, taller drops are small
+  waterfalls. Water in DH's LODs looks right.
+- **Not done:** the desktop check of lakes up close. `bed` is
   only read at the same tile level (coarse-only bathymetry and the sea's
   `bed`: PIPE-10).
 - **Needs:** TERR-8.
@@ -308,6 +308,8 @@ them when they come up.
   - cliff rock bands;
   - river steps without lips: the bed runs on under a step and the step
     flows (TERR-10 desktop check, `tellus-internals.md` §11.2).
+- **Plan:** `.claude/plans/streams-micro-detail.md`, five steps, one
+  conversation each.
 
 ### [ ] TERR-15 — DH fast LOD from our tiles
 

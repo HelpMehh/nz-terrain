@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "com.yucareux.tellus.nz.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"FlowingFluidMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

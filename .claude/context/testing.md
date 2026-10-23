@@ -439,3 +439,39 @@ Code: `0.8.3+nz.6`.
 - **Not checked yet (desktop):** how it all looks, and the tuning itself
   (`surface-palette.md`, "Tuning in game"). DH far away still shows
   Tellus's colours (TERR-15).
+
+## River steps check (TERR-14 step 1, 23 Oct 2026)
+
+Code: `0.8.3+nz.7`.
+
+- **Build:** passes, 678 tests (600 upstream + 78 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New in `NzWaterTest`: the bed
+  level under a 1-block step (bank and middle), a 20-block drop keeping a
+  ledge, step blocks only at the edge, no new sources within 2 blocks of
+  a step and none further out.
+- **Headless server check (passed)** with the test-area-1 tiles, set up
+  as in TERR-8. Three 128 × 128 areas forceloaded through a FIFO: the
+  river near spawn (`-76104 93600 -75977 93727`,
+  `-76104 93780 -75977 93907`, as in TERR-10) and the area with the most
+  drops of 3+ blocks (`-79792 96730 -79665 96857`); 90 s of ticking, then
+  `save-all flush`. Saved chunks read with a small Python Anvil reader
+  and compared with the tiles. Expected surfaces as in TERR-10, with the
+  `water-surface.tif` values rounded to ⅛ m first, like the tiles: without
+  that, about 500 columns at step edges differ by a block in the script.
+  - Every lake and river column has exactly the expected surface; no
+    water source above it, no water on land.
+  - 1-block steps: **no lip** at any of 2,387 (the TERR-10 world, same
+    script: 440 of 1,082). In the forceloaded chunks every step flows:
+    1,813 of 1,813 have flowing water over the lower reach; drops of 2
+    (329) and 3+ (688) have water falling all the way down. Steps in the
+    saved ring of chunks around them don't flow: those never tick.
+  - First run without the NZ mixin (only Tellus's source gate): 2,571
+    sources 1–4 blocks above the expected surface, spreading from step
+    corners up to 10+ blocks into the lower reach (`tellus-internals.md`
+    §11.2).
+  - A mixin `@Shadow` with the wrong signature compiles, but the server
+    then fails at start (`@Shadow method … was not located`): start the
+    server after any mixin change.
+- **Not checked yet (desktop):** how the flowing steps and small
+  waterfalls look, at the river near spawn (around −76045, 93662) and in
+  the drops area.

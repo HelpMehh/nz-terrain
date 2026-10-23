@@ -10000,6 +10000,10 @@ public final class EarthChunkGenerator extends ChunkGenerator {
    }
 
    private boolean isWaterfallSourceColumn(int worldX, int worldZ, int waterSurface) {
+      com.yucareux.tellus.nz.terrain.NzWater nzWater = com.yucareux.tellus.nz.terrain.NzWater.forSettings(this.settings);
+      if (nzWater != null) {
+         return nzWater.isStepSource(worldX, worldZ); // NZ: NZ lake and river steps flow (TERR-14)
+      }
       for (Direction direction : Direction.Plane.HORIZONTAL) {
          WaterSurfaceResolver.WaterfallInfo waterfall = this.waterResolver.resolveWaterfallInfo(
             worldX + direction.getStepX(), worldZ + direction.getStepZ()

@@ -10,6 +10,7 @@ import com.yucareux.tellus.nz.tiles.NzTiles;
 import com.yucareux.tellus.worldgen.EarthGeneratorSettings;
 import com.yucareux.tellus.worldgen.TerrainHeightTransform;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Optional;
 
 /**
@@ -27,6 +28,10 @@ import java.util.Optional;
  *    pixel (sea and lakes don't count as land, so a river mouth doesn't shallow): rivers 1 block deep at the bank and
  *    1 block deeper per {@link #RIVER_DEPTH_STEP_BLOCKS}, lakes 1 m deeper per 4 m. Where the LiDAR under a lake is
  *    lower than that (a lake that isn't flattened), the LiDAR wins. Always at least 1 block below the surface.</li>
+ *    <li>Steps (TERR-14): a lake or river pixel with lower water (lake, river or sea) within
+ *    {@link #SILL_RADIUS_BLOCKS} is 1 block deeper, so under a 1-block step the bed runs on level instead of standing
+ *    as a sill, and a taller drop keeps a rock ledge for the water to fall over. A pixel with lower water on one of
+ *    its four sides is a step: {@link NzWater} has its top block flow.</li>
  * </ul>
  */
 final class NzInlandWater {
@@ -34,6 +39,8 @@ final class NzInlandWater {
    static final int NONE = Short.MIN_VALUE;
    /** River blocks take the lowest river surface within this many blocks (a square). */
    static final int RIVER_LEVEL_RADIUS_BLOCKS = 2;
+   /** Lake and river blocks with lower water within this many blocks (a square) are 1 block deeper. */
+   static final int SILL_RADIUS_BLOCKS = 2;
    /** Rivers get 1 block deeper per this many blocks of distance to the bank, starting 1 block deep. */
    static final double RIVER_DEPTH_STEP_BLOCKS = 6.0;
    static final int RIVER_MAX_DEPTH_BLOCKS = 3;
@@ -84,6 +91,12 @@ final class NzInlandWater {
       return tile == null ? NONE : tile.floor[index(px, pz)];
    }
 
+   /** Whether the lake or river pixel (px, pz) has lower water (lake, river or sea) on one of its four sides. */
+   boolean isStep(int level, int px, int pz) {
+      Tile tile = this.tile(level, px, pz);
+      return tile != null && tile.step.get(index(px, pz));
+   }
+
    private Tile tile(int level, int px, int pz) {
       return this.cache.getUnchecked(new Key(level, px >> NzTileFormat.TILE_SHIFT, pz >> NzTileFormat.TILE_SHIFT)).orElse(null);
    }
@@ -128,7 +141,8 @@ final class NzInlandWater {
       }
       int pixelBlocks = 1 << level;
       int radius = RIVER_LEVEL_RADIUS_BLOCKS >> level;
-      int margin = (REACH_BLOCKS + pixelBlocks - 1) / pixelBlocks + radius;
+      int sillRadius = SILL_RADIUS_BLOCKS >> level;
+      int margin = (REACH_BLOCKS + pixelBlocks - 1) / pixelBlocks + radius + sillRadius + 1;
       int size = NzTileFormat.TILE_PIXELS + 2 * margin;
       int originX = key.tx() * NzTileFormat.TILE_PIXELS - margin;
       int originZ = key.tz() * NzTileFormat.TILE_PIXELS - margin;
@@ -158,28 +172,41 @@ final class NzInlandWater {
       }
       int[] riverLevel = minimumFilter(river, size, radius);
 
+      // The top water block of every window pixel, sea included (no water: MAX_VALUE), and the lowest one around it.
+      int seaLevel = this.seaLevel();
+      int[] top = new int[area];
+      for (int i = 0; i < area; i++) {
+         if (surface[i] != NONE) {
+            top[i] = water[i] == NzTerrainSampler.WATER_RIVER ? riverLevel[i] : surface[i];
+         } else {
+            top[i] = NzSeaFloor.isSea(water[i]) ? seaLevel : Integer.MAX_VALUE;
+         }
+      }
+      int[] lowestNearby = minimumFilter(top, size, sillRadius);
+
       double[] distances = landDistances(land, size, margin);
       int[] height = this.readWindow(NzTileLayer.HEIGHT, level, originX, originZ, size);
       int[] bed = this.readWindow(NzTileLayer.BED, level, originX, originZ, size);
       short[] tileSurface = new short[NzTileFormat.TILE_AREA];
       short[] tileFloor = new short[NzTileFormat.TILE_AREA];
+      BitSet tileStep = new BitSet(NzTileFormat.TILE_AREA);
       for (int row = 0; row < NzTileFormat.TILE_PIXELS; row++) {
          int z = (originZ + margin + row) << level;
          for (int column = 0; column < NzTileFormat.TILE_PIXELS; column++) {
             int i = (row + margin) * size + column + margin;
             int out = row * NzTileFormat.TILE_PIXELS + column;
-            int top = surface[i];
-            if (top == NONE) {
+            if (surface[i] == NONE) {
                tileSurface[out] = (short) NONE;
                continue;
             }
+            int y = top[i];
             double distanceBlocks = distances[out] * pixelBlocks;
-            int floor;
-            if (water[i] == NzTerrainSampler.WATER_RIVER) {
-               top = riverLevel[i];
-               floor = top - riverDepthBlocks(distanceBlocks);
-            } else {
-               floor = top - this.lakeDepthBlocks(distanceBlocks);
+            int floor = y - (water[i] == NzTerrainSampler.WATER_RIVER ? riverDepthBlocks(distanceBlocks) : this.lakeDepthBlocks(distanceBlocks));
+            if (lowestNearby[i] < y) {
+               floor--;
+            }
+            if (top[i - 1] < y || top[i + 1] < y || top[i - size] < y || top[i + size] < y) {
+               tileStep.set(out);
             }
             if (!NzTileLayer.HEIGHT.isNodata(height[i])) {
                floor = Math.min(floor, NzTerrainSampler.blockY(this.settings, height[i] / STEPS_PER_METRE, z));
@@ -187,12 +214,12 @@ final class NzInlandWater {
             if (!NzTileLayer.BED.isNodata(bed[i])) {
                floor = NzTerrainSampler.blockY(this.settings, bed[i] / STEPS_PER_METRE, z);
             }
-            floor = Math.min(floor, top - 1);
-            tileSurface[out] = (short) Math.clamp(top, Short.MIN_VALUE + 1, Short.MAX_VALUE);
+            floor = Math.min(floor, y - 1);
+            tileSurface[out] = (short) Math.clamp(y, Short.MIN_VALUE + 1, Short.MAX_VALUE);
             tileFloor[out] = (short) Math.clamp(floor, Short.MIN_VALUE + 1, Short.MAX_VALUE);
          }
       }
-      return Optional.of(new Tile(tileSurface, tileFloor));
+      return Optional.of(new Tile(tileSurface, tileFloor, tileStep));
    }
 
    private static boolean hasInlandWater(NzLayerData water) {
@@ -297,7 +324,7 @@ final class NzInlandWater {
       return distances;
    }
 
-   private record Tile(short[] surface, short[] floor) {
+   private record Tile(short[] surface, short[] floor, BitSet step) {
    }
 
    private record Key(int level, int tx, int tz) {
