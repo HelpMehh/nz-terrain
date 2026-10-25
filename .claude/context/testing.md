@@ -132,7 +132,10 @@ Upstream Tellus 0.8.3 code, no NZ changes, system OpenJDK 25.0.5.
     and `level-type` (e.g. `tellus\:nz`) in `mc262/run/server.properties`,
     and put both back afterwards.
 - **`runClient262`** needs a desktop session. A sandbox without a display
-  can't open the window, so run it from a clone on the desktop. It starts
+  can't open the window, so run it from a clone on the desktop. Its game
+  folder is `mc262/run/` (not in git), which has no real tile set, so an
+  NZ world there is open ocean: **NZ desktop checks use the jar in the
+  launcher test instance** (hub `workspace.md`), not `runClient262`. It starts
   (51 mods: the client adds Fabric API's client modules), and an Earth world
   with default settings generates. A cold run took about 2 min 45 s,
   including downloading Gradle and the game assets. Expected log noise:
@@ -721,7 +724,8 @@ Code: `0.8.3+nz.14`, tiles as in TERR-14 step 2.
   - `leaf_litter` (a thin ground cover from the 26.x forest features)
     lies on many forest columns: a ground check has to skip it like
     plants.
-- **Desktop check:** pending. Spots, with what to look at:
+- **Desktop check:** pending (the nz.14 jar in the launcher test instance,
+  a new world). Spots, with what to look at:
   - Bush and subalpine cliff in the tuning box (−75949, 94387, facing
     south): mossy ledges in the bush, do they read as ledges or as noise?
   - Big scrub gorge (−73609, 101434): alpine rock with gravel and grass
