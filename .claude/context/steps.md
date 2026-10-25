@@ -378,6 +378,47 @@ them when they come up.
   (TERR-12).
 - **Needs:** TERR-12.
 
+### [ ] TERR-23 — Keep the cave layer inside the mountains
+
+- **Goal:** caves, lava and cave biomes stay inside the ground. No holes
+  in cliff faces, lava falls down mountainsides or 1-block crusts over
+  caves; a few cave mouths on gentle ground are fine (survival needs
+  them).
+- **Found (TERR-14 step 5 desktop check, 25 Oct 2026, `0.8.3+nz.14`):**
+  black holes in the mossy bush cliffs; at −73448, 97220 (Y 1,358) a cave
+  right under the snow, leaving a crust of single blocks; at −73446,
+  97215 (Y 1,371) a big cave system open to the sky, with lush-cave
+  plants (glow berries) and what looked like lava falling down the faces.
+- **Know:** the cave layer is mapped onto the shell, relative to each
+  column's own surface (`TellusCaveDepthMapper`; noise caves, carvers,
+  their lava, cave biomes: `tellus-internals.md` §4). Vanilla's caves
+  come up close to the surface, and on a steep face a column's
+  neighbour is far lower, so a cave at a safe depth in one column opens
+  out of the next column's face.
+- **Raise first:** how to keep them in. Options: a solid skin, no caves
+  within N blocks of the surface, with N growing with the local relief
+  (from the height grid); no caves at all under steep ground; lava and
+  lush caves only below a depth, or not above the treeline; leave the
+  mouths on gentle ground. Most of this sits in upstream files
+  (`TellusVanillaNoiseCaveSampler`, `TellusConfiguredCarvers`,
+  `EarthBiomeSource`), so expect small `// NZ:` hooks.
+- **Also serves TERR-22:** glaciers need the cave layer kept below their
+  bed (hub plan `.claude/plans/glaciers.md`, step 2), so a "surface for
+  the caves" that can sit lower than the real one would cover both.
+- **Needs:** TERR-8. Any time; best before TERR-22 part 1.
+
+### [ ] TERR-22 — Glaciers: ice body, crevasses, ice caves
+
+- **Goal:** glaciers with a real body of ice instead of a skin a few
+  blocks thick, crevasses where the ice stretches (icefalls), and ice
+  caves: meltwater tunnels from a portal at the snout (asked for after
+  the TERR-14 step 5 desktop check, 25 Oct 2026).
+- **Do:** follow the plan in the hub, `.claude/plans/glaciers.md`
+  (cross-repo): steps 2–5 there, one conversation each, each with its own
+  "Raise first" choices.
+- **Needs:** PIPE-16 (ice thickness layer, plan step 1), TERR-14. Not
+  needed for the test-area milestone.
+
 ### [ ] TERR-19 — First NZ release
 
 - **Do:**

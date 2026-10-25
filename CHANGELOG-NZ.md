@@ -4,6 +4,17 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.15 (TERR-14 step 5 follow-up, 25 Oct 2026)
+
+- No more rock fins and hollows on cliffs: a ledge column could end up
+  higher than the slope just behind it (a thin rock wall standing in
+  front of the soil) or lower than the one in front of it (a pit behind
+  a rim). Such columns are now pulled back as far as their neighbours
+  need, so rock only shows where the slope steps down.
+- Mossy rock faces in the bush have far fewer full moss blocks on their
+  sides: the moss stays on the tops of steps and ledges, and the faces
+  read as wet rock with moss in the cracks.
+
 ## 0.8.3+nz.14 (TERR-14 step 5, 25 Oct 2026)
 
 - Cliff ledges: on steep rock faces, some columns move up or down by a

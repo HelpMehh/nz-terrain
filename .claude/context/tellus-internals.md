@@ -994,6 +994,18 @@ a per-tile pass like `NzStreams` (rules and constants in its Javadoc).
   already computed. The tile is worked in 128-block parts so no window is
   a G1 humongous object (TERR-18 note); a tile's result is a `byte[]`
   of offsets plus a `BitSet`.
+- **Order kept (`0.8.3+nz.15`):** each column decides on its own, and
+  the reach changes from column to column (cliff top and foot, a soil
+  neighbour, the keep-away edge, the width noise). So a column could end
+  above its upslope neighbour (a rock fin in front of the soil) or below
+  its downslope one (a hollow behind a rim): the first desktop look
+  showed both, and on the real tiles 15 % of moved columns did it, 3 %
+  by 2–5 blocks. `NzLedges.settle` pulls such a column back towards its
+  own height, as far as its 8 neighbours need (neighbours at the same
+  height don't count, so a ledge can end in a step along the cliff), in
+  up to 8 passes; the part's window has a margin of 4 + 8 so every part
+  comes out as if the whole land were worked at once. Afterwards: 0 out
+  of order, and 6 % fewer columns move.
 - **Palette dependence:** unlike everything else in the palette, the
   `"ledges"` section changes terrain heights. A tuning copy that changes
   it makes new chunks meet old ones with a seam on cliffs.

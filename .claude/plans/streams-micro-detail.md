@@ -215,7 +215,9 @@ Independent of steps 1–3 except for stream beds.
 
 ## Step 5 — Cliff rock bands
 
-**Built (25 Oct 2026, `0.8.3+nz.14`); desktop check pending.** Decided:
+**Built (25 Oct 2026, `0.8.3+nz.14`); first desktop look: "the cliffs
+look great", but rock fins and hollows (fixed in `nz.15`) and too much
+moss on bush faces (thinned in `nz.15`); second desktop check pending.** Decided:
 (b), ledges by moving column tops (`NzLedges`), with tread surfaces and
 a little more contrast on the rock face; a 3D pass (c) only if the
 desktop look says faces are still too smooth. Not waiting for PIPE-15:

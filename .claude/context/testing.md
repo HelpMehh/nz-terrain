@@ -724,8 +724,24 @@ Code: `0.8.3+nz.14`, tiles as in TERR-14 step 2.
   - `leaf_litter` (a thin ground cover from the 26.x forest features)
     lies on many forest columns: a ground check has to skip it like
     plants.
-- **Desktop check:** pending (the nz.14 jar in the launcher test instance,
-  a new world). Spots, with what to look at:
+- **First desktop look (`0.8.3+nz.14`, 25 Oct 2026),** the jar in the
+  launcher test instance, a new world: "Other than that, the cliffs look
+  great." Two findings:
+  - Rock fins and hollows: thin rock columns standing higher than the
+    soil slope behind them, pits behind a rock rim (alpine rock with
+    tussock soil, screenshot). Cause: ledge columns out of order with a
+    neighbour (`tellus-internals.md` §12). Throwaway JUnit survey of four
+    768 × 768 areas around the spots below: 125,314 columns moved, 19,306
+    out of order (15,523 by 1 block, 3,783 by 2–5). After the fix
+    (`nz.15`): 118,134 moved, 0 out of order.
+  - Too much moss on bush cliffs: full moss blocks on the sides of the
+    steps read as turf. Faces now use `mossy_face` (moss block 5 %); the
+    tops keep the moss.
+  - Seen in passing: at the snowy spot a cave opens right under the snow,
+    leaving a 1-block crust, with lush-cave plants at about Y 1,370
+    (Tellus's cave layer): recorded as TERR-23.
+- **Second desktop check (`nz.15`):** pending, same spots, new world.
+  Spots, with what to look at:
   - Bush and subalpine cliff in the tuning box (−75949, 94387, facing
     south): mossy ledges in the bush, do they read as ledges or as noise?
   - Big scrub gorge (−73609, 101434): alpine rock with gravel and grass

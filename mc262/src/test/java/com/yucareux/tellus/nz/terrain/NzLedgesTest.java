@@ -206,6 +206,53 @@ class NzLedgesTest {
    }
 
    @Test
+   void noColumnStandsAboveTheSlopeBehindItOrSinksBelowTheOneInFront() {
+      // The cliff faces south (z up = downhill): a column's row z - 1 must not end lower than it, row z + 1 not higher.
+      int moved = 0;
+      for (int z = CLIFF_TOP_ROW - 10; z <= CLIFF_FOOT_ROW + 10; z++) {
+         for (int x = 1; x < 511; x++) {
+            int y = this.rawY(z) + this.ledges.offset(x, z);
+            moved += this.ledges.offset(x, z) != 0 ? 1 : 0;
+            for (int dx = -1; dx <= 1; dx++) {
+               if (this.rawY(z - 1) > this.rawY(z)) {
+                  assertTrue(this.rawY(z - 1) + this.ledges.offset(x + dx, z - 1) >= y, "fin at " + x + ", " + z);
+               }
+               if (this.rawY(z + 1) < this.rawY(z)) {
+                  assertTrue(this.rawY(z + 1) + this.ledges.offset(x + dx, z + 1) <= y, "hollow at " + x + ", " + z);
+               }
+            }
+         }
+      }
+      assertTrue(moved > 1000, "moved " + moved);
+   }
+
+   @Test
+   void settlePullsBackAFinAndAHollow() {
+      // 7 × 7, 3 blocks lower per row southwards.
+      int size = 7;
+      int[] raw = new int[size * size];
+      for (int i = 0; i < raw.length; i++) {
+         raw[i] = 20 - 3 * (i / size);
+      }
+      int[] offset = new int[raw.length];
+      boolean[] tread = new boolean[raw.length];
+      int fin = 2 * size + 3;
+      int hollow = 4 * size + 3;
+      int fine = 3 * size + 5;
+      offset[fin] = 5;
+      offset[hollow] = -5;
+      offset[fine] = 2;
+      tread[fin] = tread[hollow] = tread[fine] = true;
+      NzLedges.settle(raw, offset, tread, size);
+      // Up to the row above it, down to the row below it; the ledge that fits stays.
+      assertEquals(3, offset[fin]);
+      assertEquals(-3, offset[hollow]);
+      assertEquals(2, offset[fine]);
+      assertFalse(tread[fin] || tread[hollow]);
+      assertTrue(tread[fine]);
+   }
+
+   @Test
    void dilateReachesASquare() {
       boolean[] set = new boolean[49];
       set[3 * 7 + 3] = true;

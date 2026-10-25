@@ -31,6 +31,11 @@ import java.util.Optional;
  *    whose height lies within reach of the nearest level moves onto it; the reach is half the tread's width times the
  *    column's rise per block, but never more than half the gap to the next level, so a column moves at most that far
  *    and the face's mean height stays.</li>
+ *    <li>No column ends up above a neighbour that is higher in the tiles, or below one that is lower: where the reach
+ *    changes from column to column (the top and foot of a cliff, a soil column beside the rock, the keep-away edge,
+ *    the width noise), a column on its own could otherwise stand as a fin in front of the slope or sink into a hollow
+ *    behind a rim (desktop check, 25 Oct 2026). Such a column is pulled back towards its own height, as far as its
+ *    neighbours allow, in up to {@link #SETTLE_PASSES} passes; it is then no tread.</li>
  *    <li>A column on a ledge is a tread: {@link NzSurface} gives it the palette's tread surface (scree, moss, snow) in
  *    place of bare rock.</li>
  * </ul>
@@ -59,7 +64,12 @@ final class NzLedges {
    static final int LOWEST_LEVEL = -1024;
    static final int HIGHEST_LEVEL = 3072;
    static final int PART = 128;
-   private static final int MARGIN = KEEP_AWAY_BLOCKS + 1;
+   /** Passes that pull back columns out of order with a neighbour; each pass can reach one column further. */
+   static final int SETTLE_PASSES = 8;
+   /** Columns this close to a window's edge can't see all water within the keep-away distance: they never move. */
+   private static final int EDGE = KEEP_AWAY_BLOCKS + 1;
+   /** Enough for the settle passes too, so a part's columns come out as if the whole land were worked at once. */
+   private static final int MARGIN = EDGE + SETTLE_PASSES;
    private static final long LEVEL_SALT = 0x6C6576656CL;
    private static final long WAVE_SALT = 0x77617665L;
    private static final long DRIFT_SALT = 0x6472696674L;
@@ -195,13 +205,20 @@ final class NzLedges {
       }
 
       // Columns that would move, before looking for water nearby: most parts have none, and then need no streams.
-      int[] tread = new int[PART * PART];
-      Arrays.fill(tread, NONE);
+      int[] raw = new int[area];
+      int[] target = new int[area];
+      Arrays.fill(raw, NONE);
+      Arrays.fill(target, NONE);
       boolean any = false;
-      for (int pz = 0; pz < PART; pz++) {
-         for (int px = 0; px < PART; px++) {
-            int i = (pz + MARGIN) * size + px + MARGIN;
+      for (int wz = 0; wz < size; wz++) {
+         for (int wx = 0; wx < size; wx++) {
+            int i = wz * size + wx;
             if (wet[i]) {
+               continue;
+            }
+            int z = originZ + wz;
+            raw[i] = NzTerrainSampler.blockY(this.settings, metres[i], z);
+            if (wx < EDGE || wz < EDGE || wx >= size - EDGE || wz >= size - EDGE) {
                continue;
             }
             double slope = NzSurface.slopeDegrees(metres, i, size, this.blocksPerMetre);
@@ -212,13 +229,8 @@ final class NzLedges {
             if (this.palette.ledgeTread(this.palette.land(lcdb, slope, metres[i])) == null) {
                continue;
             }
-            int z = minZ + pz;
-            int y = NzTerrainSampler.blockY(this.settings, metres[i], z);
-            tread[pz * PART + px] = this.treadY(minX + px, z, y, slope);
-            if (tread[pz * PART + px] != NONE) {
-               tread[pz * PART + px] -= y;
-               any = true;
-            }
+            target[i] = this.treadY(originX + wx, z, raw[i], slope);
+            any |= target[i] != NONE;
          }
       }
       if (!any) {
@@ -227,20 +239,81 @@ final class NzLedges {
 
       this.streams.markChanged(originX, originZ, size, wet);
       boolean[] near = dilate(wet, size, KEEP_AWAY_BLOCKS);
+      int[] offset = new int[area];
+      boolean[] tread = new boolean[area];
+      for (int i = 0; i < area; i++) {
+         if (target[i] != NONE && !near[i]) {
+            offset[i] = target[i] - raw[i];
+            tread[i] = true;
+         }
+      }
+      settle(raw, offset, tread, size);
+
       any = false;
       for (int pz = 0; pz < PART; pz++) {
          for (int px = 0; px < PART; px++) {
-            int offset = tread[pz * PART + px];
-            if (offset == NONE || near[(pz + MARGIN) * size + px + MARGIN]) {
+            int i = (pz + MARGIN) * size + px + MARGIN;
+            if (!tread[i] && offset[i] == 0) {
                continue;
             }
             int out = index(minX + px, minZ + pz);
-            tile.offset[out] = (byte) offset;
-            tile.tread.set(out);
+            tile.offset[out] = (byte) offset[i];
+            tile.tread.set(out, tread[i]);
             any = true;
          }
       }
       return any;
+   }
+
+   /**
+    * Pulls back moved columns that end up above a neighbour that is higher in {@code raw} or below one that is lower
+    * (8 neighbours; {@link #NONE} in {@code raw} is water, which has no say): each pass moves such a column to the
+    * nearest height its neighbours allow, or back to its own height when none lies between the two. Columns only
+    * ever move back, so the passes end; a column pulled back is no tread.
+    */
+   static void settle(int[] raw, int[] offset, boolean[] tread, int size) {
+      int[] next = offset.clone();
+      for (int pass = 0; pass < SETTLE_PASSES; pass++) {
+         boolean changed = false;
+         for (int z = 1; z < size - 1; z++) {
+            for (int x = 1; x < size - 1; x++) {
+               int i = z * size + x;
+               if (offset[i] == 0) {
+                  continue;
+               }
+               int y = raw[i] + offset[i];
+               int low = Integer.MIN_VALUE;
+               int high = Integer.MAX_VALUE;
+               for (int dz = -1; dz <= 1; dz++) {
+                  for (int dx = -1; dx <= 1; dx++) {
+                     int n = i + dz * size + dx;
+                     if (raw[n] == NONE || raw[n] == raw[i]) {
+                        continue;
+                     }
+                     if (raw[n] > raw[i]) {
+                        high = Math.min(high, raw[n] + offset[n]);
+                     } else {
+                        low = Math.max(low, raw[n] + offset[n]);
+                     }
+                  }
+               }
+               if (y >= low && y <= high) {
+                  continue;
+               }
+               int settled = low <= high ? Math.clamp(y, low, high) : raw[i];
+               if (Integer.signum(settled - raw[i]) != Integer.signum(offset[i]) || Math.abs(settled - raw[i]) > Math.abs(offset[i])) {
+                  settled = raw[i];
+               }
+               next[i] = settled - raw[i];
+               tread[i] = false;
+               changed = true;
+            }
+         }
+         if (!changed) {
+            return;
+         }
+         System.arraycopy(next, 0, offset, 0, offset.length);
+      }
    }
 
    /** Whether each pixel of a {@code size} × {@code size} window has a set pixel within {@code radius} (a square). */

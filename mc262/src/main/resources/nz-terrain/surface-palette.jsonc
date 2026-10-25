@@ -26,6 +26,9 @@
     // bush: weathered and lichen-grown, they read darker than fresh scree and rock faces.
     "greywacke": {"blocks": {"stone": 50, "andesite": 30, "cobbled_deepslate": 20}, "pattern": "noise"},
     "mossy_rock": {"blocks": {"stone": 50, "mossy_cobblestone": 25, "moss_block": 25}, "pattern": "noise"},
+    // The sides of mossy rock: moss mats grow where water and litter collect (the tops), a sheer face in the bush is
+    // wet rock with moss in its cracks. Few full moss blocks, so a face doesn't read as turf (desktop check, TERR-14).
+    "mossy_face": {"blocks": {"stone": 55, "andesite": 15, "mossy_cobblestone": 25, "moss_block": 5}, "pattern": "noise"},
     // Cliff faces above the bush (TERR-14): the schist with a little cobble texture and dark weathered spots, so a
     // face isn't one flat grey. A first guess for the desktop look.
     "rock_face": {"blocks": {"stone": 45, "andesite": 25, "tuff": 15, "cobblestone": 10, "cobbled_deepslate": 5}, "pattern": "noise"},
@@ -162,7 +165,7 @@
       "face": "rock_face",
       "cover": {"blocks": {"snow": 60, "air": 40}, "pattern": "patches", "size": 3}
     },
-    "mossy_rock": {"top": "mossy_rock", "face": "mossy_rock"},
+    "mossy_rock": {"top": "mossy_rock", "face": "mossy_face"},
     // Ledge treads (TERR-14, first guesses): what collects on a ledge. Above the bush scree and tussock tufts, in
     // the bush moss and ferny soil, up high snow.
     "rock_ledge": {
@@ -172,7 +175,7 @@
     "mossy_ledge": {
       "top": {"blocks": {"moss_block": 40, "grass_block": 25, "podzol": 20, "coarse_dirt": 15}, "pattern": "patches", "size": 2},
       "under": [{"block": "dirt", "depth": 1}],
-      "face": "mossy_rock"
+      "face": "mossy_face"
     },
     "snowy_ledge": {"top": "snow_block", "face": "rock_face"},
     "scree": {

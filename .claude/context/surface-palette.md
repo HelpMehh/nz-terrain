@@ -93,7 +93,7 @@ gorge walls).
 | Surface | LCDB classes | Top mix | Subsurface |
 |---|---|---|---|
 | Rock (schist/greywacke) | 16 steep; steep 14; steep vegetation above treeline | stone 60, andesite 25, tuff 15 | stone |
-| Mossy rock face | steep vegetation below treeline | stone 50, mossy cobblestone 25, moss block 25 | stone |
+| Mossy rock face | steep vegetation below treeline | stone 50, mossy cobblestone 25, moss block 25; face (`mossy_face`, TERR-14): stone 55, andesite 15, mossy cobblestone 25, moss block 5 | stone |
 | Scree | 16, 22–46° | gravel 60, andesite 20, stone 10, cobblestone 10 | gravel 2, then stone |
 | Gravel flats (riverbed, outwash, moraine) | 16 flat, 21 above water | gravel 85, andesite 10, stone 5 | gravel 3, then stone |
 | Landslide | 12 | coarse dirt 40, gravel 40, stone 20 | stone |
@@ -212,6 +212,16 @@ come with the `rock` tile layer (PIPE-15, below).
     TERR-11 check, about 30 % of the sky-facing step sides in the tuning
     box were dirt, mostly the forest's 3 dirt layers: a candidate for
     thinner soil.
+  - **Steep soil slopes read as bare brown terraces** (TERR-14 step 5
+    desktop check, 25 Oct 2026: tussock, scrub and forest slopes around
+    the bush cliff and the big scrub gorge). Every 1-block step shows a
+    dirt side under a thin strip of grass, and the coarse dirt and podzol
+    tops add more brown, so whole hillsides look bare where real tussock
+    and scrub slopes are gold-green. Candidates: fewer brown top blocks
+    on steep soils (by slope, as rule 4 does for rock); thinner `under`
+    layers there (above); an NZ turf block with grassy sides for steep
+    tussock (MODS-17). Flora (TERR-13) and the tussock tint (MODS-19)
+    will cover part of it.
   - The snowy rock's snow cover (60 % snow layers in patches).
   - The alpine `rock` surface is plain grey stone with almost no colour
     variation: whole valleys and the big scrub gorge (TERR-14 step 3,
