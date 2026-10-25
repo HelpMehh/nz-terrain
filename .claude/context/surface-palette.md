@@ -111,7 +111,7 @@ gorge walls).
 | Stream bed (TERR-14, first guess) | stream water on land | gravel 60, cobblestone 25, mossy cobblestone 15 | gravel 1 |
 | Lake floor | water = lake | mud 50, clay 30, gravel 20 | clay |
 | Sea floor | water = sea | gravel 60, sand 40 | sand |
-| Rewilded (placeholder) | 1, 2, 5, 6, 30, 33, 40, 41, 51, 56, 64, 68, 71, 0 (no polygon) | as forest floor | |
+| Rewilded (placeholder) | 1, 2, 5, 6, 30, 33, 40, 41, 51, 56, 64, 68, 71, 0 (no polygon) | as forest floor; once tiles carry the `vegetation` layer (PIPE-8), the surface its class names (hub `interfaces.md`, "Vegetation classes", column Ground) | |
 
 Classes not in test area 1 got a surface in TERR-11 by judgement, not from
 data (check them with test area 2, TERR-16): depleted grassland 44 →
