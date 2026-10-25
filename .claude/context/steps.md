@@ -299,7 +299,7 @@ them when they come up.
   leave the surface blocks alone.
 - **Needs:** MODS-9, HUB-3.
 
-### [ ] TERR-14 — Streams and micro-detail
+### [x] TERR-14 — Streams and micro-detail
 
 - **Do:** at 1:1, guided by the data:
   - streams from the stream layer;
@@ -308,8 +308,20 @@ them when they come up.
   - cliff rock bands;
   - river steps without lips: the bed runs on under a step and the step
     flows (TERR-10 desktop check, `tellus-internals.md` §11.2).
-- **Plan:** `.claude/plans/streams-micro-detail.md`, five steps, one
-  conversation each.
+- **Done (25 Oct 2026, `0.8.3+nz.15`),** in five steps, one conversation
+  each (the plan is deleted; git history keeps it):
+  1. river steps flow, taller drops are small waterfalls (`nz.7`);
+  2. streams from the `streams` layer, 1:1 width capped at the gully
+     floor, beds from `stream_level` (`nz.8`, `NzStreams`);
+  3. slot gorges where the LiDAR shows a deep V, filled up to the rim,
+     no undercuts (`nz.9`–`nz.11`);
+  4. boulders, an NZ decoration pass with rules in the palette
+     (`nz.12`–`nz.13`, `NzBoulders`);
+  5. cliff ledges by moving column tops onto ledge levels, no 3D pass
+     (`nz.14`–`nz.15`, `NzLedges`).
+
+  Details: `tellus-internals.md` §11.2 and §12 (with the lessons for new
+  terrain detail); checks: `testing.md`.
 
 ### [ ] TERR-15 — DH fast LOD from our tiles
 

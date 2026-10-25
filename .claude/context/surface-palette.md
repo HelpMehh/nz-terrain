@@ -205,7 +205,10 @@ come with the `rock` tile layer (PIPE-15, below).
     `NzSurfaceMix`'s patches). Flora (TERR-13) and the tussock tint
     (MODS-19) will cover much of it.
   - Cliff ledges (TERR-14 step 5): spacing, width and slopes in
-    `"ledges"`, and the tread mixes. Striped faces (`"pattern": "bands"`
+    `"ledges"`, and the tread mixes. The first values (spacing 5–12,
+    width 5, slopes 56–68°) and the `mossy_face` side mix passed the
+    desktop check (25 Oct 2026, `nz.15`); retune only if other areas
+    ask for it. Striped faces (`"pattern": "bands"`
     on the face mix) were not used: the ledges give the strata look, and
     neat stripes don't fit schist or greywacke.
   - How deep the soil goes on steep ground (`under` depths). In the

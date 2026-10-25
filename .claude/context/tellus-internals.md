@@ -1010,6 +1010,33 @@ a per-tile pass like `NzStreams` (rules and constants in its Javadoc).
   `"ledges"` section changes terrain heights. A tuning copy that changes
   it makes new chunks meet old ones with a seam on cliffs.
 
+**Lessons from TERR-14 (streams, gorges, boulders, ledges), for any new
+terrain detail** (glaciers, TERR-22, will need them):
+
+- **Heights of land go through a per-tile pass** that the sampler reads
+  via `NzWater.landGround` (`NzStreams`, `NzLedges`): every reader (the
+  chunk generator, water, boulders, the surface's neighbour grid) then
+  agrees, with no new upstream hook. Work tiles in parts with a margin
+  wide enough that each part comes out as if the whole land were done
+  at once (no seams at part or tile edges).
+- **The surface rule follows the LiDAR slope, not the block heights**,
+  so anything that changes heights must set its own surface (gorge
+  walls, boulders, ledge treads), or it inherits the soil around it.
+- **Neighbouring columns must agree.** Per-column noise in a width made
+  lone pillars (gorges: take the width from the owning centreline);
+  per-column reach made fins and hollows (ledges: keep the height order
+  of the tiles, `NzLedges.settle`).
+- **New detail needs a material that contrasts a little** with its
+  surroundings: mossy boulders vanished on mossy walls, schist ones on
+  schist scree (TERR-14 step 4).
+- **Order of work that paid off:** measure a rule on the rasters in
+  Python first (pipeline venv; its counts matched the generator's
+  closely), survey test area 1 with a throwaway JUnit test, compare a
+  headless world's saved chunks with expected columns, then a desktop
+  check with named spots and F3 screenshots (`testing.md`). Photos of
+  real South Westland places settled shape questions faster than
+  guessing.
+
 **Boulders (TERR-14 step 4, `0.8.3+nz.12`).** `m262:nz/terrain/NzBoulders`,
 called once per chunk from `applyBiomeDecoration` right after
 `placeTrees` (hook 9, §6). Rules and constants are in its Javadoc; in

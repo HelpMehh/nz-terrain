@@ -740,8 +740,11 @@ Code: `0.8.3+nz.14`, tiles as in TERR-14 step 2.
   - Seen in passing: at the snowy spot a cave opens right under the snow,
     leaving a 1-block crust, with lush-cave plants at about Y 1,370
     (Tellus's cave layer): recorded as TERR-23.
-- **Second desktop check (`nz.15`):** pending, same spots, new world.
-  Spots, with what to look at:
+- **Second desktop check (passed, 25 Oct 2026, `0.8.3+nz.15`)**, a new
+  world in the launcher instance: "everything looks really great now".
+  No fins or hollows on the cliffs, bush faces read as rock with moss,
+  snowy ledges as before. TERR-14 done. The spots used in both rounds,
+  with what was looked at:
   - Bush and subalpine cliff in the tuning box (−75949, 94387, facing
     south): mossy ledges in the bush, do they read as ledges or as noise?
   - Big scrub gorge (−73609, 101434): alpine rock with gravel and grass

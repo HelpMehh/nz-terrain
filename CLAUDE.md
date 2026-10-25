@@ -25,8 +25,7 @@ coordinates and tile format the generator reads are in
   `com.yucareux.tellus.nz.terrain.NzSurface`; in-game tuning still open).
   Biomes and trees are still Tellus's. Next step: see `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.15`** (TERR-14 step 5 follow-up, before its second desktop
-  check).
+  **`0.8.3+nz.15`** (TERR-14 done).
 
 ## Naming and versions (decided in TERR-6)
 
