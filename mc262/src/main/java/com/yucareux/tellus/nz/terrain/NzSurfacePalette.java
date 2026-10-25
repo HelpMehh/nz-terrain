@@ -45,6 +45,10 @@ public final class NzSurfacePalette {
    static final int DEFAULT_BARE_STEP = 3;
    /** The widest boulder the file may ask for, in blocks: it must fit in a chunk with room around it. */
    static final int MAX_BOULDER_SIZE = 8;
+   /** Limits of the cliff ledges' {@code "spacing"} and {@code "width"} (TERR-14): a ledge never moves a column more than half the spacing. */
+   static final int MIN_LEDGE_SPACING = 2;
+   static final int MAX_LEDGE_SPACING = 32;
+   static final int MAX_LEDGE_WIDTH = 16;
    private static final Logger LOGGER = LoggerFactory.getLogger("tellus/nz");
    private static final BlockState AIR = Blocks.AIR.defaultBlockState();
    private static volatile NzSurfacePalette global;
@@ -57,9 +61,10 @@ public final class NzSurfacePalette {
    private final Surface stream;
    private final int bareStep;
    private final List<BoulderRule> boulders;
+   private final Ledges ledges;
 
    private NzSurfacePalette(
-      List<Rule> land, Surface sea, Surface lake, Surface river, Surface stream, int bareStep, List<BoulderRule> boulders
+      List<Rule> land, Surface sea, Surface lake, Surface river, Surface stream, int bareStep, List<BoulderRule> boulders, Ledges ledges
    ) {
       this.land = List.copyOf(land);
       this.sea = sea;
@@ -68,6 +73,7 @@ public final class NzSurfacePalette {
       this.stream = stream;
       this.bareStep = bareStep;
       this.boulders = List.copyOf(boulders);
+      this.ledges = ledges;
    }
 
    /** One kind of ground: its top block, the layers under it, its step sides, and what lies on top (null: nothing). */
@@ -147,6 +153,14 @@ public final class NzSurfacePalette {
       }
    }
 
+   /**
+    * The cliff ledges (TERR-14, {@link NzLedges}): which surfaces get them and what their treads become ({@code treads},
+    * by surface name), from which game slope they start ({@code minSlope}) and reach full width ({@code fullSlope}),
+    * the gaps between ledge levels in blocks ({@code minSpacing} to {@code maxSpacing}) and the widest tread in columns.
+    */
+   record Ledges(Map<String, Surface> treads, double minSlope, double fullSlope, int minSpacing, int maxSpacing, double width) {
+   }
+
    /** The surface of a land column: the first matching rule's (the last rule matches every column). */
    Surface land(int lcdbClass, double slopeDegrees, double heightMetres) {
       for (Rule rule : this.land) {
@@ -187,6 +201,16 @@ public final class NzSurfacePalette {
          }
       }
       return null;
+   }
+
+   /** The cliff ledges, or null when the file has none. */
+   Ledges ledges() {
+      return this.ledges;
+   }
+
+   /** The surface a ledge's tread on {@code surface} gets, or null where that surface has no ledges. */
+   Surface ledgeTread(Surface surface) {
+      return this.ledges == null ? null : this.ledges.treads().get(surface.name());
    }
 
    /** The palette in use: the one read at the last server start, else the jar's. */
@@ -268,7 +292,7 @@ public final class NzSurfacePalette {
       private final Map<String, NzSurfaceMix> mixes = new HashMap<>();
 
       NzSurfacePalette palette(JsonObject root) {
-         keys(root, "", "format", "mixes", "face", "bare_step", "land", "water", "surfaces", "boulders");
+         keys(root, "", "format", "mixes", "face", "bare_step", "land", "water", "surfaces", "boulders", "ledges");
          int format = integer(required(root, "", "format"), "format");
          if (format != FORMAT) {
             throw error("format", "is " + format + ", this version of the mod reads format " + FORMAT);
@@ -308,6 +332,7 @@ public final class NzSurfacePalette {
                boulders.add(this.boulderRule(object(boulderRules.get(i), "boulders[" + i + "]"), "boulders[" + i + "]", surfaces));
             }
          }
+         Ledges ledges = root.has("ledges") ? ledges(object(root.get("ledges"), "ledges"), surfaces) : null;
          return new NzSurfacePalette(
             land,
             surfaceRef(required(water, "water", "sea"), "water.sea", surfaces),
@@ -315,8 +340,41 @@ public final class NzSurfacePalette {
             river,
             water.has("stream") ? surfaceRef(water.get("stream"), "water.stream", surfaces) : river,
             bareStep,
-            boulders
+            boulders,
+            ledges
          );
+      }
+
+      private static Ledges ledges(JsonObject json, Map<String, Surface> surfaces) {
+         keys(json, "ledges", "surfaces", "min_slope", "full_slope", "spacing", "width");
+         JsonObject treadNames = object(required(json, "ledges", "surfaces"), "ledges.surfaces");
+         Map<String, Surface> treads = new HashMap<>();
+         for (Map.Entry<String, JsonElement> entry : treadNames.entrySet()) {
+            String path = "ledges.surfaces." + entry.getKey();
+            if (!surfaces.containsKey(entry.getKey())) {
+               throw error(path, "names surface \"" + entry.getKey() + "\", which \"surfaces\" doesn't have");
+            }
+            treads.put(entry.getKey(), surfaceRef(entry.getValue(), path, surfaces));
+         }
+         double minSlope = number(json, "ledges", "min_slope", Double.NaN);
+         double fullSlope = number(json, "ledges", "full_slope", Double.NaN);
+         if (!(minSlope >= 0.0 && minSlope < fullSlope && fullSlope <= 90.0)) {
+            throw error("ledges", "needs 0 <= min_slope < full_slope <= 90 (game degrees)");
+         }
+         JsonArray spacing = array(required(json, "ledges", "spacing"), "ledges.spacing");
+         if (spacing.size() != 2) {
+            throw error("ledges.spacing", "must be [min, max]");
+         }
+         int minSpacing = integer(spacing.get(0), "ledges.spacing[0]");
+         int maxSpacing = integer(spacing.get(1), "ledges.spacing[1]");
+         if (minSpacing < MIN_LEDGE_SPACING || maxSpacing < minSpacing || maxSpacing > MAX_LEDGE_SPACING) {
+            throw error("ledges.spacing", "must be " + MIN_LEDGE_SPACING + " to " + MAX_LEDGE_SPACING + " blocks, with min no more than max");
+         }
+         double width = number(json, "ledges", "width", Double.NaN);
+         if (!(width >= 0.0 && width <= MAX_LEDGE_WIDTH)) {
+            throw error("ledges.width", json.has("width") ? "must be 0 to " + MAX_LEDGE_WIDTH + " columns" : "is missing");
+         }
+         return new Ledges(Map.copyOf(treads), minSlope, fullSlope, minSpacing, maxSpacing, width);
       }
 
       private BoulderRule boulderRule(JsonObject json, String path, Map<String, Surface> surfaces) {

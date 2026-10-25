@@ -23,6 +23,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * and streams), and has the top block of a step flow once the chunk is done, so the water pours over the step instead of standing as a wall. The
  * NZ {@code FlowingFluidMixin} asks {@link #suppressesSourceConversion}, so that the flow can't make new sources at a
  * step's corners and fill the reach below.
+ *
+ * <p>It also holds the cliff ledges ({@link NzLedges}, TERR-14), which keep clear of all this water and are built on
+ * the same streams.
  */
 public final class NzWater {
    /** Water flags as {@code WaterSurfaceResolver} stores them (its private {@code WATER_NONE}, … constants). */
@@ -38,6 +41,7 @@ public final class NzWater {
    private final EarthGeneratorSettings settings;
    private final NzTerrainSampler sampler;
    private volatile NzStreams streams;
+   private volatile NzLedges ledges;
 
    private NzWater(EarthGeneratorSettings settings) {
       this.settings = settings;
@@ -115,21 +119,21 @@ public final class NzWater {
    }
 
    /**
-    * The terrain Y of land block (x, z) given {@code terrain} from the tiles: a stream's bed, or a bank raised beside a
-    * stream, where the streams change it ({@link NzTerrainSampler} asks, at level 0).
+    * The terrain Y of land block (x, z) given {@code terrain} from the tiles: a stream's bed, a bank raised beside a
+    * stream, or a cliff ledge, where the streams or the ledges change it ({@link NzTerrainSampler} asks, at level 0).
     */
-   static int streamGround(EarthGeneratorSettings settings, NzTiles tiles, int x, int z, int terrain) {
+   static int landGround(EarthGeneratorSettings settings, NzTiles tiles, int x, int z, int terrain) {
       NzWater water = forSettings(settings);
       if (water == null) {
          return terrain;
       }
       int ground = water.streamsFor(tiles).groundY(x, z);
-      return ground == NzStreams.NONE ? terrain : ground;
+      return ground == NzStreams.NONE ? terrain + water.ledgesFor(tiles).offset(x, z) : ground;
    }
 
-   /** The streams of the current store, with their lakes and rivers ({@link NzBoulders} asks). */
-   NzStreams streams() {
-      return this.streamsFor(this.sampler.seaFloor().tiles());
+   /** The cliff ledges of the current store and palette ({@link NzSurface}, {@link NzBoulders} ask). */
+   NzLedges ledges() {
+      return this.ledgesFor(this.sampler.seaFloor().tiles());
    }
 
    /** The sea floor of the current store, which also gives the store. */
@@ -145,6 +149,18 @@ public final class NzWater {
          this.streams = water;
       }
       return water;
+   }
+
+   /** Ledges on the current streams and palette; both are replaced at every server start. */
+   private NzLedges ledgesFor(NzTiles tiles) {
+      NzStreams streams = this.streamsFor(tiles);
+      NzSurfacePalette palette = NzSurfacePalette.global();
+      NzLedges ledges = this.ledges;
+      if (ledges == null || ledges.streams() != streams || ledges.palette() != palette) {
+         ledges = new NzLedges(streams, palette, this.settings);
+         this.ledges = ledges;
+      }
+      return ledges;
    }
 
    static Region region(NzSeaFloor floor, NzStreams streams, EarthGeneratorSettings settings, int minX, int minZ, int size) {

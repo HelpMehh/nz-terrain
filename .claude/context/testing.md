@@ -680,3 +680,54 @@ Code: `0.8.3+nz.12`, tiles as in TERR-14 step 2.
     washed grey boulders with moss caps in creek beds and on ledges.
   - Big scrub gorge (−73609, 101434): darker greywacke rockfall at the
     wall feet.
+
+## Cliff ledges check (TERR-14 step 5, 25 Oct 2026)
+
+Code: `0.8.3+nz.14`, tiles as in TERR-14 step 2.
+
+- **Before the code:** a Python prototype on the test-area-1 rasters
+  (pipeline venv; side views of a south-facing cliff in the tuning box,
+  rendered as PNGs with a small numpy PNG writer: the venv has no
+  matplotlib or PIL). Ledges only one column wide looked like a slightly
+  coarser staircase; full terracing looked like man-made terraces; the
+  chosen middle (spacing 5–12, width up to 5, ledges along about two
+  thirds of a cliff) gave ledges that come and go. Top-down hillshades
+  don't show cliffs; side views do.
+- **Build:** passes, 715 tests (600 upstream + 115 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New: `NzLedgesTest` (level
+  gaps, a column moves at most half the spacing and only on steep
+  ground, a synthetic 72° cliff gets ledges that run level along it, none
+  on flat ground or within 3 blocks of a lake or a creek, the sampler
+  and the surface see them) and the palette's `"ledges"` (the jar's
+  rules, mistakes named by place).
+- **Survey of all of test area 1** (throwaway JUnit test, 896 tiles):
+  4.8 % of land columns are treads, 3.7 % move, by −6 to +6 blocks
+  (symmetric); no tread beside water or a stream-changed column; 12 ms
+  per tile with the streams already computed.
+- **Headless server check (passed)**, set up as in TERR-10 (a new world,
+  `tiles_dir` = `data/tiles/test-area-1`). Three 128 × 128 areas
+  forceloaded: a bush and subalpine cliff in the tuning box
+  (`-76000 94330 -75873 94457`), the big scrub gorge
+  (`-73668 101348 -73541 101475`) and the forest gorge
+  (`-77005 93766 -76878 93893`); 90 s, `save-all flush`. Expected columns
+  from a throwaway JUnit test (`NzWater.column` and the surface's top
+  pick on the real tiles); saved chunks read with a small Python Anvil
+  reader.
+  - 5,051 of 5,052 tread columns at exactly the expected height (the
+    other: a lava pool, on since TERR-8). 4,996 tread tops are the
+    expected block of the tread mix; the rest are dirt under trees and
+    two ore blocks.
+  - Of 54,852 other columns, 98 differ: boulder caps and creek boulders.
+  - `leaf_litter` (a thin ground cover from the 26.x forest features)
+    lies on many forest columns: a ground check has to skip it like
+    plants.
+- **Desktop check:** pending. Spots, with what to look at:
+  - Bush and subalpine cliff in the tuning box (−75949, 94387, facing
+    south): mossy ledges in the bush, do they read as ledges or as noise?
+  - Big scrub gorge (−73609, 101434): alpine rock with gravel and grass
+    ledges; is the face still one grey staircase?
+  - Snowy faces near the névé (−73450, 97233, about Y 1,350): snow on the
+    ledges of snowy rock.
+  - Anywhere: ledge spacing and width, seams where ledges start beside a
+    creek, and whether faces still look too smooth (then consider the 3D
+    pass, option (c)).

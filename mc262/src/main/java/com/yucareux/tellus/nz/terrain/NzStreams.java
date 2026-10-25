@@ -170,6 +170,32 @@ final class NzStreams {
       return tile != null && tile.step.get(index(x, z));
    }
 
+   /**
+    * Sets {@code out[i]} for every column of a {@code size} × {@code size} window from block (originX, originZ), row
+    * by row, that the streams change: stream water, a raised bank, a gorge wall or ledge ({@link NzLedges} keeps clear
+    * of them). Reads each tile's arrays directly, which is much cheaper than asking column by column.
+    */
+   void markChanged(int originX, int originZ, int size, boolean[] out) {
+      for (int tz = originZ >> NzTileFormat.TILE_SHIFT; tz <= (originZ + size - 1) >> NzTileFormat.TILE_SHIFT; tz++) {
+         for (int tx = originX >> NzTileFormat.TILE_SHIFT; tx <= (originX + size - 1) >> NzTileFormat.TILE_SHIFT; tx++) {
+            Tile tile = this.cache.getUnchecked(new Key(tx, tz)).orElse(null);
+            if (tile == null) {
+               continue;
+            }
+            int tileX = tx * NzTileFormat.TILE_PIXELS;
+            int tileZ = tz * NzTileFormat.TILE_PIXELS;
+            for (int z = Math.max(originZ, tileZ); z < Math.min(originZ + size, tileZ + NzTileFormat.TILE_PIXELS); z++) {
+               for (int x = Math.max(originX, tileX); x < Math.min(originX + size, tileX + NzTileFormat.TILE_PIXELS); x++) {
+                  int i = index(x, z);
+                  if (tile.surface[i] != NONE || tile.ground[i] != NONE) {
+                     out[(z - originZ) * size + (x - originX)] = true;
+                  }
+               }
+            }
+         }
+      }
+   }
+
    private Tile tile(int x, int z) {
       return this.cache.getUnchecked(new Key(x >> NzTileFormat.TILE_SHIFT, z >> NzTileFormat.TILE_SHIFT)).orElse(null);
    }

@@ -26,6 +26,9 @@
     // bush: weathered and lichen-grown, they read darker than fresh scree and rock faces.
     "greywacke": {"blocks": {"stone": 50, "andesite": 30, "cobbled_deepslate": 20}, "pattern": "noise"},
     "mossy_rock": {"blocks": {"stone": 50, "mossy_cobblestone": 25, "moss_block": 25}, "pattern": "noise"},
+    // Cliff faces above the bush (TERR-14): the schist with a little cobble texture and dark weathered spots, so a
+    // face isn't one flat grey. A first guess for the desktop look.
+    "rock_face": {"blocks": {"stone": 45, "andesite": 25, "tuff": 15, "cobblestone": 10, "cobbled_deepslate": 5}, "pattern": "noise"},
     // Boulders on the forest floor (TERR-14): the schist mossy on the sides, a cap of moss on top. In creeks they are
     // washed clean: plain schist with only the cap.
     "mossy_boulder": {"blocks": {"stone": 45, "mossy_cobblestone": 35, "andesite": 20}, "pattern": "noise"},
@@ -129,6 +132,23 @@
      "block": "mossy_boulder", "top": "moss_cap"}
   ],
 
+  // Cliff ledges (TERR-14): on steep rock faces some columns move up or down onto ledge levels, so a cliff shows flat
+  // ledges with taller rock between them instead of an even staircase. This changes the terrain's height, not only its
+  // blocks; chunks already generated keep their old shape.
+  //   surfaces    which surfaces get ledges, and the surface their treads (the columns on a ledge) get;
+  //   min_slope   game degrees: no ledges up to this slope (the land rules' slopes, from the LiDAR);
+  //   full_slope  game degrees: ledges at full width from here, narrower between the two;
+  //   spacing     [min, max] blocks between ledge levels (irregular, 2 to 32); a column moves at most half of it;
+  //   width       the widest ledge in columns (0 to 16; 0 = no ledges). Each ledge comes and goes along a cliff.
+  // Leave the section out for no ledges.
+  "ledges": {
+    "surfaces": {"rock": "rock_ledge", "mossy_rock": "mossy_ledge", "snowy_rock": "snowy_ledge"},
+    "min_slope": 56,
+    "full_slope": 68,
+    "spacing": [5, 12],
+    "width": 5
+  },
+
   // Surfaces:
   //   "top"    the top block (a material);
   //   "under"  the layers below it, top down: [{"block": material, "depth": blocks}], depth a number or
@@ -136,12 +156,25 @@
   //   "face"   see above (default: the top-level "face");
   //   "cover"  a block placed on top of the surface on dry land, e.g. a snow layer; "air" = none.
   "surfaces": {
-    "rock": {"top": "schist"},
+    "rock": {"top": "schist", "face": "rock_face"},
     "snowy_rock": {
       "top": "schist",
+      "face": "rock_face",
       "cover": {"blocks": {"snow": 60, "air": 40}, "pattern": "patches", "size": 3}
     },
     "mossy_rock": {"top": "mossy_rock", "face": "mossy_rock"},
+    // Ledge treads (TERR-14, first guesses): what collects on a ledge. Above the bush scree and tussock tufts, in
+    // the bush moss and ferny soil, up high snow.
+    "rock_ledge": {
+      "top": {"blocks": {"gravel": 40, "grass_block": 25, "coarse_dirt": 20, "andesite": 15}, "pattern": "patches", "size": 2},
+      "face": "rock_face"
+    },
+    "mossy_ledge": {
+      "top": {"blocks": {"moss_block": 40, "grass_block": 25, "podzol": 20, "coarse_dirt": 15}, "pattern": "patches", "size": 2},
+      "under": [{"block": "dirt", "depth": 1}],
+      "face": "mossy_rock"
+    },
+    "snowy_ledge": {"top": "snow_block", "face": "rock_face"},
     "scree": {
       "top": {"blocks": {"gravel": 60, "andesite": 20, "stone": 10, "cobblestone": 10}, "pattern": "noise"},
       "under": [{"block": "gravel", "depth": 2}]

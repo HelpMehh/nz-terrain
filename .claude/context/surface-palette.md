@@ -132,8 +132,16 @@ Notes:
 - Boulders (TERR-14 step 4) are placed by `NzBoulders`, but their rules
   live in this palette file's `"boulders"` list (by surface, slope,
   height and "below a cliff"), so they are tuned the same way
-  (`tellus-internals.md` §12). Cliff bands and streams are TERR-14 code,
-  not this palette.
+  (`tellus-internals.md` §12). Streams are TERR-14 code, not this palette.
+- Cliff ledges (TERR-14 step 5) are made by `NzLedges`, tuned in this
+  file's `"ledges"` section: which surfaces get them (`rock`,
+  `mossy_rock`, `snowy_rock`) and the surface of their treads
+  (`rock_ledge`: gravel, grass and coarse dirt; `mossy_ledge`: moss,
+  grass and podzol; `snowy_ledge`: snow), the slopes, the spacing of the
+  levels and the widest ledge. It moves column tops, so it changes the
+  terrain, not only its blocks (`tellus-internals.md` §12). For PIPE-15,
+  a rock type that doesn't form ledges (Fiordland granite) gets a rock
+  surface that isn't listed there.
 
 ## NZ ground blocks
 
@@ -196,8 +204,10 @@ come with the `rock` tile layer (PIPE-15, below).
     fewer brown blocks, other sizes, or ragged patch edges (a change to
     `NzSurfaceMix`'s patches). Flora (TERR-13) and the tussock tint
     (MODS-19) will cover much of it.
-  - Rock in horizontal bands like strata on cliffs (`"pattern": "bands"`
-    on the face mix; also TERR-14).
+  - Cliff ledges (TERR-14 step 5): spacing, width and slopes in
+    `"ledges"`, and the tread mixes. Striped faces (`"pattern": "bands"`
+    on the face mix) were not used: the ledges give the strata look, and
+    neat stripes don't fit schist or greywacke.
   - How deep the soil goes on steep ground (`under` depths). In the
     TERR-11 check, about 30 % of the sky-facing step sides in the tuning
     box were dirt, mostly the forest's 3 dirt layers: a candidate for
@@ -205,8 +215,10 @@ come with the `rock` tile layer (PIPE-15, below).
   - The snowy rock's snow cover (60 % snow layers in patches).
   - The alpine `rock` surface is plain grey stone with almost no colour
     variation: whole valleys and the big scrub gorge (TERR-14 step 3,
-    around −73609, 101434) read as one grey staircase. Give it more
-    variety (andesite, tuff, cobbles, a little moss low down).
+    around −73609, 101434) read as one grey staircase. Since `nz.14`
+    the `rock` and `snowy_rock` faces use the `rock_face` mix (schist plus
+    cobblestone and a little cobbled deepslate) and the cliffs have
+    ledges; check whether that is enough or the top needs it too.
   - The `bare_step` value (3, TERR-14 step 3): it bares every step of 3+
     blocks, cliffs included; looked right on gorge walls.
 - **Final choices:** not tuned yet.

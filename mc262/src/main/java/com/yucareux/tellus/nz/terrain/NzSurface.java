@@ -47,6 +47,8 @@ public final class NzSurface {
    private final int[] water;
    /** Dry columns that are ledges in a slot gorge ({@link NzStreams}): they get the stream bed. */
    private final boolean[] gorgeLedge = new boolean[CHUNK_SIDE * CHUNK_SIDE];
+   /** Columns on a cliff ledge ({@link NzLedges}): they get the palette's tread surface. */
+   private final boolean[] tread = new boolean[CHUNK_SIDE * CHUNK_SIDE];
    /** Game blocks per metre of height: the slope of a ramp rising {@code m} metres over one block is {@code m × this}. */
    private final double blocksPerMetre;
 
@@ -123,6 +125,7 @@ public final class NzSurface {
          NzSurfacePalette.global(), settings, floor, chunkMinX, chunkMinZ, chunkMinY, chunkMaxY, grid, gridSize, step, writer
       );
       surface.markGorgeLedges(water::isGorgeLedge);
+      surface.markTreads(water.ledges()::isTread);
       return surface;
    }
 
@@ -130,17 +133,27 @@ public final class NzSurface {
     * Which surface each column of a chunk has, for passes after the fill ({@link NzBoulders}): only
     * {@link #surfaceAt}, {@link #slopeDegrees} and {@link #heightMetres} work on it, it writes nothing.
     */
-   static NzSurface columns(NzSurfacePalette palette, EarthGeneratorSettings settings, NzSeaFloor floor, NzStreams streams, int chunkMinX, int chunkMinZ) {
+   static NzSurface columns(NzSurfacePalette palette, EarthGeneratorSettings settings, NzSeaFloor floor, NzLedges ledges, int chunkMinX, int chunkMinZ) {
       NzSurface surface = new NzSurface(palette, settings, floor, chunkMinX, chunkMinZ, 0, 0, null, 0, 0, null);
-      surface.markGorgeLedges(streams::isGorgeLedge);
+      surface.markGorgeLedges(ledges.streams()::isGorgeLedge);
+      surface.markTreads(ledges::isTread);
       return surface;
    }
 
    /** Marks the chunk's columns for which {@code isLedge} (block x, z) says gorge ledge. */
    void markGorgeLedges(BiPredicate<Integer, Integer> isLedge) {
+      mark(this.gorgeLedge, isLedge);
+   }
+
+   /** Marks the chunk's columns for which {@code isTread} (block x, z) says cliff ledge. */
+   void markTreads(BiPredicate<Integer, Integer> isTread) {
+      mark(this.tread, isTread);
+   }
+
+   private void mark(boolean[] columns, BiPredicate<Integer, Integer> test) {
       for (int localZ = 0; localZ < CHUNK_SIDE; localZ++) {
          for (int localX = 0; localX < CHUNK_SIDE; localX++) {
-            this.gorgeLedge[localZ * CHUNK_SIDE + localX] = isLedge.test(this.chunkMinX + localX, this.chunkMinZ + localZ);
+            columns[localZ * CHUNK_SIDE + localX] = test.test(this.chunkMinX + localX, this.chunkMinZ + localZ);
          }
       }
    }
@@ -198,7 +211,8 @@ public final class NzSurface {
 
    /**
     * Which surface a column gets: the water floor under water, else the first matching land rule. Water on a column
-    * the water layer calls land is a stream ({@link NzStreams}); a gorge's ledges get the stream bed too.
+    * the water layer calls land is a stream ({@link NzStreams}); a gorge's ledges get the stream bed too. A cliff
+    * ledge's tread gets the tread surface of its rock surface.
     */
    NzSurfacePalette.Surface surfaceAt(int localX, int localZ, boolean underwater, boolean ocean) {
       int index = localZ * CHUNK_SIDE + localX;
@@ -215,23 +229,33 @@ public final class NzSurface {
             default -> this.palette.lake();
          };
       }
-      return this.palette.land(this.lcdb[index], this.slopeDegrees(localX, localZ), this.heightMetres(localX, localZ));
+      NzSurfacePalette.Surface land = this.palette.land(this.lcdb[index], this.slopeDegrees(localX, localZ), this.heightMetres(localX, localZ));
+      NzSurfacePalette.Surface tread = this.tread[index] ? this.palette.ledgeTread(land) : null;
+      return tread != null ? tread : land;
    }
 
    /** The game slope at a column in degrees: Horn's method on the tile heights, scaled to block heights. */
    double slopeDegrees(int localX, int localZ) {
-      int centre = (localZ + 1) * GRID + localX + 1;
-      double a = this.metres[centre - GRID - 1];
-      double b = this.metres[centre - GRID];
-      double c = this.metres[centre - GRID + 1];
-      double d = this.metres[centre - 1];
-      double f = this.metres[centre + 1];
-      double g = this.metres[centre + GRID - 1];
-      double h = this.metres[centre + GRID];
-      double i = this.metres[centre + GRID + 1];
+      return slopeDegrees(this.metres, (localZ + 1) * GRID + localX + 1, GRID, this.blocksPerMetre);
+   }
+
+   /**
+    * The game slope in degrees at index {@code centre} of a grid of heights in metres, {@code stride} wide: Horn's
+    * method, scaled to block heights. {@link NzLedges} uses it too, so its ledges sit on the columns this class gives
+    * the rock surfaces.
+    */
+   static double slopeDegrees(double[] metres, int centre, int stride, double blocksPerMetre) {
+      double a = metres[centre - stride - 1];
+      double b = metres[centre - stride];
+      double c = metres[centre - stride + 1];
+      double d = metres[centre - 1];
+      double f = metres[centre + 1];
+      double g = metres[centre + stride - 1];
+      double h = metres[centre + stride];
+      double i = metres[centre + stride + 1];
       // Rise in metres per block, then in blocks per block.
-      double dx = ((c + 2.0 * f + i) - (a + 2.0 * d + g)) / 8.0 * this.blocksPerMetre;
-      double dz = ((g + 2.0 * h + i) - (a + 2.0 * b + c)) / 8.0 * this.blocksPerMetre;
+      double dx = ((c + 2.0 * f + i) - (a + 2.0 * d + g)) / 8.0 * blocksPerMetre;
+      double dz = ((g + 2.0 * h + i) - (a + 2.0 * b + c)) / 8.0 * blocksPerMetre;
       return Math.toDegrees(Math.atan(Math.sqrt(dx * dx + dz * dz)));
    }
 

@@ -212,7 +212,42 @@ class NzSurfacePaletteTest {
    @Test
    void namedMixesAreShared() {
       NzSurfacePalette palette = NzSurfacePalette.bundled();
-      assertSame(palette.land(16, 50.0, 100.0).top(), palette.land(16, 50.0, 100.0).face());
+      // Rock and snowy rock both name the "rock_face" mix.
+      assertSame(palette.land(16, 50.0, 100.0).face(), palette.land(14, 60.0, 2000.0).face());
+   }
+
+   @Test
+   void bundledLedgesFollowTheirRules() {
+      NzSurfacePalette palette = NzSurfacePalette.bundled();
+      NzSurfacePalette.Ledges ledges = palette.ledges();
+      assertEquals(56.0, ledges.minSlope());
+      assertEquals(68.0, ledges.fullSlope());
+      // Every rock face gets ledges: vegetation too steep for soil below and above the treeline, gravel-or-rock (16)
+      // and snowy rock; their treads hold scree, moss or snow.
+      assertEquals("mossy_ledge", palette.ledgeTread(palette.land(69, 70.0, 500.0)).name());
+      assertEquals("rock_ledge", palette.ledgeTread(palette.land(43, 70.0, 1400.0)).name());
+      assertEquals("rock_ledge", palette.ledgeTread(palette.land(16, 70.0, 1400.0)).name());
+      assertEquals("snowy_ledge", palette.ledgeTread(palette.land(14, 70.0, 2000.0)).name());
+      assertNull(palette.ledgeTread(palette.land(16, 30.0, 1400.0)));
+      assertNull(palette.ledgeTread(palette.land(69, 30.0, 500.0)));
+      assertTrue(blocks(palette.ledgeTread(palette.land(16, 70.0, 1400.0)).top()).contains(Blocks.GRAVEL));
+      assertNull(NzSurfacePalette.parse(MINIMAL).ledges());
+   }
+
+   @Test
+   void ledgeMistakesNameTheirPlaceInTheFile() {
+      String ledges = "\"ledges\": {\"surfaces\": {\"rock\": \"soil\"}, \"min_slope\": 56, \"full_slope\": 68, \"spacing\": [5, 12], \"width\": 5}, ";
+      String file = MINIMAL.replace("\"surfaces\": {\"rock\"", ledges + "\"surfaces\": {\"rock\"");
+      assertEquals("soil", NzSurfacePalette.parse(file).ledgeTread(NzSurfacePalette.parse(file).land(16, 40.0, 0.0)).name());
+      assertError("ledges.surfaces.rok names surface \"rok\"", file.replace("{\"rock\": \"soil\"}", "{\"rok\": \"soil\"}"));
+      assertError("ledges.surfaces.rock names surface \"sol\"", file.replace("{\"rock\": \"soil\"}", "{\"rock\": \"sol\"}"));
+      assertError("ledges needs 0 <= min_slope < full_slope", file.replace("\"full_slope\": 68", "\"full_slope\": 50"));
+      assertError("ledges.spacing must be 2 to 32", file.replace("[5, 12]", "[5, 40]"));
+      assertError("ledges.spacing must be 2 to 32", file.replace("[5, 12]", "[12, 5]"));
+      assertError("ledges.spacing must be [min, max]", file.replace("[5, 12]", "[5]"));
+      assertError("ledges.width must be 0 to 16", file.replace("\"width\": 5", "\"width\": 20"));
+      assertError("ledges.width is missing", file.replace(", \"width\": 5", ""));
+      assertError("ledges.widht is not a known key", file.replace("\"width\"", "\"widht\""));
    }
 
    private static Set<Object> blocks(NzSurfaceMix mix) {

@@ -80,11 +80,12 @@ public final class NzBoulders {
    private final int[] water = new int[WINDOW * WINDOW];
    private final boolean[] ocean = new boolean[WINDOW * WINDOW];
 
-   NzBoulders(NzSurfacePalette palette, EarthGeneratorSettings settings, NzSeaFloor floor, NzStreams streams, int chunkMinX, int chunkMinZ) {
+   NzBoulders(NzSurfacePalette palette, EarthGeneratorSettings settings, NzSeaFloor floor, NzLedges ledges, int chunkMinX, int chunkMinZ) {
       this.palette = palette;
       this.chunkMinX = chunkMinX;
       this.chunkMinZ = chunkMinZ;
-      this.surfaces = NzSurface.columns(palette, settings, floor, streams, chunkMinX, chunkMinZ);
+      this.surfaces = NzSurface.columns(palette, settings, floor, ledges, chunkMinX, chunkMinZ);
+      NzStreams streams = ledges.streams();
       for (int wz = 0; wz < WINDOW; wz++) {
          for (int wx = 0; wx < WINDOW; wx++) {
             int x = chunkMinX + wx - CLIFF_RADIUS_BLOCKS;
@@ -106,7 +107,7 @@ public final class NzBoulders {
       }
       NzWater water = NzWater.forSettings(settings);
       NzBoulders boulders = new NzBoulders(
-         NzSurfacePalette.global(), settings, water.seaFloor(), water.streams(), chunk.getPos().getMinBlockX(), chunk.getPos().getMinBlockZ()
+         NzSurfacePalette.global(), settings, water.seaFloor(), water.ledges(), chunk.getPos().getMinBlockX(), chunk.getPos().getMinBlockZ()
       );
       BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
       boulders.placeAll(new World() {

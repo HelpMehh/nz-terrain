@@ -232,7 +232,7 @@ class NzBouldersTest {
    }
 
    private NzBoulders chunk(int minX, int minZ) {
-      return new NzBoulders(this.palette, SETTINGS, this.floor, this.streams, minX, minZ);
+      return new NzBoulders(this.palette, SETTINGS, this.floor, new NzLedges(this.streams, this.palette, SETTINGS), minX, minZ);
    }
 
    /** A 3 × 3 boulder from block (32, 32) on flat ground: the middle 2 high, the edges 1, the corners left out. */

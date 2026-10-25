@@ -15,7 +15,7 @@ this plan once its lessons are in the context files.
   streams and gorges are carved **entirely in NZ code**, with **no new
   upstream hook**: a stream column is water from `NzWater.column`; a bank
   or a gorge wall is a dry column whose height `NzTerrainSampler.sample`
-  takes from the per-tile pass (`NzWater.streamGround`, `NzStreams`).
+  takes from the per-tile pass (`NzWater.landGround`, `NzStreams`).
 - **The `streams` layer** is already declared (`NzTileLayer.STREAMS`,
   level 0 only) and filled by the pipeline (PIPE-14): 8-connected
   centrelines of the 3 m flow paths, value = catchment size class
@@ -214,6 +214,16 @@ Independent of steps 1–3 except for stream beds.
   in trees' trunks. Desktop: a gravel riverbed and a forest stream.
 
 ## Step 5 — Cliff rock bands
+
+**Built (25 Oct 2026, `0.8.3+nz.14`); desktop check pending.** Decided:
+(b), ledges by moving column tops (`NzLedges`), with tread surfaces and
+a little more contrast on the rock face; a 3D pass (c) only if the
+desktop look says faces are still too smooth. Not waiting for PIPE-15:
+the ledges are in the palette per surface, so a rock type can switch
+them off. Parameters picked from a Python prototype on the rasters
+(side views of a cliff in the tuning box). Headless check passed
+(`testing.md`). Details: `tellus-internals.md` §12. Still to do: the
+desktop check, then the "Last" bullet below.
 
 On steep LiDAR faces (game slope over ~63°) the terrain is a smooth
 staircase of columns. Rock bands give it 1:1 strata: ledges, steps,

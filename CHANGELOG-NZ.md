@@ -4,6 +4,22 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.14 (TERR-14 step 5, 25 Oct 2026)
+
+- Cliff ledges: on steep rock faces, some columns move up or down by a
+  few blocks onto ledge levels. A cliff now shows flat ledges with taller
+  rock between them, instead of an even staircase. Each ledge comes and
+  goes along the cliff, and the levels rise and fall across the land.
+  Ledges keep a few blocks clear of water, streams and gorges.
+- Ledges hold what collects on real ones: scree and tussock above the
+  bush, moss and soil in the bush, snow up high.
+- Rock faces above the bush have a little more variety (cobbles and dark
+  weathered spots).
+- Which surfaces get ledges, from which slope, how far apart and how wide
+  comes from a new optional `"ledges"` section in the surface palette
+  file, so it can be tuned in `config/nz-terrain-surface.jsonc` without a
+  rebuild. Unlike the rest of the palette, it changes the terrain's height.
+
 ## 0.8.3+nz.13 (TERR-14 step 4 follow-up, 24 Oct 2026)
 
 - Boulders stand out more: in bush creeks and gorges they are washed grey

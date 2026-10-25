@@ -838,7 +838,7 @@ the ground of dry ones (above). Rules in its Javadoc; in short:
 
 **Slot gorges (TERR-14 step 3, `0.8.3+nz.9`–`nz.11`).** In the same
 per-tile pass of `NzStreams` (`gorges`), so no new hook: walls are dry columns and
-reach the chunk generator through `NzWater.streamGround` and the sampler,
+reach the chunk generator through `NzWater.landGround` and the sampler,
 like banks. Rules and constants are in its Javadoc; in short:
 
 - **Where (decided 23 Oct 2026: option (a), from the LiDAR's shape):** a
@@ -961,6 +961,42 @@ surface rules above run. The shell fill and `resolveMountainMassFillBlock`
   - Ore features (and `ore_gravel`) replace stone, andesite and tuff, so a
     few ore and gravel blocks show at the surface of rock (about 0.1 % of
     columns).
+
+**Cliff ledges (TERR-14 step 5, `0.8.3+nz.14`).** `m262:nz/terrain/NzLedges`,
+a per-tile pass like `NzStreams` (rules and constants in its Javadoc).
+
+- **Decided (25 Oct 2026): option (b)**, one height per column: on a
+  steep face the 3 m LiDAR gives an even staircase of 2–3-block steps,
+  and moving some column tops onto ledge levels gives flat ledges with
+  taller rock between them. (a) material only kept the staircase;
+  (c) a 3D pass (overhangs) would need an upstream hook and cross-chunk
+  edits, and South Westland photos show few overhangs (step 3). Add (c)
+  only if the desktop look asks for it. Horizontal stripes are not the
+  geology here (foliated schist, blocky greywacke), so the ledges come
+  and go and the levels wave and drift, rather than neat strata.
+- **Where:** dry columns whose surface (the palette's land rules on the
+  tile heights and Horn slope, the same as `NzSurface`, via the shared
+  `NzSurface.slopeDegrees`) is listed in the palette's `"ledges"` →
+  `"surfaces"`, from `min_slope`. Never within 3 blocks of water or of a
+  column the streams change (`NzStreams.markChanged`: water, banks,
+  gorge walls and ledges), so no bank loses its water.
+- **How it reaches the world:** `NzWater.landGround` (was
+  `streamGround`) adds the ledge offset to the sampler's level-0 land
+  height, so the chunk generator, the water column, boulders and the
+  surface's neighbour grid all see it, with no new upstream hook.
+  `NzWater` holds the `NzLedges` instance and rebuilds it when the tiles
+  or the palette change (both at every server start). `NzSurface` gives
+  treads the palette's tread surface; `NzBoulders` takes the ledges
+  (and their streams) so its surfaces match.
+- **Numbers** (prototype on the rasters, then the survey): in test area 1,
+  4.8 % of land columns are treads and 3.7 % move, by −6 to +6 blocks,
+  symmetric (the face's mean height stays). 12 ms per tile, streams
+  already computed. The tile is worked in 128-block parts so no window is
+  a G1 humongous object (TERR-18 note); a tile's result is a `byte[]`
+  of offsets plus a `BitSet`.
+- **Palette dependence:** unlike everything else in the palette, the
+  `"ledges"` section changes terrain heights. A tuning copy that changes
+  it makes new chunks meet old ones with a seam on cliffs.
 
 **Boulders (TERR-14 step 4, `0.8.3+nz.12`).** `m262:nz/terrain/NzBoulders`,
 called once per chunk from `applyBiomeDecoration` right after
