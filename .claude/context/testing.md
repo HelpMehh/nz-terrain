@@ -754,3 +754,42 @@ Code: `0.8.3+nz.14`, tiles as in TERR-14 step 2.
   - Anywhere: ledge spacing and width, seams where ledges start beside a
     creek, and whether faces still look too smooth (then consider the 3D
     pass, option (c)).
+
+## Cave layer check (TERR-23, 26 Oct 2026)
+
+Code: `0.8.3+nz.16`, tiles as in TERR-14 step 2.
+
+- **Build:** passes, 725 tests (600 upstream + 125 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New: `NzCavesTest` (the cave
+  surface on flat ground, at a cliff edge, against brute force on a
+  random field; only NZ worlds lower it, a lower bed stays lower; the
+  dropped features; lush caves by land cover, vegetation and water).
+- **Headless server check (passed)**, before and after the change, set
+  up as in TERR-10, both worlds with the same seed (`level-seed=2323`) so
+  the caves match, and `pause-when-empty-seconds=-1` (26.x pauses an
+  empty server after 60 s). Three 128 × 128 areas forceloaded: the
+  snowy cave spot (`-73512 97156 -73385 97283`), the bush cliff in the
+  tuning box (`-76000 94330 -75873 94457`) and the big scrub gorge
+  (`-73668 101348 -73541 101475`); `save-all flush`.
+- **How to measure openings:** flood-fill from the sky through every
+  block you can see through (air, cave air, water, lava, plants, leaves,
+  snow layers), then count what it reaches below its column's highest
+  solid block (`scipy.ndimage.label` in the pipeline venv on blocks read
+  with a small Python Anvil reader). Counting cave air next to plain air
+  does **not** work: features write plain air deep inside caves too.
+  Saved chunks are under `<world>/dimensions/minecraft/overworld/region/`
+  in 26.x.
+  - Before: the snowy spot had one cave system of 150,764 blocks open to
+    the sky, reaching 255 blocks deep, with 112 lava blocks and 998
+    glow-berry vines the sky reaches; the bush cliff a 5,106-block one.
+  - After: no cave open to the sky in any area, no lava or vines the sky
+    reaches. What is left (40 pockets at the bush cliff, the largest 76
+    blocks, the same before and after) is all under oak branches.
+  - Cave volume: down 4–5 % per area; cave blocks within 20 blocks of
+    the surface down 60–80 %, 20–60 deep down 8–60 % (most in the gorge).
+    Lava down 10–15 %.
+  - Glow berries: none left in the two areas above the bush, about 80 %
+    kept at the bush cliff. No azalea leaves (62 + 20 before, in the
+    gorge area).
+  - Chunk generation took about as long as before (about 10 s per area).
+- **Desktop check:** not done yet (`steps.md`, TERR-23).

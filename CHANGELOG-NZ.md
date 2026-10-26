@@ -4,6 +4,21 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.16 (TERR-23, 26 Oct 2026)
+
+- Caves stay inside the mountains: no more holes in cliff faces, caves
+  open to the sky, or lava and glow berries out in the open. Caves now
+  keep at least 6 blocks of rock to the side of any face and Tellus's
+  5 blocks below any ground, so they sit deeper under steep ground. Caves
+  still fill the mountains, but there are no cave mouths yet: they come
+  later, where real NZ caves are (limestone and marble country).
+- Lava and water springs, underground lava lakes, geodes and ores stay
+  inside the same skin, so springs no longer pour lava or water down
+  cliffs.
+- No surface lava lakes, and no azalea trees growing on the surface
+  above lush caves (azalea isn't native).
+- Lush caves (moss, glow berries) only under forest and mangroves.
+
 ## 0.8.3+nz.15 (TERR-14 step 5 follow-up, 25 Oct 2026)
 
 - No more rock fins and hollows on cliffs: a ledge column could end up

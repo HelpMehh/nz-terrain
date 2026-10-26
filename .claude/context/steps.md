@@ -394,30 +394,35 @@ them when they come up.
 
 - **Goal:** caves, lava and cave biomes stay inside the ground. No holes
   in cliff faces, lava falls down mountainsides or 1-block crusts over
-  caves; a few cave mouths on gentle ground are fine (survival needs
-  them).
+  caves.
 - **Found (TERR-14 step 5 desktop check, 25 Oct 2026, `0.8.3+nz.14`):**
   black holes in the mossy bush cliffs; at −73448, 97220 (Y 1,358) a cave
   right under the snow, leaving a crust of single blocks; at −73446,
   97215 (Y 1,371) a big cave system open to the sky, with lush-cave
   plants (glow berries) and what looked like lava falling down the faces.
-- **Know:** the cave layer is mapped onto the shell, relative to each
-  column's own surface (`TellusCaveDepthMapper`; noise caves, carvers,
-  their lava, cave biomes: `tellus-internals.md` §4). Vanilla's caves
-  come up close to the surface, and on a steep face a column's
-  neighbour is far lower, so a cave at a safe depth in one column opens
-  out of the next column's face.
-- **Raise first:** how to keep them in. Options: a solid skin, no caves
-  within N blocks of the surface, with N growing with the local relief
-  (from the height grid); no caves at all under steep ground; lava and
-  lush caves only below a depth, or not above the treeline; leave the
-  mouths on gentle ground. Most of this sits in upstream files
-  (`TellusVanillaNoiseCaveSampler`, `TellusConfiguredCarvers`,
-  `EarthBiomeSource`), so expect small `// NZ:` hooks.
-- **Also serves TERR-22:** glaciers need the cave layer kept below their
-  bed (hub plan `.claude/plans/glaciers.md`, step 2), so a "surface for
-  the caves" that can sit lower than the real one would cover both.
-- **Needs:** TERR-8. Any time; best before TERR-22 part 1.
+- **Cause:** Tellus measures caves from each column's own surface (a
+  cover of 5 blocks, for noise caves and carvers alike), so on a slope a cave at a
+  safe depth in one column opens out of the lower neighbour's face.
+- **Decided (26 Oct 2026):**
+  - Option A, a "cave surface": the lowest ground within 6 blocks.
+    Caves and height-range features (springs, underground lava lakes,
+    geodes, ores) are measured from it (`NzCaves`, `tellus-internals.md`
+    §4). Rejected: no caves under steep ground (slopes just under the
+    cut-off still open, and the Alps go solid); a bigger fixed cover
+    (steeper faces still open, flat ground loses caves for nothing).
+  - Lava springs only inside caves (follows from A), no surface lava
+    lakes; underground lava lakes stay.
+  - No cave mouths for now (realistic for the schist test area); real NZ
+    mouths come with the rock layer: TERR-24.
+  - Lush caves only under forest and mangroves; no surface azalea trees
+    (vanilla grows them above lush caves; not native).
+- **Built:** `0.8.3+nz.16`. Headless check passed (`testing.md`, "Cave
+  layer check").
+- **Still to do:** desktop check at the TERR-14 spots (above) and on a
+  bush cliff; then tick. Watch for flat-cut tunnel ceilings near steep
+  faces (carvers are cut off, not moved down) and springs.
+- **Also serves TERR-22:** glaciers lower the cave surface further, to
+  their bed (hub plan `.claude/plans/glaciers.md`, step 2).
 
 ### [ ] TERR-22 — Glaciers: ice body, crevasses, ice caves
 
@@ -430,6 +435,25 @@ them when they come up.
   "Raise first" choices.
 - **Needs:** PIPE-16 (ice thickness layer, plan step 1), TERR-14. Not
   needed for the test-area milestone.
+
+### [ ] TERR-24 — NZ cave mouths
+
+- **Goal:** cave entrances where real NZ caves are, instead of none
+  (TERR-23 seals everything).
+- **Know (TERR-23, 26 Oct 2026):** nearly all real NZ caves are in karst
+  (limestone, marble): NW Nelson (Takaka Hill, Mt Owen, Mt Arthur;
+  Harwoods Hole, a 180 m shaft), Waitomo and the King Country, Oparara and
+  Punakaiki, Te Anau. Typical mouths: stream sinks (a river vanishes into
+  a hillside and comes out lower down), tomos (vertical shafts in bush on
+  a karst plateau), arches and short through-caves (Oparara). Elsewhere:
+  sea caves and arches on rocky coasts, short lava tubes (Auckland).
+  Greywacke and schist (most of the Alps, test area 1) have almost no
+  real caves, only rock shelters at cliff feet and gaps under rockfall.
+- **How:** where a mouth goes, set `NzCaves`' cave surface back to the
+  real ground, so the cave layer opens there; shape the mouth itself.
+  Fits the glow-worm cave biome (TERR-12): real glow-worm caves are
+  shallow limestone stream caves.
+- **Needs:** PIPE-15 (rock layer), TERR-23. Not needed for the milestone.
 
 ### [ ] TERR-19 — First NZ release
 

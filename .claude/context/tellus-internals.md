@@ -249,6 +249,57 @@ deep zone stays plain deepslate until TERR-20 carves caverns into it.
   mapped into 256 blocks): about 2× taller at the coast, 1.45× at 100 m,
   vanilla-like around Y 190, squashed (0.7×) in the mountains.
 
+### NZ worlds: the cave surface (TERR-23)
+
+**Why caves opened out of faces:** Tellus keeps a cover over caves
+measured from each column's *own* surface: noise caves start 5 blocks
+down (`TellusVanillaNoiseCaveSampler.SURFACE_COVER_DEPTH` + 1), the
+carver mask blocks the same 5 (`TellusVanillaCarverRunner`, the
+`y >= surfaceYByColumn[index] - 4` test). On a slope the downhill neighbour's
+surface is lower than the cave, so the cave opens sideways out of the
+face. `caves_reach_surface` is off (Tellus's default; the NZ preset
+keeps it), so there are no intended mouths at all; every opening seen
+was this.
+
+`m262:nz/terrain/NzCaves` (decisions in `steps.md`, TERR-23):
+
+- **Cave surface** = the lowest terrain height (`sampleSurfaceHeight`,
+  i.e. the sampler with streams and ledges) in a 13 × 13 square around
+  the column (radius `RADIUS_BLOCKS` 6). Per chunk from a 28 × 28 window,
+  cached per settings value (4,096 chunks, emptied when full or when the
+  tile store changes).
+- **Caves:** the carve path in `EarthChunkGenerator` lowers the
+  `terrainSurfaceYByColumn` array it hands the cave runner (min with the
+  real surface, so a lake bed stays lower). Both covers then count from
+  the cave surface. Noise caves map vanilla's column onto the shorter
+  column (`TellusCaveDepthMapper`), so under steep ground they sit lower.
+  The carvers' height range still comes from the real surface at the
+  source chunk's middle (`orderedCarvers(sourceSurfaceY)`); the mask cuts
+  them off, which can leave flat ceilings in tunnels near faces. Moving
+  that too would mean a cave surface per source chunk (17 × 17 per chunk).
+  The shell bottom (`generationFloorYByColumn`) is unchanged.
+- **Height-range features** (`HeightRangePlacementMixin`, via
+  `getUndergroundPlacementSurfaceY`): springs, underground lava lakes,
+  geodes, ores, lush-cave plants, monster rooms. A spring needs exactly
+  one open side, which inside the cave surface can only be a cave, so
+  lava and water no longer pour out of cliffs.
+- **Dropped features** (`shouldKeepFeatureId`): `lake_lava_surface`
+  (placed on the surface heightmap, not by height range) and
+  `rooted_azalea_tree`. The latter is lush caves' root system, which grows
+  up to 100 blocks to the surface and plants an azalea tree there; Tellus's
+  tree filter misses it (its `RootSystemConfiguration` doesn't list the
+  tree in `getFeatures`). The filtered biome settings are cached by
+  `geologyFlags`, so NZ worlds set bit 256.
+- **Lush caves** only where `NzCaves.lushCavesUnder` says: the
+  `vegetation` class is a forest (123, 130–135, 140–143) or mangrove
+  (153), or, without that layer, LCDB maps to ESA trees or mangroves.
+  Hook in `EarthBiomeSource.resolveCaveBiome` (lush chance 0 elsewhere).
+- **Measured (TERR-23 headless check, `testing.md`):** the caves open
+  to the sky are gone, while the cave volume drops only 4–5 % (60–80 %
+  fewer cave blocks within 20 blocks of the surface).
+- **Later:** glaciers (TERR-22) lower the cave surface to their bed;
+  cave mouths (TERR-24) raise it back to the ground where a mouth goes.
+
 ## 5. How settings reach the chunk generator
 
 1. **Preset:** `src/main/resources/data/tellus/worldgen/world_preset/earth.json`
@@ -405,6 +456,10 @@ matters).
    `NzSurface` instead of Tellus's surface palette and snow (§12).
 9. **Boulders (TERR-14):** `applyBiomeDecoration` calls `NzBoulders.place`
    right after `placeTrees` (§12, "Boulders").
+10. **Cave surface (TERR-23):** four hooks in `EarthChunkGenerator` (the
+   carve path, `getUndergroundPlacementSurfaceY`, `shouldKeepFeatureId`,
+   `geologyFlags`) and one in `EarthBiomeSource.resolveCaveBiome`, all
+   calling `NzCaves` (§4, "the cave surface").
 
 ## 7. Data sources: fetch, cache, sample
 

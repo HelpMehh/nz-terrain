@@ -779,6 +779,9 @@ public final class EarthBiomeSource extends BiomeSource {
       if (depth < LUSH_MIN_DEPTH) {
          lushChance = 0.0;
       }
+      if (this.nz != null && !com.yucareux.tellus.nz.terrain.NzCaves.lushCavesUnder(blockX, blockZ)) { // NZ: lush caves only under NZ forest (TERR-23)
+         lushChance = 0.0;
+      }
 
       if (depth < DRIPSTONE_MIN_DEPTH) {
          dripChance = 0.0;

@@ -468,12 +468,14 @@ public final class EarthChunkGenerator extends ChunkGenerator {
       EarthChunkGenerator.ChunkDecorationContext context = this.chunkDecorationContexts.get(
          MinecraftVersionCompat.packChunkPos(blockX >> 4, blockZ >> 4)
       );
-      return UndergroundPlacementSurfacePolicy.resolve(
+      int surfaceY = UndergroundPlacementSurfacePolicy.resolve(
          context != null ? context.terrainSurfaces() : null,
          blockX,
          blockZ,
          this::sampleSurfaceHeight
       );
+      // NZ: underground features stay below the NZ cave surface, like the caves (TERR-23)
+      return com.yucareux.tellus.nz.terrain.NzCaves.placementSurfaceY(this.settings, blockX, blockZ, surfaceY, this::sampleSurfaceHeight);
    }
 
    public boolean isUndergroundStructureFeaturePlacementBlocked(int blockX, int blockY, int blockZ) {
@@ -768,6 +770,10 @@ public final class EarthChunkGenerator extends ChunkGenerator {
                   }
                }
             }
+            // NZ: NZ worlds measure caves from the lowest ground nearby, so they stay inside slopes (TERR-23)
+            com.yucareux.tellus.nz.terrain.NzCaves.lowerToCaveSurface(
+               this.settings, chunk.getPos().getMinBlockX(), chunk.getPos().getMinBlockZ(), terrainSurfaceYByColumn, this::sampleSurfaceHeight
+            );
 
             boolean[] floodGuardColumns = computeFloodGuardColumns(waterFlags);
             int defaultFloodGuardY = this.seaLevel - SPAGHETTI_WATER_GUARD_DEPTH;
@@ -11420,6 +11426,10 @@ public final class EarthChunkGenerator extends ChunkGenerator {
          flags |= 128;
       }
 
+      if (com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(settings)) { // NZ: NZ worlds filter more features, so they get their own cache entries
+         flags |= 256;
+      }
+
       return flags;
    }
 
@@ -11451,6 +11461,9 @@ public final class EarthChunkGenerator extends ChunkGenerator {
       EarthGeneratorSettings settings,
       boolean keepBiomeDeepDarkFeatures
    ) {
+      if (com.yucareux.tellus.nz.terrain.NzCaves.dropsFeature(settings, path)) { // NZ: no surface lava lakes or azalea trees (TERR-23)
+         return false;
+      }
       if (settings.suppressesUndergroundGenerationForTerrainShell() && isThinShellUndergroundFeatureId(path)) {
          return false;
       } else if (path.equals("freeze_top_layer") || path.equals("snow_and_freeze")) {

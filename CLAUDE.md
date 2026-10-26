@@ -20,12 +20,14 @@ coordinates and tile format the generator reads are in
   streams from the `streams` layer (TERR-14 step 2, `NzStreams`) with
   slot gorges where the LiDAR shows a deep V (step 3), boulders
   (step 4, `NzBoulders`), cliff ledges (step 5, `NzLedges`),
-  and NZ surface blocks from
+  NZ surface blocks from
   the palette file `nz-terrain/surface-palette.jsonc` (TERR-11,
-  `com.yucareux.tellus.nz.terrain.NzSurface`; in-game tuning still open).
+  `com.yucareux.tellus.nz.terrain.NzSurface`; in-game tuning still open),
+  and Tellus's caves kept inside the ground by a lower "cave surface"
+  (TERR-23, `NzCaves`; desktop check still open).
   Biomes and trees are still Tellus's. Next step: see `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.15`** (TERR-14 done).
+  **`0.8.3+nz.16`** (TERR-23).
 
 ## Naming and versions (decided in TERR-6)
 
