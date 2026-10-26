@@ -792,4 +792,9 @@ Code: `0.8.3+nz.16`, tiles as in TERR-14 step 2.
     kept at the bush cliff. No azalea leaves (62 + 20 before, in the
     gorge area).
   - Chunk generation took about as long as before (about 10 s per area).
-- **Desktop check:** not done yet (`steps.md`, TERR-23).
+- **Desktop check (passed, 26 Oct 2026, `0.8.3+nz.16`)**, a new world in
+  the launcher instance: no more cave mouths, no water or lava on the
+  faces, and the caves are still there underneath. TERR-23 done. Seen in
+  passing: grass and dirt on ledge treads far above the tussock (about
+  2,400–2,530 m), from the TERR-14 ledge tread mix: recorded under
+  TERR-11 in `steps.md`.

@@ -272,6 +272,16 @@ them when they come up.
     dependency yet.
   - Checked headless: 98.9 % of 200,192 columns in the tuning box have a
     top from the right mix, at the right shares (`testing.md`).
+- **Found (TERR-23 desktop check, 26 Oct 2026, `0.8.3+nz.16`):** grass
+  and dirt on cliff ledges far above the tussock, at −73246, 100479
+  (Y 1,329, about 2,530 m) and −73306, 100643 (Y 1,264). Cause: the
+  `rock` surface's ledge tread `rock_ledge` (TERR-14 step 5) is 25 %
+  `grass_block` and 20 % `coarse_dirt` at any height; grass sits on dirt,
+  which shows on the step sides. Fix idea (palette only, tunable without
+  a rebuild): a high-rock surface above a height (tussock and herbfield
+  reach about 1,600–1,800 m here) whose tread is bare (gravel, andesite,
+  stone, some snow); the height is a choice to raise. Check what else
+  names `rock` (boulder rules, palette tests) before splitting it.
 - **Still to do:** tune in game in the tuning box and record the final
   choices (`surface-palette.md`, "Tuning in game"). Tick the step then.
 
@@ -390,7 +400,7 @@ them when they come up.
   (TERR-12).
 - **Needs:** TERR-12.
 
-### [ ] TERR-23 — Keep the cave layer inside the mountains
+### [x] TERR-23 — Keep the cave layer inside the mountains
 
 - **Goal:** caves, lava and cave biomes stay inside the ground. No holes
   in cliff faces, lava falls down mountainsides or 1-block crusts over
@@ -416,11 +426,11 @@ them when they come up.
     mouths come with the rock layer: TERR-24.
   - Lush caves only under forest and mangroves; no surface azalea trees
     (vanilla grows them above lush caves; not native).
-- **Built:** `0.8.3+nz.16`. Headless check passed (`testing.md`, "Cave
-  layer check").
-- **Still to do:** desktop check at the TERR-14 spots (above) and on a
-  bush cliff; then tick. Watch for flat-cut tunnel ceilings near steep
-  faces (carvers are cut off, not moved down) and springs.
+- **Done:** `0.8.3+nz.16`. Headless and desktop checks passed
+  (`testing.md`, "Cave layer check"): no cave mouths, no lava or water
+  on the faces, caves still underneath. If flat-cut tunnel ceilings near
+  steep faces ever bother (carvers are cut off, not moved down), see
+  `tellus-internals.md` §4.
 - **Also serves TERR-22:** glaciers lower the cave surface further, to
   their bed (hub plan `.claude/plans/glaciers.md`, step 2).
 

@@ -24,10 +24,10 @@ coordinates and tile format the generator reads are in
   the palette file `nz-terrain/surface-palette.jsonc` (TERR-11,
   `com.yucareux.tellus.nz.terrain.NzSurface`; in-game tuning still open),
   and Tellus's caves kept inside the ground by a lower "cave surface"
-  (TERR-23, `NzCaves`; desktop check still open).
+  (TERR-23, `NzCaves`).
   Biomes and trees are still Tellus's. Next step: see `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.16`** (TERR-23).
+  **`0.8.3+nz.16`** (TERR-23 done).
 
 ## Naming and versions (decided in TERR-6)
 
