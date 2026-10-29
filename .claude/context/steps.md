@@ -343,6 +343,16 @@ them when they come up.
   (`resolveLodSurface`, `resolveUltraFastLodSurface`): give them the NZ
   palette's top blocks (`NzSurfacePalette.land` and the water floors,
   with slope from the LOD's tile level; `tellus-internals.md` §12).
+- **Built (29 Oct 2026, `0.8.3+nz.17`):** `NzLodSurface` gives DH the
+  NZ palette at the LOD's tile level; requests coarser than the tiles read
+  the top level (far LODs had shown only sea floor); Tellus's shoreline
+  scan and shape refinement are skipped. Speed and design:
+  `tellus-internals.md` §9; numbers: `testing.md`.
+- **Left for later:** vegetation colour beyond the ground blocks. Grass
+  and leaf tints follow the biome (TERR-12), the distant canopy follows
+  Tellus's biome trees (TERR-13). Tellus's LOD biome is also the largest
+  remaining cost per LOD (TERR-12).
+- **Done when:** the desktop check in `testing.md` passes.
 
 ### [ ] TERR-16 — Test area 2 in game
 

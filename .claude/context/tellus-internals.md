@@ -460,6 +460,9 @@ matters).
    carve path, `getUndergroundPlacementSurfaceY`, `shouldKeepFeatureId`,
    `geologyFlags`) and one in `EarthBiomeSource.resolveCaveBiome`, all
    calling `NzCaves` (§4, "the cave surface").
+11. **DH fast LOD (TERR-15):** `TellusLodGenerator` takes its surface
+   blocks from `NzLodSurface`; `EarthChunkGenerator.buildLodShorelineCache`
+   and `shouldRefineLodSurfaceShape` skip their work for NZ worlds (§9).
 
 ## 7. Data sources: fetch, cache, sample
 
@@ -666,12 +669,48 @@ one of two generators per level (`shouldUseChunkLodGenerator` `:407`):
   `tellus_managed_terrain_downloads`, off by default) download whole areas
   ahead of DH, then generate LODs cache-only. Not needed for local tiles.
 
-For TERR-15: once the `sampleSurfaceHeight` family and the cover-class
-methods read our tiles, fast LOD shows NZ terrain with no DH-specific
-code. What's left is speed: a far LOD cell asks for a coarse resolution, so
-our tiles want a coarse pyramid or overviews instead of reading every 3 m
-pixel. HUB-2 gave the tiles coarse levels: detail d reads level d, whose
-pixels are 2^d blocks (hub `interfaces.md`).
+**NZ worlds (TERR-15, `0.8.3+nz.17`).** Heights, cover and water reach
+the fast LOD through the preload view and `NzWater.lodArea` (§6.3, §11),
+at the level of the cell: `previewResolutionMeters` = 3 m × cell, so
+detail d reads level d (`NzTerrainSampler.levelFor`). On top of that:
+
+- **Surfaces:** `TellusLodGenerator` asks `m262:nz/terrain/NzLodSurface`
+  instead of `resolveLodSurface` / `resolveUltraFastLodSurface` (field
+  `nzLodSurface`, null in other worlds). Rules in its Javadoc: the
+  palette's water floor or first land rule, from the water and LCDB class
+  and a Horn slope on the cell's level; filler = the top's own mix (face
+  mix on rock and on `bare_step` slopes). Why the filler: DH draws a
+  column as one top block over one filler down to the floor, and the side
+  of a column above its neighbour shows the filler; with dirt there, every
+  forested hillside showed a dirt stripe at each LOD step.
+- **Coarser than the tiles:** DH asks for details up to about 11 far
+  away (`LodSamplingGrid`, cells of 2,048 blocks). A request coarser
+  than a layer's top level reads the top level (`NzTiles.finestLevel`);
+  before TERR-15 it found nothing, and the sampler, water and surface all
+  answered "sea" (test area 1 has levels 0–7, so it vanished from
+  detail 8).
+- **Skipped for NZ:** Tellus's dense shoreline cache (detail ≤ 2: water
+  per block over the LOD plus a margin, all at level 0; 350 ms cold per
+  LOD) and the surface-shape refinement (5 extra height samples per
+  column up to detail 6). Only Tellus's LOD surfaces use them.
+- **Speed (scratch harness, test area 1, one thread, 64 × 64 columns
+  per LOD, cold tile cache):** after these changes 35–65 ms per LOD from
+  detail 1 up (detail 0 pays for level-0 streams and ledges once, about
+  330 ms, as chunks do). The parts: NZ samples 2–10 ms, NZ water 1–27 ms
+  (the coarse level's lakes and rivers are built once per tile, then
+  about 1 ms), NZ surfaces 2–6 ms, and **Tellus's LOD biome 20–25 ms**,
+  the largest part (Köppen and the biome rules, not tile reads; TERR-12
+  replaces it). The harness built `EarthChunkGenerator` and
+  `EarthBiomeSource` in a unit test (`VanillaRegistries.createLookup()`
+  for biomes, `tellus.gameDir`/`tellus.configDir` pointing at a temp
+  folder with `nz-terrain.json`) and called the phases of `buildLod`
+  in order. Tellus's own surface rules can't run there (biome tags
+  aren't bound). Rebuild it the same way to measure again.
+- **Not from the tiles yet:** biome tints (grass, leaves) and the canopy
+  (Tellus's `resolveMinecraftCanopyColumn` per biome, where the LCDB
+  forest classes map to ESA tree cover) come with TERR-12 and TERR-13.
+  The tiles' `canopy` layer exists only at level 0, so a distant canopy
+  height would need coarse levels of it.
 
 ## 10. Online features switched off for NZ worlds (TERR-9)
 
@@ -1003,10 +1042,11 @@ surface rules above run. The shell fill and `resolveMountainMassFillBlock`
   palette with a warning in the log and chat; a broken jar palette fails
   the tests. Mix picks hash the block position with a salt per place in
   the file, so they don't depend on the world seed or generation order.
+- **DH fast LOD (TERR-15):** the same palette, read at the LOD cell's
+  tile level, through `NzLodSurface` (§9).
 - **Not covered:** `getBaseColumn` still answers stone (only used for
-  heights and structures). DH's fast LOD still colours distant terrain
-  with Tellus's palette (`resolveLodSurface`, `resolveUltraFastLodSurface`):
-  TERR-15. The dormant refinement rebuild path (§4) has no surface hook.
+  heights and structures). The dormant refinement rebuild path (§4) has
+  no surface hook.
 - **Later stages that change NZ tops** (TERR-11 check, `testing.md`):
   - Tellus's tree pass (`placeTrees`, on ESA tree cover) sets the ground
     to grass wherever it tries a tree on a non-dirt block, even when the

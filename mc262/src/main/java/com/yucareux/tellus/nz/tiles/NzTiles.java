@@ -205,13 +205,16 @@ public final class NzTiles {
     * none has (hub {@code interfaces.md}, "Finest available level"). The pipeline writes each coarse tile wherever one
     * of its children exists, up to the top level in the manifest, so when every set lists its levels, a miss at the
     * top level means no level has data there (one lookup for the open ocean instead of one per level).
+    *
+    * <p>A request coarser than any level a set has reads the top level: DH asks for cells larger than the top level's
+    * pixels far away (TERR-15), and finer data is better than none.
     */
    public int finestLevel(NzTileLayer layer, int minLevel, int x, int z) {
       int top = this.topLevels[layer.ordinal()];
-      int from = Math.max(0, minLevel);
-      if (from > top) {
+      if (top < 0) {
          return -1;
       }
+      int from = Math.min(Math.max(0, minLevel), top);
       if (this.hasTile(layer, from, x, z)) {
          return from;
       }

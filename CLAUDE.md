@@ -23,11 +23,13 @@ coordinates and tile format the generator reads are in
   NZ surface blocks from
   the palette file `nz-terrain/surface-palette.jsonc` (TERR-11,
   `com.yucareux.tellus.nz.terrain.NzSurface`; in-game tuning still open),
-  and Tellus's caves kept inside the ground by a lower "cave surface"
-  (TERR-23, `NzCaves`).
+  Tellus's caves kept inside the ground by a lower "cave surface"
+  (TERR-23, `NzCaves`), and the same surface palette in Distant Horizons'
+  fast LOD, read at the LOD's coarse tile level (TERR-15,
+  `com.yucareux.tellus.nz.terrain.NzLodSurface`; desktop check open).
   Biomes and trees are still Tellus's. Next step: see `steps.md`.
 - Based on upstream Tellus `0.8.3` (commit `8c19ed8`). Latest NZ version:
-  **`0.8.3+nz.16`** (TERR-23 done).
+  **`0.8.3+nz.17`** (TERR-15 built).
 
 ## Naming and versions (decided in TERR-6)
 

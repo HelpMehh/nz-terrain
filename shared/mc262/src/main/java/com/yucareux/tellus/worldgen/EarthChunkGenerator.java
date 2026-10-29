@@ -5496,6 +5496,9 @@ public final class EarthChunkGenerator extends ChunkGenerator {
    }
 
    public boolean shouldRefineLodSurfaceShape(int rawCoverClass, int visualCoverClass, int surface, int slopeDiff, int convexity) {
+      if (com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(this.settings)) {
+         return false; // NZ: the shape only feeds Tellus's LOD surfaces; NZ LOD surfaces take their slope from the tiles (TERR-15)
+      }
       int effectiveCoverClass = this.resolveEffectiveCoverClassForTerrain(rawCoverClass);
       int surfaceCoverClass = this.resolveSurfaceCoverClassForTerrain(effectiveCoverClass, visualCoverClass);
       int heightAboveSea = surface - this.seaLevel;
@@ -6768,7 +6771,8 @@ public final class EarthChunkGenerator extends ChunkGenerator {
       long width = (long)maxX - (long)minX + 1L;
       long height = (long)maxZ - (long)minZ + 1L;
       long area = width * height;
-      return area > (long)LOD_SHORELINE_DENSE_CACHE_MAX_AREA
+      // NZ: only Tellus's LOD surfaces read shorelines, and NZ worlds use their own (TERR-15): skip the dense block-by-block scan
+      return area > (long)LOD_SHORELINE_DENSE_CACHE_MAX_AREA || com.yucareux.tellus.nz.NzWorldSettings.isNzWorld(this.settings)
          ? new EarthChunkGenerator.SparseLodShorelineCache(previewResolutionMeters)
          : this.buildDenseLodShorelineCache(minX, maxX, minZ, maxZ, (int)width, (int)height, previewResolutionMeters);
    }

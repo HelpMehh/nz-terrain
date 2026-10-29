@@ -798,3 +798,50 @@ Code: `0.8.3+nz.16`, tiles as in TERR-14 step 2.
   passing: grass and dirt on ledge treads far above the tussock (about
   2,400–2,530 m), from the TERR-14 ledge tread mix: recorded under
   TERR-11 in `steps.md`.
+
+## DH fast LOD check (TERR-15, 29 Oct 2026)
+
+Code: `0.8.3+nz.17`, tiles: test area 1 (`data/tiles/test-area-1`, data
+`2026-10-23`, levels 0–7).
+
+- **Build:** passes, 732 tests (600 upstream + 132 NZ), 0 failures,
+  1 skipped (the online WorldCover test). New: `NzLodSurfaceTest` (only
+  NZ worlds; flat forest with forest-floor tops and sides; land rules by
+  the level's LCDB class; the slope from a level-2 ramp, rock face and
+  scree; a request coarser than the top level; water floors and outside
+  the data; snow cover on the top only). `NzTilesTest`: coarser requests
+  read the top level.
+- **Speed, measured headless** with a scratch unit test that builds the
+  NZ generator and calls the phases of DH's `buildLod` (how to rebuild
+  it, and the numbers per phase: `tellus-internals.md` §9). Per LOD of
+  64 × 64 columns, one thread, cold tile cache, near the spawn:
+
+  | Detail (cell) | Before | After |
+  |---|---|---|
+  | 0 (1 block) | 368 ms | 370 ms (level-0 streams and ledges, once) |
+  | 1 (2) | 66 ms | 37 ms |
+  | 2 (4) | 419 ms | 59 ms |
+  | 3–7 (8–128) | 47–74 ms | 39–65 ms |
+  | 8–9 (256–512) | 12–13 ms, **no land** (all sea floor) | 26–35 ms, land |
+
+  "Before" holds only the start of Tellus's surface rules (they stop at
+  the first biome-tag check in a unit test, about 12 ms per LOD), so the
+  real gain is larger than the table shows. The
+  remaining cost is mostly Tellus's LOD biome, 20–25 ms per LOD
+  (TERR-12).
+- **Headless server check: not run.** The changes are only in DH's
+  code path and in reading levels above the top one, which only DH asks
+  for, and DH isn't on the dev server.
+- **Desktop check (to do):** in the launcher instance with stock DH,
+  a **new** world: DH keeps the LODs it generated in
+  `DistantHorizons.sqlite`, so an old world keeps Tellus's colours until
+  that file is deleted. Look for:
+  - distant colours that match the near terrain: bush (podzol and moss
+    browns under the trees), tussock, scree and gravel flats, rock faces,
+    snow and glacier ice on the main divide;
+  - forested hillsides without stripes at each LOD step;
+  - the seam where DH LODs meet loaded chunks (the straight-edged patches
+    in the shallow sea floor seen in TERR-8);
+  - land all the way out (very far LODs used to show only sea floor);
+  - fill time at 256 and 512 chunks compared with TERR-1 above (DH's
+    progress estimate).

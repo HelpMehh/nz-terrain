@@ -156,6 +156,7 @@ public final class TellusLodGenerator implements IDhApiWorldGenerator {
    private final ThreadLocal<TellusLodGenerator.WrapperCache> wrapperCache;
    private final LodPrefetchBatcher lodPrefetchBatcher;
    private final String managedTerrainKey;
+   private final com.yucareux.tellus.nz.terrain.NzLodSurface nzLodSurface; // NZ: null except in NZ worlds
 
    public TellusLodGenerator(IDhApiLevelWrapper levelWrapper, EarthChunkGenerator generator) {
       this.generator = generator;
@@ -166,6 +167,7 @@ public final class TellusLodGenerator implements IDhApiWorldGenerator {
          LOD_PREFETCH_BATCH_WINDOW_MS, LOD_PREFETCH_BATCH_MAX_REQUESTS, this::startLodPrefetch
       );
       this.managedTerrainKey = ManagedTerrainAvailability.key(generator);
+      this.nzLodSurface = com.yucareux.tellus.nz.terrain.NzLodSurface.forSettings(generator.settings()); // NZ: NZ surface palette in the LOD (TERR-15)
    }
 
    public static boolean isTimingEnabled() {
@@ -760,7 +762,9 @@ public final class TellusLodGenerator implements IDhApiWorldGenerator {
                   boolean reusePrecomputedSurface = !hasBuilding || surfaceY == originalSurfaceY;
                   long generatorSurfaceResolveNanos = 0L;
                   EarthChunkGenerator.LodSurface lodSurface;
-                  if (reusePrecomputedSurface) {
+                  if (this.nzLodSurface != null) { // NZ: NZ surface palette at the LOD's tile level (TERR-15)
+                     lodSurface = this.nzLodSurface.surface(worldX, worldZ, surfaceY, underwater, previewResolutionMeters);
+                  } else if (reusePrecomputedSurface) {
                      if (emitTimingEnabled) {
                         long generatorStart = System.nanoTime();
                         lodSurface = this.generator.resolveLodSurface(
@@ -1494,7 +1498,9 @@ public final class TellusLodGenerator implements IDhApiWorldGenerator {
             }
 
             long columnPhaseStart = emitTimingEnabled ? System.nanoTime() : 0L;
-            EarthChunkGenerator.LodSurface lodSurface = this.generator.resolveUltraFastLodSurface(
+            EarthChunkGenerator.LodSurface lodSurface = this.nzLodSurface != null // NZ: NZ surface palette at the LOD's tile level (TERR-15)
+               ? this.nzLodSurface.surface(worldX, worldZ, surfaceY, underwater, previewResolutionMeters)
+               : this.generator.resolveUltraFastLodSurface(
                biomeHolder,
                worldX,
                worldZ,

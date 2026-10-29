@@ -4,6 +4,25 @@ NZ changes on top of upstream Tellus, one entry per version, newest first.
 Upstream's own changes are not listed; the part of the version before `+nz`
 is the Tellus version it is based on.
 
+## 0.8.3+nz.17 (TERR-15, 29 Oct 2026)
+
+- Distant Horizons' distant terrain now uses the NZ surface palette, like
+  the chunks: forest floor, tussock, scree, gravel flats, rock, snow and
+  glacier ice in the distance instead of Tellus's Earth colours. The
+  surface is picked from each distant cell's land cover and slope at the
+  tiles' coarse level, so a cell shows what the ground averages to there:
+  a small cliff inside a forest slope stays forest far away.
+- The sides of distant columns show the surface's own blocks (or rock on
+  rock faces), so forested hillsides stay forest-coloured from afar
+  instead of showing a stripe of dirt at each step.
+- Very far terrain no longer vanishes: when DH asks for cells coarser
+  than the tiles' coarsest level (beyond level 7 in test area 1), the
+  coarsest level is used instead of nothing, which had shown sea floor.
+- Faster distant terrain near the player: DH no longer scans every block
+  around a near LOD for Tellus's shorelines (up to a third of a second
+  per LOD the first time), and no longer samples extra heights for
+  Tellus's slope rules. Neither is used in NZ worlds.
+
 ## 0.8.3+nz.16 (TERR-23, 26 Oct 2026)
 
 - Caves stay inside the mountains: no more holes in cliff faces, caves

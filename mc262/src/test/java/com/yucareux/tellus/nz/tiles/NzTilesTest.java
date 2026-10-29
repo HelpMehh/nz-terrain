@@ -62,10 +62,14 @@ class NzTilesTest {
       assertEquals(1, tiles.finestLevel(NzTileLayer.HEIGHT, 1, x, z));
       assertEquals(1, tiles.finestLevel(NzTileLayer.HEIGHT, 0, coarseOnlyX, coarseOnlyZ));
       assertEquals(-1, tiles.finestLevel(NzTileLayer.HEIGHT, 0, 0, 0));
-      // The manifest lists height only up to level 1.
-      assertEquals(-1, tiles.finestLevel(NzTileLayer.HEIGHT, 2, x, z));
+      // The manifest lists height only up to level 1: coarser requests read level 1 (DH far away, TERR-15).
+      assertEquals(1, tiles.finestLevel(NzTileLayer.HEIGHT, 2, x, z));
+      assertEquals(1, tiles.finestLevel(NzTileLayer.HEIGHT, 9, x, z));
+      assertEquals(-1, tiles.finestLevel(NzTileLayer.HEIGHT, 9, 0, 0));
       assertEquals(0, tiles.finestLevel(NzTileLayer.CANOPY, 0, x, z));
-      assertEquals(-1, tiles.finestLevel(NzTileLayer.CANOPY, 1, x, z));
+      assertEquals(0, tiles.finestLevel(NzTileLayer.CANOPY, 1, x, z));
+      // A layer no set has.
+      assertEquals(-1, tiles.finestLevel(NzTileLayer.ROCK, 0, x, z));
    }
 
    @Test
